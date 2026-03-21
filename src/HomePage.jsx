@@ -83,8 +83,17 @@ export default function HomePage({ onOpenStory }) {
   const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff)
   const archiveDates = dates.filter(d => d < thisWeekCutoff)
 
-  const featured = currentStories.find(s => s.featured) || currentStories[0]
-  const rest = currentStories.filter(s => s !== featured)
+  const sportsCategories = ['SPORTS']
+  const weatherCategories = ['WEATHER']
+  const newsStories = currentStories.filter(s => !sportsCategories.includes(s.category) && !weatherCategories.includes(s.category))
+  const sportsStories = currentStories.filter(s => sportsCategories.includes(s.category))
+  const weatherStories = currentStories.filter(s => weatherCategories.includes(s.category))
+
+  const featured = currentStories.find(s => s.featured) || newsStories[0]
+  const newsRest = newsStories.filter(s => s !== featured)
+  const sportsRest = sportsStories.filter(s => s !== featured)
+  const weatherRest = weatherStories.filter(s => s !== featured)
+  const rest = newsRest
 
   return (
     <>
@@ -208,7 +217,7 @@ export default function HomePage({ onOpenStory }) {
           <div className="flex-1 h-px bg-rule" />
         </div>
 
-        {/* Story Grid */}
+        {/* News Story Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {rest.map((story, i) => (
             <StoryCard
@@ -219,6 +228,48 @@ export default function HomePage({ onOpenStory }) {
             />
           ))}
         </div>
+
+        {/* === SPORTS SECTION === */}
+        {sportsRest.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center gap-3 mb-6">
+              <Trophy size={14} className="text-orange-600" />
+              <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Sports</h2>
+              <div className="flex-1 h-px bg-rule" />
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {sportsRest.map((story, i) => (
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  index={i}
+                  onClick={() => onOpenStory(story.id)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* === WEATHER SECTION === */}
+        {weatherRest.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center gap-3 mb-6">
+              <CloudLightning size={14} className="text-violet-600" />
+              <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Weather</h2>
+              <div className="flex-1 h-px bg-rule" />
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {weatherRest.map((story, i) => (
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  index={i}
+                  onClick={() => onOpenStory(story.id)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* === SAVED PROFILES === */}
         {savedProfiles.length > 0 && (
