@@ -1,0 +1,61 @@
+{
+  "brand": {
+    "name": "WCPO",
+    "tagline": "9 News",
+    "city": "Cincinnati",
+    "slogan": "Where Cincinnati Comes First"
+  },
+  "stories": [
+    {
+      "id": "opening-day",
+      "category": "SPORTS",
+      "categoryColor": "#c43d2e",
+      "headline": "Reds Opening Day Is Thursday. Plan Your Perfect Day.",
+      "subhead": "Road closures, parade routes, and 80,000 fans converge on the Banks. Use this planner to navigate it all.",
+      "image": "baseball",
+      "timestamp": "March 21, 2026",
+      "readTime": "Interactive Planner",
+      "featured": true
+    },
+    {
+      "id": "safety-survey",
+      "category": "INVESTIGATION",
+      "categoryColor": "#0d7377",
+      "headline": "Only 32% of Residents Feel Safe in Cincinnati",
+      "subhead": "A new city survey reveals a sharp drop in public confidence. Explore how your neighborhood compares.",
+      "image": "shield",
+      "timestamp": "March 20, 2026",
+      "readTime": "Interactive Explorer"
+    },
+    {
+      "id": "bridge-impact",
+      "category": "TRANSPORTATION",
+      "categoryColor": "#b8860b",
+      "headline": "The Bridge That Vanished: Life After Fourth Street",
+      "subhead": "11,600 daily drivers and 700 pedestrians lost their route. Calculate what the 2.5-year closure costs you.",
+      "image": "bridge",
+      "timestamp": "March 19, 2026",
+      "readTime": "Impact Calculator"
+    },
+    {
+      "id": "sidewalk-repair",
+      "category": "YOUR NEIGHBORHOOD",
+      "categoryColor": "#6b21a8",
+      "headline": "The City Fixed 55 Sidewalks for Free. Is Yours Next?",
+      "subhead": "A $100K pilot helped homeowners who couldn't afford repairs. Check if your neighborhood qualifies for expansion.",
+      "image": "construction",
+      "timestamp": "March 20, 2026",
+      "readTime": "Eligibility Checker"
+    },
+    {
+      "id": "sharon-lake",
+      "category": "OUTDOORS",
+      "categoryColor": "#0e7490",
+      "headline": "Sharon Lake Is Back. $17 Million Later, It's Stunning.",
+      "subhead": "New boardwalks, doubled wetlands, kayak launches — plan your first visit to the reimagined park.",
+      "image": "trees",
+      "timestamp": "March 19, 2026",
+      "readTime": "Visit Planner"
+    }
+  ]
+}
