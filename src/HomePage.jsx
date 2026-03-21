@@ -187,65 +187,20 @@ export default function HomePage({ onOpenStory }) {
             onClick={() => onOpenStory(featured.id)}
             className="group cursor-pointer mb-10"
           >
-            <div className={`grid md:grid-cols-5 gap-6 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
-              <div
-                className="md:col-span-3 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative overflow-hidden"
-                style={{ backgroundColor: featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e' }}
-              >
-                {(featured.photo || storyPhotos[featured.id]) && (
-                  <img
-                    src={featured.photo || storyPhotos[featured.id]}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                )}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: featured.category === 'BREAKING'
-                      ? 'linear-gradient(to bottom right, rgba(127,29,29,0.75), rgba(185,28,28,0.65))'
-                      : 'linear-gradient(to bottom right, rgba(26,26,46,0.75), rgba(196,18,48,0.55))',
-                  }}
-                />
-                <div className="relative z-10 p-8 sm:p-12 flex flex-col justify-between flex-1">
-                <div className="flex items-center gap-2">
-                  {featured.category === 'BREAKING' && (
-                    <span className="bg-white text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded animate-pulse">BREAKING</span>
-                  )}
-                  <span
-                    className="text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded w-fit"
-                    style={{ backgroundColor: (featured.categoryColor || '#c41230') + '33', color: '#fff' }}
-                  >
-                    {featured.category === 'BREAKING' ? 'ONGOING CRISIS' : featured.category}
-                  </span>
-                </div>
-                <div>
-                  {featured.category === 'BREAKING' ? (
-                    <div className="flex items-center gap-3 mb-3">
-                      <Flame size={32} className="text-red-300/50" />
-                      <div className="text-white/70 font-mono text-sm">
-                        <span className="text-3xl font-bold text-white">7</span> dead &middot;{' '}
-                        <span className="text-3xl font-bold text-white">22</span> fires &middot;{' '}
-                        <span className="text-3xl font-bold text-white">500%</span> increase
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-12 h-12 text-white/30">
-                        <Baseline />
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-white/50 text-sm">
-                    {featured.category === 'BREAKING' ? 'Updated March 21, 2026 \u00b7 Cincinnati Fire Department' : 'March 26, 2026 \u00b7 Great American Ball Park'}
-                  </p>
-                </div>
-                </div>
-              </div>
-              <div className="md:col-span-2 p-6 sm:p-8 flex flex-col justify-center">
+            <div className={`grid md:grid-cols-2 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
+              {/* Hero image — plain img, no layering tricks */}
+              <img
+                src={featured.photo || storyPhotos[featured.id]}
+                alt={featured.headline}
+                className="w-full h-64 md:h-auto object-cover"
+              />
+              <div className="p-6 sm:p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-2 mb-3">
+                  {featured.category === 'BREAKING' && (
+                    <span className="bg-red-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded animate-pulse">BREAKING</span>
+                  )}
                   <span className="text-xs font-bold uppercase tracking-wider" style={{ color: featured.categoryColor }}>
-                    {featured.category}
+                    {featured.category === 'BREAKING' ? 'ONGOING CRISIS' : featured.category}
                   </span>
                   <span className="text-xs text-ink-muted">&middot; {featured.readTime}</span>
                 </div>
