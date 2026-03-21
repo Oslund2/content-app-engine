@@ -10,6 +10,7 @@ import BengalsDraft from './stories/BengalsDraft'
 import FCCincinnati from './stories/FCCincinnati'
 import StormReady from './stories/StormReady'
 import FloodRisk from './stories/FloodRisk'
+import FireCrisis from './stories/FireCrisis'
 
 const storyComponents = {
   'opening-day': OpeningDayPlanner,
@@ -21,6 +22,7 @@ const storyComponents = {
   'fc-cincinnati': FCCincinnati,
   'storm-ready': StormReady,
   'flood-risk': FloodRisk,
+  'fire-crisis': FireCrisis,
 }
 
 export default function StoryApp() {

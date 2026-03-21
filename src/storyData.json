@@ -7,6 +7,17 @@
   },
   "stories": [
     {
+      "id": "fire-crisis",
+      "category": "BREAKING",
+      "categoryColor": "#dc2626",
+      "headline": "7 Dead. 22 Fires. Cincinnati Has Never Seen This Before.",
+      "subhead": "Residential fire deaths are up 500% this year. Check if your home is safe — it takes 2 minutes.",
+      "image": "fire",
+      "timestamp": "March 21, 2026",
+      "readTime": "Safety Assessment",
+      "featured": true
+    },
+    {
       "id": "opening-day",
       "category": "SPORTS",
       "categoryColor": "#c43d2e",
@@ -15,7 +26,7 @@
       "image": "baseball",
       "timestamp": "March 21, 2026",
       "readTime": "Interactive Planner",
-      "featured": true
+      "featured": false
     },
     {
       "id": "safety-survey",

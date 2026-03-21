@@ -4,7 +4,7 @@ import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
   MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
-  Trophy, CloudLightning, Droplets
+  Trophy, CloudLightning, Droplets, Flame
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -19,6 +19,7 @@ const storyIcons = {
   soccer: Circle,
   storm: CloudLightning,
   flood: Droplets,
+  fire: Flame,
 }
 
 function Baseline() {
@@ -172,21 +173,39 @@ export default function HomePage({ onOpenStory }) {
             onClick={() => onOpenStory(featured.id)}
             className="group cursor-pointer mb-10"
           >
-            <div className="grid md:grid-cols-5 gap-6 bg-white rounded-xl border border-rule overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <div className="md:col-span-3 bg-gradient-to-br from-wcpo-dark to-wcpo-red/80 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px]">
-                <span
-                  className="text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded w-fit"
-                  style={{ backgroundColor: (featured.categoryColor || '#c41230') + '33', color: '#fff' }}
-                >
-                  {featured.category}
-                </span>
+            <div className={`grid md:grid-cols-5 gap-6 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
+              <div className={`md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] ${featured.category === 'BREAKING' ? 'bg-gradient-to-br from-red-900 to-red-700' : 'bg-gradient-to-br from-wcpo-dark to-wcpo-red/80'}`}>
+                <div className="flex items-center gap-2">
+                  {featured.category === 'BREAKING' && (
+                    <span className="bg-white text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded animate-pulse">BREAKING</span>
+                  )}
+                  <span
+                    className="text-xs font-bold tracking-widest uppercase px-2.5 py-1 rounded w-fit"
+                    style={{ backgroundColor: (featured.categoryColor || '#c41230') + '33', color: '#fff' }}
+                  >
+                    {featured.category === 'BREAKING' ? 'ONGOING CRISIS' : featured.category}
+                  </span>
+                </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-12 h-12 text-white/30">
-                      <Baseline />
+                  {featured.category === 'BREAKING' ? (
+                    <div className="flex items-center gap-3 mb-3">
+                      <Flame size={32} className="text-red-300/50" />
+                      <div className="text-white/70 font-mono text-sm">
+                        <span className="text-3xl font-bold text-white">7</span> dead &middot;{' '}
+                        <span className="text-3xl font-bold text-white">22</span> fires &middot;{' '}
+                        <span className="text-3xl font-bold text-white">500%</span> increase
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-white/50 text-sm">March 26, 2026 &middot; Great American Ball Park</p>
+                  ) : (
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-12 h-12 text-white/30">
+                        <Baseline />
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-white/50 text-sm">
+                    {featured.category === 'BREAKING' ? 'Updated March 21, 2026 \u00b7 Cincinnati Fire Department' : 'March 26, 2026 \u00b7 Great American Ball Park'}
+                  </p>
                 </div>
               </div>
               <div className="md:col-span-2 p-6 sm:p-8 flex flex-col justify-center">
@@ -398,6 +417,7 @@ function StoryCard({ story, index, onClick }) {
     soccer: { bg: 'bg-blue-100', text: 'text-blue-700' },
     storm: { bg: 'bg-violet-100', text: 'text-violet-700' },
     flood: { bg: 'bg-sky-100', text: 'text-sky-700' },
+    fire: { bg: 'bg-red-100', text: 'text-red-700' },
   }
   const colors = iconColors[story.image] || { bg: 'bg-gray-100', text: 'text-gray-600' }
   const Icon = storyIcons[story.image] || Construction
