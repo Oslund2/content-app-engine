@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const pilotNeighborhoods = [
   { name: 'South Fairmount', eligible: true, repairsCompleted: 12, income: 38200 },
@@ -73,6 +74,7 @@ export default function SidewalkChecker({ onBack }) {
   const [quizStep, setQuizStep] = useState(0)
   const [answers, setAnswers] = useState({})
   const [showResults, setShowResults] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const hood = allNeighborhoods.find(n => n.name === neighborhood)
 
@@ -81,7 +83,7 @@ export default function SidewalkChecker({ onBack }) {
     if (quizStep < quizQuestions.length - 1) {
       setQuizStep(q => q + 1)
     } else {
-      setShowResults(true)
+      setShowInterstitial(true)
     }
   }
 
@@ -140,6 +142,8 @@ export default function SidewalkChecker({ onBack }) {
         ))}
       </div>
 
+      <AdSlot.Insight storyId="sidewalk-repair" />
+
       <Divider />
 
       {/* Interactive checker */}
@@ -196,6 +200,10 @@ export default function SidewalkChecker({ onBack }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showInterstitial && !showResults && (
+        <AdSlot.Interstitial storyId="sidewalk-repair" onComplete={() => setShowResults(true)} />
+      )}
 
       <AnimatePresence>
         {showResults && (
@@ -280,6 +288,8 @@ export default function SidewalkChecker({ onBack }) {
               Scaling to the entire city would require roughly $12 million — a number that's aspirational but not unthinkable,
               given that it's less than 1% of the city's annual budget. The question, as always, is priorities.
             </p>
+
+            <AdSlot.ResultCard storyId="sidewalk-repair" />
 
             <SaveButton
               label="Save Your Eligibility Report"

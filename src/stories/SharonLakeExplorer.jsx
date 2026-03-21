@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const interests = [
   { id: 'hiking', label: 'Hiking & Trails', icon: Footprints, color: 'emerald' },
@@ -85,6 +86,7 @@ export default function SharonLakeExplorer({ onBack }) {
   const [selectedInterests, setSelectedInterests] = useState([])
   const [visitDay, setVisitDay] = useState('weekday')
   const [showPlan, setShowPlan] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const toggleInterest = (id) => {
     setSelectedInterests(prev =>
@@ -145,6 +147,8 @@ export default function SharonLakeExplorer({ onBack }) {
         Still coming: redesigned harbor (fall 2026 – spring 2028), permanent boathouse, kayak rentals (summer 2026).
       </p>
 
+      <AdSlot.Insight storyId="sharon-lake" />
+
       <Divider />
 
       {/* Interest selector */}
@@ -193,11 +197,15 @@ export default function SharonLakeExplorer({ onBack }) {
 
       {selectedInterests.length > 0 && (
         <button
-          onClick={() => setShowPlan(true)}
+          onClick={() => setShowInterstitial(true)}
           className="flex items-center gap-2 text-cyan-700 font-medium hover:gap-3 transition-all duration-200 mb-6"
         >
           Build my visit plan <ChevronRight size={16} />
         </button>
+      )}
+
+      {showInterstitial && !showPlan && (
+        <AdSlot.Interstitial storyId="sharon-lake" onComplete={() => setShowPlan(true)} />
       )}
 
       <AnimatePresence>
@@ -277,6 +285,8 @@ export default function SharonLakeExplorer({ onBack }) {
               but hadn't visited in years. The $17 million bet by Great Parks is that a reimagined version can change that.
               Based on what's already open, it's a bet that's paying off.
             </p>
+
+            <AdSlot.ResultCard storyId="sharon-lake" />
 
             <SaveButton
               label="Save Your Visit Plan"

@@ -4,6 +4,7 @@ import { Shield, AlertTriangle, TrendingDown, Users, ChevronRight, CheckCircle2,
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const neighborhoods = {
   'downtown-otr': { name: 'Downtown / OTR', safety: 28, neighborhood: 42, crime: 20, services: 45, improvement: -8 },
@@ -31,6 +32,7 @@ const historicalData = [
 export default function SafetyExplorer({ onBack }) {
   const [selected, setSelected] = useState('')
   const [showComparison, setShowComparison] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const hood = selected ? neighborhoods[selected] : null
 
@@ -103,7 +105,7 @@ export default function SafetyExplorer({ onBack }) {
         {Object.entries(neighborhoods).map(([id, n]) => (
           <button
             key={id}
-            onClick={() => { setSelected(id); setShowComparison(true) }}
+            onClick={() => { setSelected(id); setShowInterstitial(true); setShowComparison(false) }}
             className={`text-left px-3 py-2.5 rounded-lg border-2 text-sm transition-all
               ${selected === id ? 'border-teal bg-teal-bg' : 'border-rule bg-white hover:border-ink-muted'}`}
           >
@@ -111,6 +113,10 @@ export default function SafetyExplorer({ onBack }) {
           </button>
         ))}
       </div>
+
+      {showInterstitial && !showComparison && (
+        <AdSlot.Interstitial storyId="safety-survey" onComplete={() => setShowComparison(true)} />
+      )}
 
       <AnimatePresence>
         {showComparison && hood && (
@@ -199,6 +205,8 @@ export default function SafetyExplorer({ onBack }) {
               </div>
             </div>
 
+            <AdSlot.Insight storyId="safety-survey" />
+
             {/* Narrative conclusion */}
             <p className="text-lg text-ink-light leading-relaxed mb-4">
               The survey's authors note that timing matters: it was conducted in fall 2025, after several high-profile incidents.
@@ -208,6 +216,8 @@ export default function SafetyExplorer({ onBack }) {
               What changes this? The data suggests it's not just policing — residents who rated city services higher also reported feeling safer,
               regardless of their neighborhood's crime statistics. Perception, it turns out, is infrastructure.
             </p>
+
+            <AdSlot.ResultCard storyId="safety-survey" />
 
             <SaveButton
               label="Save Your Neighborhood Safety Profile"

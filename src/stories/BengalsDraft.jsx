@@ -4,6 +4,7 @@ import { Shield, Star, ChevronRight, ArrowRight, AlertTriangle, Users, Trophy, T
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const teamNeeds = [
   { position: 'EDGE', priority: 95, label: 'Edge Rusher', reason: 'Bottom-5 pass rush in 2025. Mafe signing helps but need more.' },
@@ -35,6 +36,7 @@ export default function BengalsDraft({ onBack }) {
   const [selectedProspect, setSelectedProspect] = useState(null)
   const [userPick, setUserPick] = useState(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const prospect = selectedProspect ? prospects.find(p => p.name === selectedProspect) : null
 
@@ -92,6 +94,8 @@ export default function BengalsDraft({ onBack }) {
           </div>
         ))}
       </div>
+
+      <AdSlot.Insight storyId="bengals-draft" />
 
       <Divider />
 
@@ -206,7 +210,7 @@ export default function BengalsDraft({ onBack }) {
             {/* Confirm pick */}
             {!userPick && (
               <button
-                onClick={() => { setUserPick(prospect.name); setShowAnalysis(true) }}
+                onClick={() => { setUserPick(prospect.name); setShowInterstitial(true) }}
                 className="w-full py-4 rounded-xl bg-[#FB4F14] text-white font-bold text-lg hover:bg-orange-600 active:scale-[0.98] transition-all mb-6"
               >
                 Draft {prospect.name} at #10
@@ -215,6 +219,10 @@ export default function BengalsDraft({ onBack }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {showInterstitial && !showAnalysis && (
+        <AdSlot.Interstitial storyId="bengals-draft" onComplete={() => setShowAnalysis(true)} />
+      )}
 
       <AnimatePresence>
         {showAnalysis && userPick && fitScore && (
@@ -239,6 +247,8 @@ export default function BengalsDraft({ onBack }) {
             <p className="text-lg text-ink-light leading-relaxed mb-8">
               The real draft is April 23 in Pittsburgh. When the Bengals are on the clock, remember this moment — and see how close you came.
             </p>
+
+            <AdSlot.ResultCard storyId="bengals-draft" />
 
             <SaveButton
               label="Save Your Draft Pick"

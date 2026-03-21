@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CloudLightning, AlertTriangle, Home, Users, Radio, Battery, Droplets, Wind, CheckCircle2, XCircle, ArrowRight, ShieldCheck } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const questions = [
   {
@@ -82,13 +83,14 @@ export default function StormReady({ onBack }) {
   const [currentQ, setCurrentQ] = useState(0)
   const [area, setArea] = useState('')
   const [showResults, setShowResults] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const handleAnswer = (questionId, value) => {
     setAnswers(prev => ({ ...prev, [questionId]: value }))
     if (currentQ < questions.length - 1) {
       setCurrentQ(q => q + 1)
     } else {
-      setShowResults(true)
+      setShowInterstitial(true)
     }
   }
 
@@ -194,6 +196,8 @@ export default function StormReady({ onBack }) {
         )}
       </div>
 
+      <AdSlot.Insight storyId="storm-ready" />
+
       <Divider />
 
       {/* Quiz */}
@@ -229,6 +233,10 @@ export default function StormReady({ onBack }) {
           </div>
         </motion.div>
       ))}
+
+      {showInterstitial && !showResults && (
+        <AdSlot.Interstitial storyId="storm-ready" onComplete={() => setShowResults(true)} />
+      )}
 
       <AnimatePresence>
         {showResults && results && (
@@ -273,6 +281,8 @@ export default function StormReady({ onBack }) {
             <p className="text-lg text-ink-light leading-relaxed mb-8">
               Cincinnati's tornado season runs March through June. The next storm isn't hypothetical — it's Sunday.
             </p>
+
+            <AdSlot.ResultCard storyId="storm-ready" />
 
             <SaveButton
               label="Save Your Readiness Report"

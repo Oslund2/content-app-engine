@@ -1,0 +1,265 @@
+{
+  "direct": {
+    "fire-crisis": {
+      "interstitial": {
+        "sponsor": "First Alert",
+        "logo": "🔔",
+        "headline": "Free Smoke Detector Events in Cincinnati",
+        "body": "First Alert is partnering with CFD for free installation clinics this spring. Protect your family.",
+        "cta": "Find a Clinic",
+        "ctaUrl": "#",
+        "bgColor": "#1e3a5f"
+      },
+      "result": {
+        "sponsor": "ADT Security",
+        "logo": "🛡️",
+        "headline": "24/7 Smoke & Fire Monitoring",
+        "body": "ADT-monitored smoke detectors alert emergency services even when you're not home. Cincinnati homeowners get $0 installation this month.",
+        "cta": "Get a Free Quote",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "Cincinnati Insurance Company",
+        "text": "Only 12% of Hamilton County homeowners have reviewed their fire coverage in the past 3 years — yet the average residential fire claim in Ohio exceeds $78,000."
+      }
+    },
+    "opening-day": {
+      "interstitial": {
+        "sponsor": "Uber",
+        "logo": "🚗",
+        "headline": "Skip the Parking. Ride to the Game.",
+        "body": "Use code REDSDAY26 for $10 off your ride to Great American Ball Park on March 26.",
+        "cta": "Open Uber",
+        "ctaUrl": "#",
+        "bgColor": "#000000"
+      },
+      "result": {
+        "sponsor": "Budweiser",
+        "logo": "🍺",
+        "headline": "The Official Beer of Opening Day",
+        "body": "Find Budweiser at every concession stand at GABP. Cheers to 150 years of Reds baseball.",
+        "cta": "View Drink Specials",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "StubHub",
+        "text": "Opening Day tickets are averaging $127 on the secondary market — 34% higher than last year, driven by the 150th anniversary ceremony."
+      }
+    },
+    "safety-survey": {
+      "interstitial": {
+        "sponsor": "Ring",
+        "logo": "📹",
+        "headline": "See Who's There. From Anywhere.",
+        "body": "Ring Video Doorbell starts at $59.99. Cincinnati's top-rated home security solution.",
+        "cta": "Shop Ring",
+        "ctaUrl": "#",
+        "bgColor": "#1c96e8"
+      },
+      "result": {
+        "sponsor": "SimpliSafe",
+        "logo": "🏠",
+        "headline": "Home Security That Fits Your Neighborhood",
+        "body": "No contracts, no hidden fees. Professional monitoring for $0.50/day. Free shipping to your Cincinnati address.",
+        "cta": "Build Your System",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "Cincinnati Police Foundation",
+        "text": "CPF has funded 340 neighborhood security cameras through its community partnership program since 2023 — covering 18 Cincinnati neighborhoods."
+      }
+    },
+    "bridge-impact": {
+      "interstitial": {
+        "sponsor": "Toyota of Florence",
+        "logo": "🚙",
+        "headline": "5 Minutes From Your New Detour Route",
+        "body": "Right off I-71/75 in Florence. New 2026 models in stock. No bridge needed.",
+        "cta": "See Inventory",
+        "ctaUrl": "#",
+        "bgColor": "#cc0000"
+      },
+      "result": {
+        "sponsor": "TANK Transit",
+        "logo": "🚌",
+        "headline": "Free Shuttle During Bridge Closure",
+        "body": "TANK's free shuttle runs every 30 minutes between Covington and Newport. Save gas, save time, save money.",
+        "cta": "View Schedule",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "AAA Ohio",
+        "text": "AAA estimates the average NKY commuter will spend an additional $1,847 in fuel and vehicle wear over the closure period — roughly $62/month that wasn't in anyone's budget."
+      }
+    },
+    "sidewalk-repair": {
+      "interstitial": {
+        "sponsor": "Home Depot",
+        "logo": "🏗️",
+        "headline": "DIY Concrete Repair Starts at $12",
+        "body": "Quikrete crack filler, leveling compound, and patching mix. In stock at your Glenway Ave store.",
+        "cta": "Shop Concrete",
+        "ctaUrl": "#",
+        "bgColor": "#f96302"
+      },
+      "result": {
+        "sponsor": "Habitat for Humanity of Greater Cincinnati",
+        "logo": "🔨",
+        "headline": "Critical Home Repair Program",
+        "body": "Income-qualifying homeowners can apply for free exterior repairs including walkways and accessibility ramps.",
+        "cta": "Check Eligibility",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "City of Cincinnati DOTE",
+        "text": "The average sidewalk panel replacement in Cincinnati costs $1,800 — but homeowners who use the city's approved contractor list save 15-20% versus independent bids."
+      }
+    },
+    "sharon-lake": {
+      "interstitial": {
+        "sponsor": "REI Co-op",
+        "logo": "🏕️",
+        "headline": "Gear Up for Sharon Lake",
+        "body": "Kayaks, hiking boots, and birding optics. REI Kenwood — 12 minutes from the park.",
+        "cta": "Shop Local Store",
+        "ctaUrl": "#",
+        "bgColor": "#1a472a"
+      },
+      "result": {
+        "sponsor": "Great Parks Foundation",
+        "logo": "🌿",
+        "headline": "Support Parks Like Sharon Lake",
+        "body": "Your donation funds trail maintenance, wetland restoration, and free nature programs. Every dollar stays local.",
+        "cta": "Donate",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "Great Parks of Hamilton County",
+        "text": "Great Parks saw a 23% increase in annual motor vehicle permits sold in 2025 — driven by demand for outdoor recreation that hasn't slowed since the pandemic."
+      }
+    },
+    "bengals-draft": {
+      "interstitial": {
+        "sponsor": "DraftKings",
+        "logo": "👑",
+        "headline": "Draft Night Prop Bets Are Live",
+        "body": "Who goes #10? DraftKings has odds on every first-round pick. New users get $200 in bonus bets.",
+        "cta": "See Draft Odds",
+        "ctaUrl": "#",
+        "bgColor": "#0d0d0d"
+      },
+      "result": {
+        "sponsor": "NFL Shop",
+        "logo": "🏈",
+        "headline": "Be First to Rep the Pick",
+        "body": "New Bengals draft jerseys ship within 48 hours of the selection. Pre-order alerts available now.",
+        "cta": "Set Alert",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "Bally's Sportsbook",
+        "text": "Bengals over/under win total for 2026 is set at 10.5 — the highest since the Burrow era began, reflecting $126M in defensive free agent investment."
+      }
+    },
+    "fc-cincinnati": {
+      "interstitial": {
+        "sponsor": "TQL Stadium",
+        "logo": "⚽",
+        "headline": "Season Tickets Starting at $22/Match",
+        "body": "Lock in 2026 pricing before the World Cup bump. Best atmosphere in MLS.",
+        "cta": "View Packages",
+        "ctaUrl": "#",
+        "bgColor": "#003087"
+      },
+      "result": {
+        "sponsor": "Adidas",
+        "logo": "👟",
+        "headline": "2026 FC Cincinnati Kit",
+        "body": "The new home kit is here. Authentic and replica versions available. Free shipping over $50.",
+        "cta": "Shop Now",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "MLS Season Pass on Apple TV",
+        "text": "FC Cincinnati home matches are averaging 25,500 attendance through 5 games — 3rd highest in MLS and 4% above last season's pace."
+      }
+    },
+    "storm-ready": {
+      "interstitial": {
+        "sponsor": "Batteries Plus",
+        "logo": "🔋",
+        "headline": "Emergency Kit Essentials In Stock",
+        "body": "Flashlights, weather radios, backup batteries. West Chester and Eastgate locations open 7 days.",
+        "cta": "Shop Emergency",
+        "ctaUrl": "#",
+        "bgColor": "#003366"
+      },
+      "result": {
+        "sponsor": "State Farm",
+        "logo": "🏠",
+        "headline": "Does Your Policy Cover Wind Damage?",
+        "body": "Many Ohio homeowners have a separate wind/hail deductible. Your State Farm agent can review your coverage in 10 minutes.",
+        "cta": "Find an Agent",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "National Weather Service Wilmington",
+        "text": "The average lead time for tornado warnings in the Cincinnati metro is 13 minutes — but 40% of fatalities occur in mobile homes, where no lead time is enough without a pre-planned shelter location."
+      }
+    },
+    "flood-risk": {
+      "interstitial": {
+        "sponsor": "Cincinnati Insurance",
+        "logo": "🌊",
+        "headline": "Flood Insurance Has a 30-Day Waiting Period",
+        "body": "If you're in a flood zone, the time to buy is before the river rises. Get a quote in 5 minutes.",
+        "cta": "Get a Quote",
+        "ctaUrl": "#",
+        "bgColor": "#1a365d"
+      },
+      "result": {
+        "sponsor": "FEMA / FloodSmart.gov",
+        "logo": "🏛️",
+        "headline": "Check Your Flood Zone",
+        "body": "FEMA's flood map tool shows your exact risk level. Most flood damage isn't covered by standard homeowner's insurance.",
+        "cta": "Check Your Address",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "National Flood Insurance Program",
+        "text": "The average flood claim in Ohio pays out $52,000 — but fewer than 3% of Hamilton County homeowners outside FEMA zones carry flood insurance, despite increasing flash flood frequency."
+      }
+    }
+  },
+  "programmatic": {
+    "fallback": [
+      {
+        "sponsor": "Amazon",
+        "logo": "📦",
+        "headline": "Same-Day Delivery to Cincinnati",
+        "body": "Whatever you need, whenever you need it. Free delivery with Prime.",
+        "cta": "Shop Now",
+        "ctaUrl": "#",
+        "bgColor": "#232f3e"
+      },
+      {
+        "sponsor": "T-Mobile",
+        "logo": "📱",
+        "headline": "Cincinnati's Fastest 5G Network",
+        "body": "Stream, game, and connect on America's largest 5G network. Switch today and save.",
+        "cta": "See Plans",
+        "ctaUrl": "#",
+        "bgColor": "#e20074"
+      },
+      {
+        "sponsor": "Kroger",
+        "logo": "🛒",
+        "headline": "Fresh Savings This Week",
+        "body": "Digital coupons loaded to your Kroger Plus card. Shop your local Cincinnati store.",
+        "cta": "View Deals",
+        "ctaUrl": "#",
+        "bgColor": "#003b71"
+      }
+    ]
+  }
+}

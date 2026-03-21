@@ -7,6 +7,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const fireTimeline = [
   { date: 'Jan 5', neighborhood: 'Winton Place', fatal: false, deaths: 0 },
@@ -142,6 +143,7 @@ export default function FireCrisis({ onBack }) {
   const [answers, setAnswers] = useState({})
   const [showResults, setShowResults] = useState(false)
   const [showDispatch, setShowDispatch] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const hood = selectedHood ? neighborhoods[selectedHood] : null
 
@@ -150,7 +152,7 @@ export default function FireCrisis({ onBack }) {
     if (quizStep < quizQuestions.length - 1) {
       setQuizStep(s => s + 1)
     } else {
-      setShowResults(true)
+      setShowInterstitial(true)
     }
   }
 
@@ -245,6 +247,9 @@ export default function FireCrisis({ onBack }) {
       </div>
 
       {/* Year comparison */}
+      {/* Branded insight — mid-narrative */}
+      <AdSlot.Insight storyId="fire-crisis" />
+
       <h2 className="font-serif text-2xl font-bold text-ink mb-2">The Anomaly</h2>
       <p className="text-sm text-ink-muted mb-4">Fire deaths, Jan–Mar (same 11-week period)</p>
       <div className="bg-white border border-rule rounded-xl p-5 mb-10">
@@ -347,6 +352,11 @@ export default function FireCrisis({ onBack }) {
         </motion.div>
       ))}
 
+      {/* Interstitial — after quiz, before results */}
+      {showInterstitial && !showResults && (
+        <AdSlot.Interstitial storyId="fire-crisis" onComplete={() => setShowResults(true)} />
+      )}
+
       <AnimatePresence>
         {showResults && results && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -439,6 +449,9 @@ export default function FireCrisis({ onBack }) {
               The only thing that consistently saves lives in a residential fire happens before the fire starts:
               a working detector, a plan, and a clear path out. Those three things cost less than dinner for two.
             </p>
+
+            {/* Sponsored result card */}
+            <AdSlot.ResultCard storyId="fire-crisis" />
 
             <SaveButton
               label="Save Your Fire Safety Report"

@@ -4,6 +4,7 @@ import { Droplets, MapPin, TrendingUp, AlertTriangle, Home, ArrowRight, Waves } 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const floodStages = {
   action: { level: 46, label: 'Action Stage', color: '#ca8a04', desc: 'Authorities monitor conditions. Low-lying roads may start flooding.' },
@@ -79,6 +80,7 @@ export default function FloodRisk({ onBack }) {
   const [neighborhood, setNeighborhood] = useState('')
   const [simLevel, setSimLevel] = useState(46)
   const [showSim, setShowSim] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
 
   const hood = neighborhood ? neighborhoods[neighborhood] : null
 
@@ -188,6 +190,8 @@ export default function FloodRisk({ onBack }) {
         ))}
       </div>
 
+      <AdSlot.Insight storyId="flood-risk" />
+
       <Divider />
 
       {/* Neighborhood selector */}
@@ -196,7 +200,7 @@ export default function FloodRisk({ onBack }) {
 
       <select
         value={neighborhood}
-        onChange={e => { setNeighborhood(e.target.value); setShowSim(true) }}
+        onChange={e => { setNeighborhood(e.target.value); setShowInterstitial(true); setShowSim(false) }}
         className="w-full px-4 py-3 rounded-lg border-2 border-rule bg-white text-ink text-sm focus:border-blue-500 focus:outline-none mb-6"
       >
         <option value="">Select your neighborhood...</option>
@@ -204,6 +208,10 @@ export default function FloodRisk({ onBack }) {
           <option key={n} value={n}>{n}</option>
         ))}
       </select>
+
+      {showInterstitial && !showSim && (
+        <AdSlot.Interstitial storyId="flood-risk" onComplete={() => setShowSim(true)} />
+      )}
 
       <AnimatePresence>
         {showSim && hood && (
@@ -265,6 +273,8 @@ export default function FloodRisk({ onBack }) {
               Bookmark this page. As the river rises, come back and check what each reading means
               for your neighborhood in real time.
             </p>
+
+            <AdSlot.ResultCard storyId="flood-risk" />
 
             <SaveButton
               label="Save Your Flood Risk Profile"

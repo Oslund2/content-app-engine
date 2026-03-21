@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const neighborhoods = [
   { id: 'downtown', name: 'Downtown / OTR', driveMin: 5, walkMin: 15, transitMin: 10, parkingCost: 35, tip: 'Walk to the Banks — skip parking entirely.' },
@@ -40,6 +41,8 @@ export default function OpeningDayPlanner({ onBack }) {
   const [transport, setTransport] = useState('drive')
   const [priorities, setPriorities] = useState({ parade: true, tailgate: false, earlyEntry: true })
   const [step, setStep] = useState(0)
+  const [showInterstitial, setShowInterstitial] = useState(false)
+  const [showPlan, setShowPlan] = useState(false)
 
   const hood = neighborhoods.find(n => n.id === neighborhood)
 
@@ -123,7 +126,7 @@ export default function OpeningDayPlanner({ onBack }) {
               ].map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  onClick={() => { setTransport(id); if (step < 2) setStep(2) }}
+                  onClick={() => { setTransport(id); if (step < 2) { setStep(2); setShowInterstitial(true) } else { setShowInterstitial(true); setShowPlan(false) } }}
                   className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all
                     ${transport === id
                       ? 'border-wcpo-red bg-red-50'
@@ -168,8 +171,12 @@ export default function OpeningDayPlanner({ onBack }) {
         )}
       </AnimatePresence>
 
+      {showInterstitial && !showPlan && (
+        <AdSlot.Interstitial storyId="opening-day" onComplete={() => setShowPlan(true)} />
+      )}
+
       <AnimatePresence>
-        {step >= 2 && plan && !plan.error && (
+        {showPlan && step >= 2 && plan && !plan.error && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Divider />
 
@@ -195,6 +202,8 @@ export default function OpeningDayPlanner({ onBack }) {
                 <p className="text-sm text-amber-700">{plan.tip}</p>
               </div>
             </div>
+
+            <AdSlot.Insight storyId="opening-day" />
 
             {/* Timeline */}
             <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-4">Your Timeline</h3>
@@ -230,6 +239,8 @@ export default function OpeningDayPlanner({ onBack }) {
                 ))}
               </ul>
             </div>
+
+            <AdSlot.ResultCard storyId="opening-day" />
 
             {/* Save */}
             <SaveButton

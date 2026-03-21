@@ -4,6 +4,7 @@ import { Trophy, TrendingUp, Calendar, ChevronRight, Target, Star, Users, ArrowR
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const matches = [
   { week: 1, date: 'Feb 21', opponent: 'Atlanta United', home: true, result: 'W', score: '2-0', scorers: ['Denkey', 'Hagglund'], attendance: 25513 },
@@ -35,6 +36,7 @@ const PTS_DRAW = 1
 export default function FCCincinnati({ onBack }) {
   const [predictions, setPredictions] = useState({})
   const [showProjection, setShowProjection] = useState(false)
+  const [showInterstitial, setShowInterstitial] = useState(false)
   const [fanConfidence, setFanConfidence] = useState(70)
 
   const currentRecord = useMemo(() => {
@@ -150,6 +152,8 @@ export default function FCCincinnati({ onBack }) {
         ))}
       </div>
 
+      <AdSlot.Insight storyId="fc-cincinnati" />
+
       <Divider />
 
       {/* Predict upcoming */}
@@ -189,11 +193,15 @@ export default function FCCincinnati({ onBack }) {
 
       {Object.keys(predictions).length >= 2 && (
         <button
-          onClick={() => setShowProjection(true)}
+          onClick={() => setShowInterstitial(true)}
           className="flex items-center gap-2 text-blue-700 font-medium hover:gap-3 transition-all duration-200 mb-6"
         >
           Project the season <ArrowRight size={16} />
         </button>
+      )}
+
+      {showInterstitial && !showProjection && (
+        <AdSlot.Interstitial storyId="fc-cincinnati" onComplete={() => setShowProjection(true)} />
       )}
 
       <AnimatePresence>
@@ -270,6 +278,8 @@ export default function FCCincinnati({ onBack }) {
               any summer signings — will determine whether these early-season projections hold or dissolve.
               But for now, the math says this team is in the conversation.
             </p>
+
+            <AdSlot.ResultCard storyId="fc-cincinnati" />
 
             <SaveButton
               label="Save Your Season Projection"

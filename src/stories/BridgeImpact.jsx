@@ -4,6 +4,7 @@ import { Construction, MapPin, Clock, DollarSign, Car, Fuel, Calendar, TrendingU
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import AdSlot from '../components/AdSlot'
 
 const origins = {
   'covington': { name: 'Covington', oldMin: 6, newMin: 18, oldMiles: 1.5, newMiles: 5.2, pedestrian: true },
@@ -30,6 +31,8 @@ export default function BridgeImpact({ onBack }) {
   const [origin, setOrigin] = useState('')
   const [tripsPerWeek, setTripsPerWeek] = useState(5)
   const [step, setStep] = useState(0)
+  const [showInterstitial, setShowInterstitial] = useState(false)
+  const [showResults, setShowResults] = useState(false)
 
   const loc = origin ? origins[origin] : null
 
@@ -101,7 +104,7 @@ export default function BridgeImpact({ onBack }) {
         {Object.entries(origins).map(([id, o]) => (
           <button
             key={id}
-            onClick={() => { setOrigin(id); if (step < 1) setStep(1) }}
+            onClick={() => { setOrigin(id); if (step < 1) { setStep(1); setShowInterstitial(true) } else { setShowInterstitial(true); setShowResults(false) } }}
             className={`text-left px-4 py-3 rounded-lg border-2 transition-all
               ${origin === id ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-rule bg-white hover:border-ink-muted'}`}
           >
@@ -114,8 +117,12 @@ export default function BridgeImpact({ onBack }) {
         ))}
       </div>
 
+      {showInterstitial && !showResults && (
+        <AdSlot.Interstitial storyId="bridge-impact" onComplete={() => setShowResults(true)} />
+      )}
+
       <AnimatePresence>
-        {step >= 1 && impact && !impact.note && (
+        {showResults && step >= 1 && impact && !impact.note && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Trip frequency */}
             <SectionLabel number="2" text="How often do you cross?" />
@@ -198,6 +205,8 @@ export default function BridgeImpact({ onBack }) {
               </div>
             </div>
 
+            <AdSlot.Insight storyId="bridge-impact" />
+
             {/* TANK shuttle info */}
             <div className="bg-teal-bg border border-teal/20 rounded-xl p-5 mb-8">
               <p className="text-sm font-semibold text-teal mb-1">Free Alternative: TANK Shuttle</p>
@@ -213,6 +222,8 @@ export default function BridgeImpact({ onBack }) {
               What makes them worth tracking is the compound effect — the kind of cost that's easy to dismiss on any given Tuesday,
               but impossible to ignore across 30 months of Tuesdays.
             </p>
+
+            <AdSlot.ResultCard storyId="bridge-impact" />
 
             <SaveButton
               label="Save Your Commute Impact Report"
