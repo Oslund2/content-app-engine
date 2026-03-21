@@ -13,6 +13,7 @@
       "headline": "7 Dead. 22 Fires. Cincinnati Has Never Seen This Before.",
       "subhead": "Residential fire deaths are up 500% this year. Check if your home is safe — it takes 2 minutes.",
       "image": "fire",
+      "photo": "https://images.unsplash.com/photo-1486551937199-baf066858de7?w=1200&q=80&fit=crop",
       "timestamp": "March 21, 2026",
       "readTime": "Safety Assessment",
       "featured": true
@@ -24,6 +25,7 @@
       "headline": "Reds Opening Day Is Thursday. Plan Your Perfect Day.",
       "subhead": "Road closures, parade routes, and 80,000 fans converge on the Banks. Use this planner to navigate it all.",
       "image": "baseball",
+      "photo": "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=800&q=80&fit=crop",
       "timestamp": "March 21, 2026",
       "readTime": "Interactive Planner",
       "featured": false
@@ -35,6 +37,7 @@
       "headline": "Only 32% of Residents Feel Safe in Cincinnati",
       "subhead": "A new city survey reveals a sharp drop in public confidence. Explore how your neighborhood compares.",
       "image": "shield",
+      "photo": "https://images.unsplash.com/photo-1453873531674-2151bcd01707?w=800&q=80&fit=crop",
       "timestamp": "March 20, 2026",
       "readTime": "Interactive Explorer"
     },
@@ -45,6 +48,7 @@
       "headline": "The Bridge That Vanished: Life After Fourth Street",
       "subhead": "11,600 daily drivers and 700 pedestrians lost their route. Calculate what the 2.5-year closure costs you.",
       "image": "bridge",
+      "photo": "https://images.unsplash.com/photo-1513036191774-b2badb8fcb76?w=800&q=80&fit=crop",
       "timestamp": "March 19, 2026",
       "readTime": "Impact Calculator"
     },
@@ -55,6 +59,7 @@
       "headline": "The City Fixed 55 Sidewalks for Free. Is Yours Next?",
       "subhead": "A $100K pilot helped homeowners who couldn't afford repairs. Check if your neighborhood qualifies for expansion.",
       "image": "construction",
+      "photo": "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80&fit=crop",
       "timestamp": "March 20, 2026",
       "readTime": "Eligibility Checker"
     },
@@ -65,6 +70,7 @@
       "headline": "Sharon Lake Is Back. $17 Million Later, It's Stunning.",
       "subhead": "New boardwalks, doubled wetlands, kayak launches — plan your first visit to the reimagined park.",
       "image": "trees",
+      "photo": "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80&fit=crop",
       "timestamp": "March 19, 2026",
       "readTime": "Visit Planner"
     },
@@ -75,6 +81,7 @@
       "headline": "You Have the 10th Pick. Who Do You Take?",
       "subhead": "The Bengals spent $126M on defense. Now the draft is 33 days away. Step into the war room.",
       "image": "football",
+      "photo": "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80&fit=crop",
       "timestamp": "March 21, 2026",
       "readTime": "Draft Simulator"
     },
@@ -85,6 +92,7 @@
       "headline": "Five Matches In. Where Is This Season Going?",
       "subhead": "FC Cincinnati is 2W-2D-1L. Predict the next four matches and we'll project the full season.",
       "image": "soccer",
+      "photo": "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80&fit=crop",
       "timestamp": "March 21, 2026",
       "readTime": "Season Tracker"
     },
@@ -95,6 +103,7 @@
       "headline": "Are You Ready for What's Coming?",
       "subhead": "Tornadoes killed 6 on March 5. More severe storms are forecast Sunday. Take the readiness check.",
       "image": "storm",
+      "photo": "https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=800&q=80&fit=crop",
       "timestamp": "March 21, 2026",
       "readTime": "Readiness Check"
     },
@@ -105,6 +114,7 @@
       "headline": "The River Is Rising. What Does It Mean for You?",
       "subhead": "The Ohio River is approaching action stage. See what each foot of water means for your neighborhood.",
       "image": "flood",
+      "photo": "https://images.unsplash.com/photo-1547683905-f686c993aae5?w=800&q=80&fit=crop",
       "timestamp": "March 21, 2026",
       "readTime": "Flood Explorer"
     }

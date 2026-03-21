@@ -32,6 +32,19 @@ function Baseline() {
   )
 }
 
+const storyPhotos = {
+  'fire-crisis': 'https://images.unsplash.com/photo-1486551937199-baf066858de7?w=1200&q=80&fit=crop',
+  'opening-day': 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=800&q=80&fit=crop',
+  'safety-survey': 'https://images.unsplash.com/photo-1453873531674-2151bcd01707?w=800&q=80&fit=crop',
+  'bridge-impact': 'https://images.unsplash.com/photo-1513036191774-b2badb8fcb76?w=800&q=80&fit=crop',
+  'sidewalk-repair': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80&fit=crop',
+  'sharon-lake': 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80&fit=crop',
+  'bengals-draft': 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80&fit=crop',
+  'fc-cincinnati': 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80&fit=crop',
+  'storm-ready': 'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=800&q=80&fit=crop',
+  'flood-risk': 'https://images.unsplash.com/photo-1547683905-f686c993aae5?w=800&q=80&fit=crop',
+}
+
 // Map DB rows back to the format our components expect
 function dbToStory(row) {
   return {
@@ -41,6 +54,7 @@ function dbToStory(row) {
     headline: row.headline,
     subhead: row.subhead,
     image: row.image,
+    photo: storyPhotos[row.id],
     timestamp: formatDate(row.publish_date),
     readTime: row.read_time,
     featured: row.featured,
@@ -174,7 +188,15 @@ export default function HomePage({ onOpenStory }) {
             className="group cursor-pointer mb-10"
           >
             <div className={`grid md:grid-cols-5 gap-6 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
-              <div className={`md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] ${featured.category === 'BREAKING' ? 'bg-gradient-to-br from-red-900 to-red-700' : 'bg-gradient-to-br from-wcpo-dark to-wcpo-red/80'}`}>
+              <div
+                className={`md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative bg-cover bg-center ${featured.category === 'BREAKING' ? '' : ''}`}
+                style={{
+                  backgroundImage: featured.photo
+                    ? `linear-gradient(to bottom right, ${featured.category === 'BREAKING' ? 'rgba(127,29,29,0.85), rgba(185,28,28,0.75)' : 'rgba(26,26,46,0.8), rgba(196,18,48,0.6)'}), url(${featured.photo})`
+                    : undefined,
+                  backgroundColor: !featured.photo ? (featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e') : undefined,
+                }}
+              >
                 <div className="flex items-center gap-2">
                   {featured.category === 'BREAKING' && (
                     <span className="bg-white text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded animate-pulse">BREAKING</span>
@@ -430,8 +452,25 @@ function StoryCard({ story, index, onClick }) {
       onClick={onClick}
       className="group cursor-pointer bg-white rounded-lg border border-rule overflow-hidden hover:shadow-md hover:border-rule-light transition-all duration-200"
     >
-      <div className="h-1" style={{ backgroundColor: story.categoryColor }} />
+      {/* Photo or color bar */}
+      {(story.photo || storyPhotos[story.id]) ? (
+        <div
+          className="h-36 bg-cover bg-center relative"
+          style={{ backgroundImage: `url(${story.photo || storyPhotos[story.id]})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute bottom-2 left-3 flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-black/40 text-white">
+              {story.category}
+            </span>
+            <span className="text-[10px] text-white/80">{story.readTime}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="h-1" style={{ backgroundColor: story.categoryColor }} />
+      )}
       <div className="p-5">
+        {!(story.photo || storyPhotos[story.id]) && (
         <div className="flex items-center gap-3 mb-3">
           <div className={`w-9 h-9 rounded-lg ${colors.bg} flex items-center justify-center`}>
             <Icon size={16} className={colors.text} />
@@ -443,6 +482,7 @@ function StoryCard({ story, index, onClick }) {
             <p className="text-[10px] text-ink-muted">{story.readTime}</p>
           </div>
         </div>
+        )}
         <h3 className="font-serif text-lg font-bold text-ink leading-snug mb-2 group-hover:text-wcpo-red transition-colors">
           {story.headline}
         </h3>
