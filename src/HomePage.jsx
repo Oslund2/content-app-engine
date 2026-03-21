@@ -191,10 +191,10 @@ export default function HomePage({ onOpenStory }) {
               <div
                 className={`md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative bg-cover bg-center ${featured.category === 'BREAKING' ? '' : ''}`}
                 style={{
-                  backgroundImage: featured.photo
-                    ? `linear-gradient(to bottom right, ${featured.category === 'BREAKING' ? 'rgba(127,29,29,0.85), rgba(185,28,28,0.75)' : 'rgba(26,26,46,0.8), rgba(196,18,48,0.6)'}), url(${featured.photo})`
+                  backgroundImage: (featured.photo || storyPhotos[featured.id])
+                    ? `linear-gradient(to bottom right, ${featured.category === 'BREAKING' ? 'rgba(127,29,29,0.7), rgba(185,28,28,0.6)' : 'rgba(26,26,46,0.7), rgba(196,18,48,0.5)'}), url(${featured.photo || storyPhotos[featured.id]})`
                     : undefined,
-                  backgroundColor: !featured.photo ? (featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e') : undefined,
+                  backgroundColor: !(featured.photo || storyPhotos[featured.id]) ? (featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e') : undefined,
                 }}
               >
                 <div className="flex items-center gap-2">
