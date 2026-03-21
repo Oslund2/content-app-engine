@@ -72,13 +72,14 @@ export default function HomePage({ onOpenStory }) {
 
   // Use local JSON as fallback if Supabase hasn't loaded or returned empty
   const stories = allStories.length > 0 ? allStories : storyData.stories
-  const todayStr = '2026-03-21'
-  const todayStories = stories.filter(s => s.publishDate === todayStr || !s.publishDate)
-  const archiveStories = stories.filter(s => s.publishDate && s.publishDate !== todayStr)
-  const archiveDates = dates.filter(d => d !== todayStr)
+  // Show all this week's stories on the main page; archive is for older weeks
+  const thisWeekCutoff = '2026-03-15' // Monday of current week
+  const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff)
+  const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff)
+  const archiveDates = dates.filter(d => d < thisWeekCutoff)
 
-  const featured = todayStories.find(s => s.featured) || todayStories[0]
-  const rest = todayStories.filter(s => s !== featured)
+  const featured = currentStories.find(s => s.featured) || currentStories[0]
+  const rest = currentStories.filter(s => s !== featured)
 
   return (
     <>
