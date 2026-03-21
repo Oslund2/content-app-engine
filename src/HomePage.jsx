@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
-  MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2
+  MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
+  Trophy, CloudLightning, Droplets
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -14,6 +15,10 @@ const storyIcons = {
   bridge: Construction,
   construction: Construction,
   trees: Trees,
+  football: Trophy,
+  soccer: Circle,
+  storm: CloudLightning,
+  flood: Droplets,
 }
 
 function Baseline() {
@@ -338,6 +343,10 @@ function StoryCard({ story, index, onClick }) {
     bridge: { bg: 'bg-amber-100', text: 'text-amber-700' },
     construction: { bg: 'bg-purple-100', text: 'text-purple-700' },
     trees: { bg: 'bg-cyan-100', text: 'text-cyan-700' },
+    football: { bg: 'bg-orange-100', text: 'text-orange-700' },
+    soccer: { bg: 'bg-blue-100', text: 'text-blue-700' },
+    storm: { bg: 'bg-violet-100', text: 'text-violet-700' },
+    flood: { bg: 'bg-sky-100', text: 'text-sky-700' },
   }
   const colors = iconColors[story.image] || { bg: 'bg-gray-100', text: 'text-gray-600' }
   const Icon = storyIcons[story.image] || Construction

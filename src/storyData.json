@@ -56,6 +56,46 @@
       "image": "trees",
       "timestamp": "March 19, 2026",
       "readTime": "Visit Planner"
+    },
+    {
+      "id": "bengals-draft",
+      "category": "SPORTS",
+      "categoryColor": "#FB4F14",
+      "headline": "You Have the 10th Pick. Who Do You Take?",
+      "subhead": "The Bengals spent $126M on defense. Now the draft is 33 days away. Step into the war room.",
+      "image": "football",
+      "timestamp": "March 21, 2026",
+      "readTime": "Draft Simulator"
+    },
+    {
+      "id": "fc-cincinnati",
+      "category": "SPORTS",
+      "categoryColor": "#003087",
+      "headline": "Five Matches In. Where Is This Season Going?",
+      "subhead": "FC Cincinnati is 2W-2D-1L. Predict the next four matches and we'll project the full season.",
+      "image": "soccer",
+      "timestamp": "March 21, 2026",
+      "readTime": "Season Tracker"
+    },
+    {
+      "id": "storm-ready",
+      "category": "WEATHER",
+      "categoryColor": "#7c3aed",
+      "headline": "Are You Ready for What's Coming?",
+      "subhead": "Tornadoes killed 6 on March 5. More severe storms are forecast Sunday. Take the readiness check.",
+      "image": "storm",
+      "timestamp": "March 21, 2026",
+      "readTime": "Readiness Check"
+    },
+    {
+      "id": "flood-risk",
+      "category": "WEATHER",
+      "categoryColor": "#0369a1",
+      "headline": "The River Is Rising. What Does It Mean for You?",
+      "subhead": "The Ohio River is approaching action stage. See what each foot of water means for your neighborhood.",
+      "image": "flood",
+      "timestamp": "March 21, 2026",
+      "readTime": "Flood Explorer"
     }
   ]
 }
