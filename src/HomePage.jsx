@@ -189,14 +189,25 @@ export default function HomePage({ onOpenStory }) {
           >
             <div className={`grid md:grid-cols-5 gap-6 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
               <div
-                className="md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative"
-                style={{
-                  backgroundImage: `linear-gradient(to bottom right, ${featured.category === 'BREAKING' ? 'rgba(127,29,29,0.7), rgba(185,28,28,0.6)' : 'rgba(26,26,46,0.7), rgba(196,18,48,0.5)'}), url(${featured.photo || storyPhotos[featured.id] || ''})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  backgroundColor: featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e',
-                }}
+                className="md:col-span-3 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative overflow-hidden"
+                style={{ backgroundColor: featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e' }}
               >
+                {(featured.photo || storyPhotos[featured.id]) && (
+                  <img
+                    src={featured.photo || storyPhotos[featured.id]}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: featured.category === 'BREAKING'
+                      ? 'linear-gradient(to bottom right, rgba(127,29,29,0.75), rgba(185,28,28,0.65))'
+                      : 'linear-gradient(to bottom right, rgba(26,26,46,0.75), rgba(196,18,48,0.55))',
+                  }}
+                />
+                <div className="relative z-10 p-8 sm:p-12 flex flex-col justify-between flex-1">
                 <div className="flex items-center gap-2">
                   {featured.category === 'BREAKING' && (
                     <span className="bg-white text-red-700 text-[10px] font-extrabold px-2 py-0.5 rounded animate-pulse">BREAKING</span>
@@ -228,6 +239,7 @@ export default function HomePage({ onOpenStory }) {
                   <p className="text-white/50 text-sm">
                     {featured.category === 'BREAKING' ? 'Updated March 21, 2026 \u00b7 Cincinnati Fire Department' : 'March 26, 2026 \u00b7 Great American Ball Park'}
                   </p>
+                </div>
                 </div>
               </div>
               <div className="md:col-span-2 p-6 sm:p-8 flex flex-col justify-center">
