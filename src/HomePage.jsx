@@ -189,12 +189,12 @@ export default function HomePage({ onOpenStory }) {
           >
             <div className={`grid md:grid-cols-5 gap-6 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
               <div
-                className={`md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative bg-cover bg-center ${featured.category === 'BREAKING' ? '' : ''}`}
+                className="md:col-span-3 p-8 sm:p-12 flex flex-col justify-between min-h-[280px] sm:min-h-[340px] relative"
                 style={{
-                  backgroundImage: (featured.photo || storyPhotos[featured.id])
-                    ? `linear-gradient(to bottom right, ${featured.category === 'BREAKING' ? 'rgba(127,29,29,0.7), rgba(185,28,28,0.6)' : 'rgba(26,26,46,0.7), rgba(196,18,48,0.5)'}), url(${featured.photo || storyPhotos[featured.id]})`
-                    : undefined,
-                  backgroundColor: !(featured.photo || storyPhotos[featured.id]) ? (featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e') : undefined,
+                  backgroundImage: `linear-gradient(to bottom right, ${featured.category === 'BREAKING' ? 'rgba(127,29,29,0.7), rgba(185,28,28,0.6)' : 'rgba(26,26,46,0.7), rgba(196,18,48,0.5)'}), url(${featured.photo || storyPhotos[featured.id] || ''})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundColor: featured.category === 'BREAKING' ? '#7f1d1d' : '#1a1a2e',
                 }}
               >
                 <div className="flex items-center gap-2">
