@@ -33,16 +33,16 @@ function Baseline() {
 }
 
 const storyPhotos = {
-  'fire-crisis': 'https://images.unsplash.com/photo-1486551937199-baf066858de7?w=1200&q=80&fit=crop',
-  'opening-day': 'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=800&q=80&fit=crop',
-  'safety-survey': 'https://images.unsplash.com/photo-1453873531674-2151bcd01707?w=800&q=80&fit=crop',
-  'bridge-impact': 'https://images.unsplash.com/photo-1513036191774-b2badb8fcb76?w=800&q=80&fit=crop',
-  'sidewalk-repair': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80&fit=crop',
-  'sharon-lake': 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=800&q=80&fit=crop',
-  'bengals-draft': 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80&fit=crop',
-  'fc-cincinnati': 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80&fit=crop',
-  'storm-ready': 'https://images.unsplash.com/photo-1527482797697-8795b05a13fe?w=800&q=80&fit=crop',
-  'flood-risk': 'https://images.unsplash.com/photo-1547683905-f686c993aae5?w=800&q=80&fit=crop',
+  'fire-crisis': '/photos/fire.jpg',
+  'opening-day': '/photos/baseball.jpg',
+  'safety-survey': '/photos/safety.jpg',
+  'bridge-impact': '/photos/bridge.jpg',
+  'sidewalk-repair': '/photos/sidewalk.jpg',
+  'sharon-lake': '/photos/lake.jpg',
+  'bengals-draft': '/photos/football.jpg',
+  'fc-cincinnati': '/photos/soccer.jpg',
+  'storm-ready': '/photos/storm.jpg',
+  'flood-risk': '/photos/flood.jpg',
 }
 
 // Map DB rows back to the format our components expect
