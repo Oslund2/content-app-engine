@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { ArrowLeft, Share2, Bookmark, Clock, Zap } from 'lucide-react'
-import SoundscapeToggle from './SoundscapeToggle'
 
 export default function StoryShell({ onBack, category, categoryColor, timestamp, readTime, storyId, children }) {
   return (
@@ -47,8 +46,6 @@ export default function StoryShell({ onBack, category, categoryColor, timestamp,
         <p>A Content-as-an-Application demo &middot; WCPO 9 News &middot; Not financial or safety advice</p>
       </footer>
 
-      {/* Ambient soundscape toggle */}
-      {storyId && <SoundscapeToggle storyId={storyId} />}
     </>
   )
 }
