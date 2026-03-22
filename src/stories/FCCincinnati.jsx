@@ -7,6 +7,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const matches = [
   { week: 1, date: 'Feb 21', opponent: 'Atlanta United', home: true, result: 'W', score: '2-0', scorers: ['Denkey', 'Hagglund'], attendance: 25513 },
@@ -259,6 +260,12 @@ export default function FCCincinnati({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="fc-cincinnati" profileData={{ predictions, projectedFinal: projection.projectedFinal, currentRecord }} />
+
+            <LivePoll
+              storyId="fc-cincinnati"
+              neighborhood={null}
+              pollData={{ projectedFinal: projection.projectedFinal, confidence: fanConfidence }}
+            />
 
             {/* Fan confidence */}
             <div className="bg-white border border-rule rounded-xl p-6 mb-8">

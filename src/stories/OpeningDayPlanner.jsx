@@ -9,6 +9,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const neighborhoods = [
   { id: 'downtown', name: 'Downtown / OTR', driveMin: 5, walkMin: 15, transitMin: 10, parkingCost: 35, tip: 'Walk to the Banks — skip parking entirely.' },
@@ -243,6 +244,12 @@ export default function OpeningDayPlanner({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="opening-day" profileData={{ neighborhood, transport, priorities, plan }} />
+
+            <LivePoll
+              storyId="opening-day"
+              neighborhood={neighborhood}
+              pollData={{ transport, parade: priorities.parade }}
+            />
 
             <AdSlot.ResultCard storyId="opening-day" />
 

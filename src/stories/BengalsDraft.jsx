@@ -7,6 +7,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const teamNeeds = [
   { position: 'EDGE', priority: 95, label: 'Edge Rusher', reason: 'Bottom-5 pass rush in 2025. Mafe signing helps but need more.' },
@@ -239,6 +240,12 @@ export default function BengalsDraft({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="bengals-draft" profileData={{ pick: userPick, position: prospect.position, grade: prospect.grade, fitScore }} />
+
+            <LivePoll
+              storyId="bengals-draft"
+              neighborhood={null}
+              pollData={{ pick: userPick, position: prospect.position }}
+            />
 
             <p className="text-lg text-ink-light leading-relaxed mb-4">
               {fitScore.overall >= 90

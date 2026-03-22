@@ -8,6 +8,7 @@ import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const seatRecommendations = {
   'under-1': 'Rear-facing infant seat',
@@ -305,6 +306,12 @@ export default function CarSeatSafety({ onBack }) {
             </div>
 
             <DynamicNarrative storyId="car-seat" profileData={{ answers, grade: results.grade, errors: results.errors }} />
+
+            <LivePoll
+              storyId="car-seat"
+              neighborhood={null}
+              pollData={{ grade: results.grade, errors: results.totalErrors }}
+            />
 
             {/* Error details */}
             {results.errors.length > 0 && (

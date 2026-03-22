@@ -7,6 +7,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const neighborhoods = {
   'downtown-otr': { name: 'Downtown / OTR', safety: 28, neighborhood: 42, crime: 20, services: 45, improvement: -8 },
@@ -208,6 +209,12 @@ export default function SafetyExplorer({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="safety-survey" profileData={{ neighborhood: selected, scores: hood, radarData }} />
+
+            <LivePoll
+              storyId="safety-survey"
+              neighborhood={selected}
+              pollData={{ safety: hood.safety, neighborhood: hood.neighborhood }}
+            />
 
             <AdSlot.Insight storyId="safety-survey" />
 

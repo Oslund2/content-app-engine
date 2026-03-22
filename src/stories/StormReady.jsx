@@ -6,6 +6,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const questions = [
   {
@@ -260,6 +261,12 @@ export default function StormReady({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="storm-ready" profileData={{ answers, grade: results.grade, score: results.pct, area }} />
+
+            <LivePoll
+              storyId="storm-ready"
+              neighborhood={area}
+              pollData={{ grade: results.grade, score: results.pct }}
+            />
 
             {/* Per-question tips */}
             <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Your Personalized Action Items</h3>

@@ -7,6 +7,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const origins = {
   'covington': { name: 'Covington', oldMin: 6, newMin: 18, oldMiles: 1.5, newMiles: 5.2, pedestrian: true },
@@ -192,6 +193,12 @@ export default function BridgeImpact({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="bridge-impact" profileData={{ origin, tripsPerWeek, impact }} />
+
+            <LivePoll
+              storyId="bridge-impact"
+              neighborhood={origin}
+              pollData={{ totalCost: impact.totalCost, addedHours: impact.totalAddedHours, tripsPerWeek }}
+            />
 
             {/* Context */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">

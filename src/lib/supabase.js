@@ -89,3 +89,33 @@ export async function fetchMyProfiles() {
   }
   return data
 }
+
+// --- Live Polls ---
+
+export async function submitPollData(storyId, neighborhood, pollData) {
+  const { error } = await supabase
+    .from('story_polls')
+    .insert({
+      story_id: storyId,
+      neighborhood: neighborhood || null,
+      poll_data: pollData,
+    })
+  if (error) console.error('Error submitting poll:', error)
+}
+
+export async function fetchPollStats(storyId, neighborhood) {
+  const { data, error } = await supabase
+    .from('story_polls')
+    .select('poll_data, neighborhood')
+    .eq('story_id', storyId)
+
+  if (error || !data) return null
+
+  const total = data.length
+  const neighborhoodData = neighborhood
+    ? data.filter(d => d.neighborhood === neighborhood)
+    : []
+  const neighborhoodCount = neighborhoodData.length
+
+  return { total, neighborhoodCount, allData: data, neighborhoodData }
+}

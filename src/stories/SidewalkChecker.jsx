@@ -9,6 +9,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const pilotNeighborhoods = [
   { name: 'South Fairmount', eligible: true, repairsCompleted: 12, income: 38200 },
@@ -268,6 +269,12 @@ export default function SidewalkChecker({ onBack, onOpenStory }) {
             )}
 
             <DynamicNarrative storyId="sidewalk-repair" profileData={{ neighborhood, answers, isEligible, isExpansionCandidate }} />
+
+            <LivePoll
+              storyId="sidewalk-repair"
+              neighborhood={neighborhood}
+              pollData={{ eligible: isEligible, expansionCandidate: isExpansionCandidate }}
+            />
 
             {/* Cost context */}
             <div className="bg-white border border-rule rounded-xl p-5 mb-8">

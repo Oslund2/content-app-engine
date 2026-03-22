@@ -9,6 +9,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const interests = [
   { id: 'hiking', label: 'Hiking & Trails', icon: Footprints, color: 'emerald' },
@@ -260,6 +261,12 @@ export default function SharonLakeExplorer({ onBack, onOpenStory }) {
             ))}
 
             <DynamicNarrative storyId="sharon-lake" profileData={{ selectedInterests, visitDay }} />
+
+            <LivePoll
+              storyId="sharon-lake"
+              neighborhood={null}
+              pollData={{ interests: selectedInterests, visitDay }}
+            />
 
             {/* Quick logistics */}
             <div className="bg-white border border-rule rounded-xl p-5 mb-8">

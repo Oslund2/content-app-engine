@@ -10,6 +10,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const fireTimeline = [
   { date: 'Jan 5', neighborhood: 'Winton Place', fatal: false, deaths: 0 },
@@ -378,6 +379,12 @@ export default function FireCrisis({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="fire-crisis" profileData={{ neighborhood: selectedHood, answers, grade: results.grade, score: results.pct }} />
+
+            <LivePoll
+              storyId="fire-crisis"
+              neighborhood={selectedHood}
+              pollData={{ grade: results.grade, score: results.pct, hasDetectors: answers.detectors !== 'none' }}
+            />
 
             {/* Action items */}
             <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Your Action Items</h3>

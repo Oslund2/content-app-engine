@@ -7,6 +7,7 @@ import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
+import LivePoll from '../components/LivePoll'
 
 const floodStages = {
   action: { level: 46, label: 'Action Stage', color: '#ca8a04', desc: 'Authorities monitor conditions. Low-lying roads may start flooding.' },
@@ -257,6 +258,12 @@ export default function FloodRisk({ onBack, onOpenStory }) {
             </div>
 
             <DynamicNarrative storyId="flood-risk" profileData={{ neighborhood, simLevel, floodZone: hood.floodZone }} />
+
+            <LivePoll
+              storyId="flood-risk"
+              neighborhood={neighborhood}
+              pollData={{ simLevel, floodZone: hood.floodZone }}
+            />
 
             {/* Neighborhood tip */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 mb-6">
