@@ -1,0 +1,221 @@
+[
+  {
+    "sourceStory": "fire-crisis",
+    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["West Price Hill", "Westwood", "South Fairmount", "Sedamsville", "East Westwood"] },
+    "targetStory": "sidewalk-repair",
+    "message": "Your neighborhood is in the sidewalk repair pilot zone — the same West Side area hit hardest by fires. The overlap isn't coincidence: aging infrastructure compounds.",
+    "priority": 10
+  },
+  {
+    "sourceStory": "fire-crisis",
+    "condition": { "type": "valueEquals", "field": "answers.detectors", "value": "none" },
+    "targetStory": "storm-ready",
+    "message": "No smoke detectors means you're vulnerable to more than fire. Severe storms are forecast this weekend — take the 2-minute readiness check.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "fire-crisis",
+    "condition": { "type": "scoreBelow", "field": "score", "threshold": 50 },
+    "targetStory": "storm-ready",
+    "message": "A low fire safety score often signals broader household vulnerability. Severe weather season is here — see how prepared you are.",
+    "priority": 8
+  },
+  {
+    "sourceStory": "fire-crisis",
+    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["Over-the-Rhine", "Walnut Hills", "Avondale", "Northside", "Spring Grove", "Winton Place"] },
+    "targetStory": "flood-risk",
+    "message": "Older housing stock often means aging drainage too. With the Ohio River approaching action stage, check what rising water means for your area.",
+    "priority": 7
+  },
+  {
+    "sourceStory": "fire-crisis",
+    "condition": { "type": "always" },
+    "targetStory": "opening-day",
+    "message": "That was heavy. Opening Day is Thursday — 80,000 people, a parade, and the closest thing Cincinnati has to a holiday. Plan yours.",
+    "priority": 3
+  },
+
+  {
+    "sourceStory": "safety-survey",
+    "condition": { "type": "scoreBelow", "field": "scores.safety", "threshold": 32 },
+    "targetStory": "fire-crisis",
+    "message": "Your neighborhood's safety perception is below the city average. Seven fire deaths this year suggest the feeling isn't unfounded — check your home's fire readiness.",
+    "priority": 10
+  },
+  {
+    "sourceStory": "safety-survey",
+    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["nky", "covington", "newport"] },
+    "targetStory": "bridge-impact",
+    "message": "NKY residents already feel the commute strain. The Fourth Street Bridge closure is making it worse — calculate what it's costing you.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "safety-survey",
+    "condition": { "type": "always" },
+    "targetStory": "storm-ready",
+    "message": "Feeling unsafe isn't just about crime. Severe storms are forecast this weekend — how prepared is your household?",
+    "priority": 4
+  },
+
+  {
+    "sourceStory": "bridge-impact",
+    "condition": { "type": "valueIn", "field": "origin", "values": ["covington", "newport"] },
+    "targetStory": "safety-survey",
+    "message": "Covington and Newport residents rated safety differently than Ohio-side neighbors. See how your NKY area compares.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "bridge-impact",
+    "condition": { "type": "scoreAbove", "field": "impact.totalCost", "threshold": 2000 },
+    "targetStory": "fc-cincinnati",
+    "message": "That bridge detour is expensive. FC Cincinnati at TQL Stadium is 100% on the Ohio side — no bridge needed. See where the season is headed.",
+    "priority": 7
+  },
+  {
+    "sourceStory": "bridge-impact",
+    "condition": { "type": "always" },
+    "targetStory": "flood-risk",
+    "message": "The river that necessitates bridges also floods. The Ohio is approaching action stage this weekend — see what each foot means for your commute route.",
+    "priority": 4
+  },
+
+  {
+    "sourceStory": "sidewalk-repair",
+    "condition": { "type": "valueEquals", "field": "isEligible", "value": true },
+    "targetStory": "fire-crisis",
+    "message": "Your pilot-zone neighborhood has older housing stock — the same factor driving Cincinnati's fire death spike. Take the 2-minute safety check.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "sidewalk-repair",
+    "condition": { "type": "valueEquals", "field": "isEligible", "value": false },
+    "targetStory": "sharon-lake",
+    "message": "$17 million just transformed Sharon Lake — new boardwalks, doubled wetlands, and a kayak launch. A good-news story for a change.",
+    "priority": 6
+  },
+  {
+    "sourceStory": "sidewalk-repair",
+    "condition": { "type": "always" },
+    "targetStory": "opening-day",
+    "message": "The city may be slow on sidewalks, but Opening Day never disappoints. Plan your March 26 itinerary.",
+    "priority": 3
+  },
+
+  {
+    "sourceStory": "sharon-lake",
+    "condition": { "type": "arrayIncludes", "field": "selectedInterests", "value": "hiking" },
+    "targetStory": "storm-ready",
+    "message": "If you're heading outdoors, know what's coming. Severe storms are in this weekend's forecast — take the readiness check before you hit the trail.",
+    "priority": 8
+  },
+  {
+    "sourceStory": "sharon-lake",
+    "condition": { "type": "arrayIncludes", "field": "selectedInterests", "value": "family" },
+    "targetStory": "opening-day",
+    "message": "Planning family outings? Opening Day is Thursday — 80,000 people, the Findlay Market Parade, and first pitch at 4:10. Build your game plan.",
+    "priority": 7
+  },
+  {
+    "sourceStory": "sharon-lake",
+    "condition": { "type": "always" },
+    "targetStory": "flood-risk",
+    "message": "Sharon Lake's restoration was partly about water management. The Ohio River is rising — see what that means for your neighborhood.",
+    "priority": 3
+  },
+
+  {
+    "sourceStory": "opening-day",
+    "condition": { "type": "valueEquals", "field": "neighborhood", "value": "nky" },
+    "targetStory": "bridge-impact",
+    "message": "Coming from NKY? The Fourth Street Bridge is gone until 2028. Calculate what the detour is actually costing you beyond game day.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "opening-day",
+    "condition": { "type": "always" },
+    "targetStory": "fc-cincinnati",
+    "message": "If you love game day, FC Cincinnati is five matches into a promising season. Predict the next four and we'll project where it ends.",
+    "priority": 5
+  },
+  {
+    "sourceStory": "opening-day",
+    "condition": { "type": "always" },
+    "targetStory": "bengals-draft",
+    "message": "The Reds open Thursday. The Bengals draft April 23. Step into the war room and make the 10th pick.",
+    "priority": 4
+  },
+
+  {
+    "sourceStory": "bengals-draft",
+    "condition": { "type": "always" },
+    "targetStory": "fc-cincinnati",
+    "message": "While you wait for draft night, FC Cincinnati is already playing. Five matches in — predict where this season is going.",
+    "priority": 6
+  },
+  {
+    "sourceStory": "bengals-draft",
+    "condition": { "type": "always" },
+    "targetStory": "opening-day",
+    "message": "Sports season is stacking up. Reds Opening Day is Thursday — plan your route, parking, and parade strategy.",
+    "priority": 5
+  },
+
+  {
+    "sourceStory": "fc-cincinnati",
+    "condition": { "type": "always" },
+    "targetStory": "bengals-draft",
+    "message": "Football is next. The Bengals have the 10th pick and $126M in new defensive signings. Step into the war room.",
+    "priority": 6
+  },
+  {
+    "sourceStory": "fc-cincinnati",
+    "condition": { "type": "scoreAbove", "field": "fanConfidence", "threshold": 70 },
+    "targetStory": "opening-day",
+    "message": "High confidence on FCC — sounds like you're a true Cincinnati sports fan. Opening Day is Thursday. Plan your perfect day.",
+    "priority": 5
+  },
+
+  {
+    "sourceStory": "storm-ready",
+    "condition": { "type": "scoreBelow", "field": "score", "threshold": 50 },
+    "targetStory": "fire-crisis",
+    "message": "Low storm readiness often means low fire readiness too. Seven people have died in Cincinnati house fires this year — take the safety check.",
+    "priority": 10
+  },
+  {
+    "sourceStory": "storm-ready",
+    "condition": { "type": "valueIn", "field": "area", "values": ["Butler County", "Warren County"] },
+    "targetStory": "flood-risk",
+    "message": "Butler and Warren counties are flood-prone after heavy rain. The Ohio River is rising — see what each foot means for your area.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "storm-ready",
+    "condition": { "type": "always" },
+    "targetStory": "flood-risk",
+    "message": "Storms bring water. The Ohio River is approaching action stage this weekend — see what rising water means for your neighborhood.",
+    "priority": 4
+  },
+
+  {
+    "sourceStory": "flood-risk",
+    "condition": { "type": "valueIn", "field": "neighborhood", "values": ["East End / Columbia Tusculum", "The Banks / Smale Park", "Riverside / Sayler Park"] },
+    "targetStory": "fire-crisis",
+    "message": "Low-lying neighborhoods face compound risks. Cincinnati's fire death spike is concentrated in areas with aging infrastructure — check your home's safety.",
+    "priority": 9
+  },
+  {
+    "sourceStory": "flood-risk",
+    "condition": { "type": "valueEquals", "field": "floodZone", "value": "AE" },
+    "targetStory": "storm-ready",
+    "message": "You're in a FEMA AE flood zone — and severe storms are forecast this weekend. Make sure your household is ready for what's coming.",
+    "priority": 8
+  },
+  {
+    "sourceStory": "flood-risk",
+    "condition": { "type": "always" },
+    "targetStory": "bridge-impact",
+    "message": "The river demands infrastructure. The Fourth Street Bridge is gone until 2028 — calculate what the detour costs you.",
+    "priority": 4
+  }
+]

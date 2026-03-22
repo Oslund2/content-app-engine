@@ -229,6 +229,29 @@
         "sponsor": "National Flood Insurance Program",
         "text": "The average flood claim in Ohio pays out $52,000 — but fewer than 3% of Hamilton County homeowners outside FEMA zones carry flood insurance, despite increasing flash flood frequency."
       }
+    },
+    "car-seat": {
+      "interstitial": {
+        "sponsor": "Cincinnati Children's Hospital",
+        "logo": "🏥",
+        "headline": "Free Car Seat Inspections Year-Round",
+        "body": "Certified technicians at three Greater Cincinnati locations. No appointment needed. Walk in, drive out safe.",
+        "cta": "Find a Location",
+        "ctaUrl": "#",
+        "bgColor": "#0e4d64"
+      },
+      "result": {
+        "sponsor": "Cincinnati Children's Hospital",
+        "logo": "🏥",
+        "headline": "Every Ride. Every Time. Every Child.",
+        "body": "Cincinnati Children's has inspected over 2,000 car seats this year. Schedule your free check at any of our three locations — Main Campus, Liberty Campus, or Mason.",
+        "cta": "Schedule Inspection",
+        "ctaUrl": "#"
+      },
+      "insight": {
+        "sponsor": "Cincinnati Children's Hospital",
+        "text": "In 2025, Cincinnati Children's car seat technicians found that the #1 error was a loose installation — 46% of seats could be moved more than 1 inch at the belt path, enough to dramatically reduce crash protection."
+      }
     }
   },
   "programmatic": {

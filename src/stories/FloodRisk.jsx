@@ -4,7 +4,9 @@ import { Droplets, MapPin, TrendingUp, AlertTriangle, Home, ArrowRight, Waves } 
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const floodStages = {
   action: { level: 46, label: 'Action Stage', color: '#ca8a04', desc: 'Authorities monitor conditions. Low-lying roads may start flooding.' },
@@ -76,7 +78,7 @@ const riverForecast = [
   { day: 'Wed', level: 47.5 },
 ]
 
-export default function FloodRisk({ onBack }) {
+export default function FloodRisk({ onBack, onOpenStory }) {
   const [neighborhood, setNeighborhood] = useState('')
   const [simLevel, setSimLevel] = useState(46)
   const [showSim, setShowSim] = useState(false)
@@ -254,6 +256,8 @@ export default function FloodRisk({ onBack }) {
               </div>
             </div>
 
+            <DynamicNarrative storyId="flood-risk" profileData={{ neighborhood, simLevel, floodZone: hood.floodZone }} />
+
             {/* Neighborhood tip */}
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex gap-3 mb-6">
               <MapPin size={16} className="text-blue-700 shrink-0 mt-0.5" />
@@ -280,6 +284,11 @@ export default function FloodRisk({ onBack }) {
               label="Save Your Flood Risk Profile"
               storyId="flood-risk"
               profileData={{ neighborhood, simLevel, floodZone: hood.floodZone }}
+            />
+            <StoryConnections
+              storyId="flood-risk"
+              profileData={{ neighborhood, simLevel, floodZone: hood.floodZone }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

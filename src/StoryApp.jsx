@@ -11,6 +11,7 @@ import FCCincinnati from './stories/FCCincinnati'
 import StormReady from './stories/StormReady'
 import FloodRisk from './stories/FloodRisk'
 import FireCrisis from './stories/FireCrisis'
+import CarSeatSafety from './stories/CarSeatSafety'
 
 const storyComponents = {
   'opening-day': OpeningDayPlanner,
@@ -23,6 +24,7 @@ const storyComponents = {
   'storm-ready': StormReady,
   'flood-risk': FloodRisk,
   'fire-crisis': FireCrisis,
+  'car-seat': CarSeatSafety,
 }
 
 export default function StoryApp() {
@@ -61,7 +63,7 @@ export default function StoryApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
-            {StoryComponent && <StoryComponent onBack={goHome} />}
+            {StoryComponent && <StoryComponent onBack={goHome} onOpenStory={openStory} />}
           </motion.div>
         )}
       </AnimatePresence>

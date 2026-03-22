@@ -6,7 +6,9 @@ import {
 } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const interests = [
   { id: 'hiking', label: 'Hiking & Trails', icon: Footprints, color: 'emerald' },
@@ -82,7 +84,7 @@ const fundingSources = [
   { name: 'State Capital Improvement Fund', amount: '$0.7M' },
 ]
 
-export default function SharonLakeExplorer({ onBack }) {
+export default function SharonLakeExplorer({ onBack, onOpenStory }) {
   const [selectedInterests, setSelectedInterests] = useState([])
   const [visitDay, setVisitDay] = useState('weekday')
   const [showPlan, setShowPlan] = useState(false)
@@ -257,6 +259,8 @@ export default function SharonLakeExplorer({ onBack }) {
               </motion.div>
             ))}
 
+            <DynamicNarrative storyId="sharon-lake" profileData={{ selectedInterests, visitDay }} />
+
             {/* Quick logistics */}
             <div className="bg-white border border-rule rounded-xl p-5 mb-8">
               <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Need to Know</h3>
@@ -292,6 +296,11 @@ export default function SharonLakeExplorer({ onBack }) {
               label="Save Your Visit Plan"
               storyId="sharon-lake"
               profileData={{ selectedInterests, visitDay, plan }}
+            />
+            <StoryConnections
+              storyId="sharon-lake"
+              profileData={{ selectedInterests, visitDay, plan }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

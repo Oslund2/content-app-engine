@@ -7,7 +7,9 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const fireTimeline = [
   { date: 'Jan 5', neighborhood: 'Winton Place', fatal: false, deaths: 0 },
@@ -137,7 +139,7 @@ const quizQuestions = [
   },
 ]
 
-export default function FireCrisis({ onBack }) {
+export default function FireCrisis({ onBack, onOpenStory }) {
   const [selectedHood, setSelectedHood] = useState('')
   const [quizStep, setQuizStep] = useState(0)
   const [answers, setAnswers] = useState({})
@@ -375,6 +377,8 @@ export default function FireCrisis({ onBack }) {
               </p>
             </div>
 
+            <DynamicNarrative storyId="fire-crisis" profileData={{ neighborhood: selectedHood, answers, grade: results.grade, score: results.pct }} />
+
             {/* Action items */}
             <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Your Action Items</h3>
             <div className="space-y-3 mb-8">
@@ -457,6 +461,11 @@ export default function FireCrisis({ onBack }) {
               label="Save Your Fire Safety Report"
               storyId="fire-crisis"
               profileData={{ neighborhood: selectedHood, answers, grade: results.grade, score: results.pct }}
+            />
+            <StoryConnections
+              storyId="fire-crisis"
+              profileData={{ neighborhood: selectedHood, answers, grade: results.grade, score: results.pct }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

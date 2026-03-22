@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CloudLightning, AlertTriangle, Home, Users, Radio, Battery, Droplets, Wind, CheckCircle2, XCircle, ArrowRight, ShieldCheck } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const questions = [
   {
@@ -78,7 +80,7 @@ const cincyNeighborhoodRisk = {
   'Clermont County': 'marginal',
 }
 
-export default function StormReady({ onBack }) {
+export default function StormReady({ onBack, onOpenStory }) {
   const [answers, setAnswers] = useState({})
   const [currentQ, setCurrentQ] = useState(0)
   const [area, setArea] = useState('')
@@ -257,6 +259,8 @@ export default function StormReady({ onBack }) {
               </p>
             </div>
 
+            <DynamicNarrative storyId="storm-ready" profileData={{ answers, grade: results.grade, score: results.pct, area }} />
+
             {/* Per-question tips */}
             <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Your Personalized Action Items</h3>
             <div className="space-y-3 mb-8">
@@ -288,6 +292,11 @@ export default function StormReady({ onBack }) {
               label="Save Your Readiness Report"
               storyId="storm-ready"
               profileData={{ answers, grade: results.grade, score: results.pct, area }}
+            />
+            <StoryConnections
+              storyId="storm-ready"
+              profileData={{ answers, grade: results.grade, score: results.pct, area }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

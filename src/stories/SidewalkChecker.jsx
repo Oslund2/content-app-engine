@@ -6,7 +6,9 @@ import {
 } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const pilotNeighborhoods = [
   { name: 'South Fairmount', eligible: true, repairsCompleted: 12, income: 38200 },
@@ -69,7 +71,7 @@ const quizQuestions = [
   },
 ]
 
-export default function SidewalkChecker({ onBack }) {
+export default function SidewalkChecker({ onBack, onOpenStory }) {
   const [neighborhood, setNeighborhood] = useState('')
   const [quizStep, setQuizStep] = useState(0)
   const [answers, setAnswers] = useState({})
@@ -265,6 +267,8 @@ export default function SidewalkChecker({ onBack }) {
               </div>
             )}
 
+            <DynamicNarrative storyId="sidewalk-repair" profileData={{ neighborhood, answers, isEligible, isExpansionCandidate }} />
+
             {/* Cost context */}
             <div className="bg-white border border-rule rounded-xl p-5 mb-8">
               <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">What Repairs Actually Cost</h3>
@@ -295,6 +299,11 @@ export default function SidewalkChecker({ onBack }) {
               label="Save Your Eligibility Report"
               storyId="sidewalk-repair"
               profileData={{ neighborhood, answers, isEligible, isExpansionCandidate }}
+            />
+            <StoryConnections
+              storyId="sidewalk-repair"
+              profileData={{ neighborhood, answers, isEligible, isExpansionCandidate }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

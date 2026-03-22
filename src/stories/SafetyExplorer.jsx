@@ -4,7 +4,9 @@ import { Shield, AlertTriangle, TrendingDown, Users, ChevronRight, CheckCircle2,
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const neighborhoods = {
   'downtown-otr': { name: 'Downtown / OTR', safety: 28, neighborhood: 42, crime: 20, services: 45, improvement: -8 },
@@ -29,7 +31,7 @@ const historicalData = [
   { year: '2025', cincinnati: 32, national: 53 },
 ]
 
-export default function SafetyExplorer({ onBack }) {
+export default function SafetyExplorer({ onBack, onOpenStory }) {
   const [selected, setSelected] = useState('')
   const [showComparison, setShowComparison] = useState(false)
   const [showInterstitial, setShowInterstitial] = useState(false)
@@ -205,6 +207,8 @@ export default function SafetyExplorer({ onBack }) {
               </div>
             </div>
 
+            <DynamicNarrative storyId="safety-survey" profileData={{ neighborhood: selected, scores: hood, radarData }} />
+
             <AdSlot.Insight storyId="safety-survey" />
 
             {/* Narrative conclusion */}
@@ -223,6 +227,11 @@ export default function SafetyExplorer({ onBack }) {
               label="Save Your Neighborhood Safety Profile"
               storyId="safety-survey"
               profileData={{ neighborhood: selected, scores: hood, radarData }}
+            />
+            <StoryConnections
+              storyId="safety-survey"
+              profileData={{ neighborhood: selected, scores: hood, radarData }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

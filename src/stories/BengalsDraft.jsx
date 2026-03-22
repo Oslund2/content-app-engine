@@ -4,7 +4,9 @@ import { Shield, Star, ChevronRight, ArrowRight, AlertTriangle, Users, Trophy, T
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const teamNeeds = [
   { position: 'EDGE', priority: 95, label: 'Edge Rusher', reason: 'Bottom-5 pass rush in 2025. Mafe signing helps but need more.' },
@@ -32,7 +34,7 @@ const freeAgentSignings = [
   { name: 'Josh Johnson', position: 'QB', contract: '1yr / $2M', impact: 'Veteran backup behind Burrow' },
 ]
 
-export default function BengalsDraft({ onBack }) {
+export default function BengalsDraft({ onBack, onOpenStory }) {
   const [selectedProspect, setSelectedProspect] = useState(null)
   const [userPick, setUserPick] = useState(null)
   const [showAnalysis, setShowAnalysis] = useState(false)
@@ -236,6 +238,8 @@ export default function BengalsDraft({ onBack }) {
               <p className="text-ink-muted">{prospect.position} &middot; {prospect.school}</p>
             </div>
 
+            <DynamicNarrative storyId="bengals-draft" profileData={{ pick: userPick, position: prospect.position, grade: prospect.grade, fitScore }} />
+
             <p className="text-lg text-ink-light leading-relaxed mb-4">
               {fitScore.overall >= 90
                 ? `This is the kind of pick that makes a GM look like a genius. ${prospect.name} addresses a top-tier need at ${prospect.position} with an elite prospect grade of ${prospect.grade}. In two years, Bengals fans may look back at this as the pick that completed the roster.`
@@ -254,6 +258,11 @@ export default function BengalsDraft({ onBack }) {
               label="Save Your Draft Pick"
               storyId="bengals-draft"
               profileData={{ pick: userPick, grade: prospect.grade, fitScore }}
+            />
+            <StoryConnections
+              storyId="bengals-draft"
+              profileData={{ pick: userPick, grade: prospect.grade, fitScore }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

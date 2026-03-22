@@ -4,7 +4,9 @@ import { Trophy, TrendingUp, Calendar, ChevronRight, Target, Star, Users, ArrowR
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const matches = [
   { week: 1, date: 'Feb 21', opponent: 'Atlanta United', home: true, result: 'W', score: '2-0', scorers: ['Denkey', 'Hagglund'], attendance: 25513 },
@@ -33,7 +35,7 @@ const TOTAL_MATCHES = 34
 const PTS_WIN = 3
 const PTS_DRAW = 1
 
-export default function FCCincinnati({ onBack }) {
+export default function FCCincinnati({ onBack, onOpenStory }) {
   const [predictions, setPredictions] = useState({})
   const [showProjection, setShowProjection] = useState(false)
   const [showInterstitial, setShowInterstitial] = useState(false)
@@ -256,6 +258,8 @@ export default function FCCincinnati({ onBack }) {
               </div>
             </div>
 
+            <DynamicNarrative storyId="fc-cincinnati" profileData={{ predictions, projectedFinal: projection.projectedFinal, currentRecord }} />
+
             {/* Fan confidence */}
             <div className="bg-white border border-rule rounded-xl p-6 mb-8">
               <label className="block text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">
@@ -285,6 +289,11 @@ export default function FCCincinnati({ onBack }) {
               label="Save Your Season Projection"
               storyId="fc-cincinnati"
               profileData={{ predictions, projectedFinal: projection.projectedFinal, fanConfidence, currentRecord }}
+            />
+            <StoryConnections
+              storyId="fc-cincinnati"
+              profileData={{ predictions, projectedFinal: projection.projectedFinal, fanConfidence, currentRecord }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

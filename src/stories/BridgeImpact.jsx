@@ -4,7 +4,9 @@ import { Construction, MapPin, Clock, DollarSign, Car, Fuel, Calendar, TrendingU
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const origins = {
   'covington': { name: 'Covington', oldMin: 6, newMin: 18, oldMiles: 1.5, newMiles: 5.2, pedestrian: true },
@@ -27,7 +29,7 @@ const MPG = 25
 const WORK_DAYS_PER_YEAR = 250
 const CLOSURE_YEARS = 2.5
 
-export default function BridgeImpact({ onBack }) {
+export default function BridgeImpact({ onBack, onOpenStory }) {
   const [origin, setOrigin] = useState('')
   const [tripsPerWeek, setTripsPerWeek] = useState(5)
   const [step, setStep] = useState(0)
@@ -189,6 +191,8 @@ export default function BridgeImpact({ onBack }) {
               </div>
             </div>
 
+            <DynamicNarrative storyId="bridge-impact" profileData={{ origin, tripsPerWeek, impact }} />
+
             {/* Context */}
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6">
               <div className="flex items-start gap-3">
@@ -229,6 +233,11 @@ export default function BridgeImpact({ onBack }) {
               label="Save Your Commute Impact Report"
               storyId="bridge-impact"
               profileData={{ origin, tripsPerWeek, impact }}
+            />
+            <StoryConnections
+              storyId="bridge-impact"
+              profileData={{ origin, tripsPerWeek, impact }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}

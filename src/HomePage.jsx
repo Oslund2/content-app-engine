@@ -4,7 +4,7 @@ import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
   MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
-  Trophy, CloudLightning, Droplets, Flame
+  Trophy, CloudLightning, Droplets, Flame, Baby
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -20,6 +20,7 @@ const storyIcons = {
   storm: CloudLightning,
   flood: Droplets,
   fire: Flame,
+  carseat: Baby,
 }
 
 function Baseline() {
@@ -43,6 +44,7 @@ const storyPhotos = {
   'fc-cincinnati': '/photos/soccer.jpg',
   'storm-ready': '/photos/storm.jpg',
   'flood-risk': '/photos/flood.jpg',
+  'car-seat': '/photos/carseat.jpg',
 }
 
 // Map DB rows back to the format our components expect
@@ -100,9 +102,11 @@ export default function HomePage({ onOpenStory }) {
 
   const sportsCategories = ['SPORTS']
   const weatherCategories = ['WEATHER']
-  const newsStories = currentStories.filter(s => !sportsCategories.includes(s.category) && !weatherCategories.includes(s.category))
+  const sponsoredCategories = ['SPONSORED']
+  const newsStories = currentStories.filter(s => !sportsCategories.includes(s.category) && !weatherCategories.includes(s.category) && !sponsoredCategories.includes(s.category))
   const sportsStories = currentStories.filter(s => sportsCategories.includes(s.category))
   const weatherStories = currentStories.filter(s => weatherCategories.includes(s.category))
+  const sponsoredStories = currentStories.filter(s => sponsoredCategories.includes(s.category))
 
   const featured = currentStories.find(s => s.featured) || newsStories[0]
   const newsRest = newsStories.filter(s => s !== featured)
@@ -279,6 +283,28 @@ export default function HomePage({ onOpenStory }) {
           </section>
         )}
 
+        {/* === SPONSORED SECTION === */}
+        {sponsoredStories.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center gap-3 mb-6">
+              <Baby size={14} className="text-cyan-600" />
+              <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Sponsored</h2>
+              <div className="flex-1 h-px bg-rule" />
+              <span className="text-[10px] text-ink-muted border border-rule px-1.5 py-0.5 rounded">Sponsored Content</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {sponsoredStories.map((story, i) => (
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  index={i}
+                  onClick={() => onOpenStory(story.id)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* === SAVED PROFILES === */}
         {savedProfiles.length > 0 && (
           <section className="mt-12">
@@ -407,6 +433,7 @@ function StoryCard({ story, index, onClick }) {
     storm: { bg: 'bg-violet-100', text: 'text-violet-700' },
     flood: { bg: 'bg-sky-100', text: 'text-sky-700' },
     fire: { bg: 'bg-red-100', text: 'text-red-700' },
+    carseat: { bg: 'bg-cyan-100', text: 'text-cyan-700' },
   }
   const colors = iconColors[story.image] || { bg: 'bg-gray-100', text: 'text-gray-600' }
   const Icon = storyIcons[story.image] || Construction

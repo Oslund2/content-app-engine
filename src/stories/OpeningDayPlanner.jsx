@@ -6,7 +6,9 @@ import {
 } from 'lucide-react'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
+import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
+import DynamicNarrative from '../components/DynamicNarrative'
 
 const neighborhoods = [
   { id: 'downtown', name: 'Downtown / OTR', driveMin: 5, walkMin: 15, transitMin: 10, parkingCost: 35, tip: 'Walk to the Banks — skip parking entirely.' },
@@ -36,7 +38,7 @@ const timeline = [
   { time: '4:10 PM', event: 'First pitch — Reds vs. Red Sox', icon: Sun, category: 'game' },
 ]
 
-export default function OpeningDayPlanner({ onBack }) {
+export default function OpeningDayPlanner({ onBack, onOpenStory }) {
   const [neighborhood, setNeighborhood] = useState('')
   const [transport, setTransport] = useState('drive')
   const [priorities, setPriorities] = useState({ parade: true, tailgate: false, earlyEntry: true })
@@ -240,6 +242,8 @@ export default function OpeningDayPlanner({ onBack }) {
               </ul>
             </div>
 
+            <DynamicNarrative storyId="opening-day" profileData={{ neighborhood, transport, priorities, plan }} />
+
             <AdSlot.ResultCard storyId="opening-day" />
 
             {/* Save */}
@@ -247,6 +251,11 @@ export default function OpeningDayPlanner({ onBack }) {
               label="Save Your Opening Day Plan"
               storyId="opening-day"
               profileData={{ neighborhood, transport, priorities, plan }}
+            />
+            <StoryConnections
+              storyId="opening-day"
+              profileData={{ neighborhood, transport, priorities, plan }}
+              onOpenStory={onOpenStory}
             />
           </motion.div>
         )}
