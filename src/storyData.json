@@ -129,6 +129,18 @@
       "timestamp": "March 21, 2026",
       "readTime": "Safety Check",
       "featured": false
+    },
+    {
+      "id": "neighborhood-pulse",
+      "category": "COMMUNITY",
+      "categoryColor": "#059669",
+      "headline": "The Pulse of Cincinnati",
+      "subhead": "Every interaction builds this picture. See how your neighborhood compares across every story.",
+      "image": "pulse",
+      "photo": "/photos/safety.jpg",
+      "timestamp": "Live",
+      "readTime": "Community Dashboard",
+      "featured": false
     }
   ]
 }

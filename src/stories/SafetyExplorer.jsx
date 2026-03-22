@@ -56,6 +56,7 @@ export default function SafetyExplorer({ onBack, onOpenStory }) {
       categoryColor="#0d7377"
       timestamp="March 20, 2026"
       readTime="Interactive Explorer"
+      storyId="safety-survey"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         How Safe Does Cincinnati Feel?

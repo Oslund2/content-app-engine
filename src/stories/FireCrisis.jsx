@@ -192,6 +192,7 @@ export default function FireCrisis({ onBack, onOpenStory }) {
       categoryColor="#dc2626"
       timestamp="Updated March 21, 2026"
       readTime="Safety Assessment"
+      storyId="fire-crisis"
     >
       {/* BREAKING badge */}
       <div className="flex items-center gap-2 mb-4">

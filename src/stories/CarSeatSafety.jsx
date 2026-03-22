@@ -204,6 +204,7 @@ export default function CarSeatSafety({ onBack }) {
       categoryColor="#0891b2"
       timestamp="March 21, 2026"
       readTime="Safety Check"
+      storyId="car-seat"
     >
       {/* Sponsor badge */}
       <div className="flex items-center gap-3 mb-4">

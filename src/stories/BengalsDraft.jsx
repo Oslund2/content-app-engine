@@ -65,6 +65,7 @@ export default function BengalsDraft({ onBack, onOpenStory }) {
       categoryColor="#FB4F14"
       timestamp="March 21, 2026"
       readTime="Draft Simulator"
+      storyId="bengals-draft"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         You Have the 10th Pick. Who Do You Take?

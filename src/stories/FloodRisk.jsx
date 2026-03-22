@@ -110,6 +110,7 @@ export default function FloodRisk({ onBack, onOpenStory }) {
       categoryColor="#0369a1"
       timestamp="March 21, 2026"
       readTime="Flood Explorer"
+      storyId="flood-risk"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         The River Is Rising. What Does It Mean for You?

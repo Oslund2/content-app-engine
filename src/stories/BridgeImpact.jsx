@@ -81,6 +81,7 @@ export default function BridgeImpact({ onBack, onOpenStory }) {
       categoryColor="#b8860b"
       timestamp="March 19, 2026"
       readTime="Impact Calculator"
+      storyId="bridge-impact"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         The Bridge That Vanished

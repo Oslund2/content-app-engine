@@ -79,6 +79,7 @@ export default function OpeningDayPlanner({ onBack, onOpenStory }) {
       categoryColor="#c41230"
       timestamp="March 21, 2026"
       readTime="Interactive Planner"
+      storyId="opening-day"
     >
       {/* Headline */}
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">

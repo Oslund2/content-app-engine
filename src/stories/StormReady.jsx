@@ -130,6 +130,7 @@ export default function StormReady({ onBack, onOpenStory }) {
       categoryColor="#7c3aed"
       timestamp="March 21, 2026"
       readTime="Readiness Check"
+      storyId="storm-ready"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         Are You Ready for What's Coming?

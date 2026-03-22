@@ -100,6 +100,7 @@ export default function SidewalkChecker({ onBack, onOpenStory }) {
       categoryColor="#6b21a8"
       timestamp="March 20, 2026"
       readTime="Eligibility Checker"
+      storyId="sidewalk-repair"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         The City Fixed 55 Sidewalks for Free

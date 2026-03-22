@@ -112,6 +112,7 @@ export default function SharonLakeExplorer({ onBack, onOpenStory }) {
       categoryColor="#0e7490"
       timestamp="March 19, 2026"
       readTime="Visit Planner"
+      storyId="sharon-lake"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         Sharon Lake Is Back

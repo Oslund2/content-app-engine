@@ -95,6 +95,7 @@ export default function FCCincinnati({ onBack, onOpenStory }) {
       categoryColor="#003087"
       timestamp="March 21, 2026"
       readTime="Season Tracker"
+      storyId="fc-cincinnati"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
         Five Matches In. Where Is This Season Going?

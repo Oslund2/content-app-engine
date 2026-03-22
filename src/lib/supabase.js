@@ -103,6 +103,14 @@ export async function submitPollData(storyId, neighborhood, pollData) {
   if (error) console.error('Error submitting poll:', error)
 }
 
+export async function fetchAllPollData() {
+  const { data, error } = await supabase
+    .from('story_polls')
+    .select('story_id, neighborhood, poll_data')
+  if (error) { console.error('Error fetching all polls:', error); return [] }
+  return data
+}
+
 export async function fetchPollStats(storyId, neighborhood) {
   const { data, error } = await supabase
     .from('story_polls')

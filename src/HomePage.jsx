@@ -4,7 +4,7 @@ import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
   MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
-  Trophy, CloudLightning, Droplets, Flame, Baby
+  Trophy, CloudLightning, Droplets, Flame, Baby, Activity
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -21,6 +21,7 @@ const storyIcons = {
   flood: Droplets,
   fire: Flame,
   carseat: Baby,
+  pulse: Activity,
 }
 
 function Baseline() {
@@ -45,6 +46,7 @@ const storyPhotos = {
   'storm-ready': '/photos/storm.jpg',
   'flood-risk': '/photos/flood.jpg',
   'car-seat': '/photos/carseat.jpg',
+  'neighborhood-pulse': '/photos/safety.jpg',
 }
 
 // Map DB rows back to the format our components expect
@@ -103,15 +105,18 @@ export default function HomePage({ onOpenStory }) {
   const sportsCategories = ['SPORTS']
   const weatherCategories = ['WEATHER']
   const sponsoredCategories = ['SPONSORED']
-  const newsStories = currentStories.filter(s => !sportsCategories.includes(s.category) && !weatherCategories.includes(s.category) && !sponsoredCategories.includes(s.category))
+  const communityCategories = ['COMMUNITY']
+  const newsStories = currentStories.filter(s => !sportsCategories.includes(s.category) && !weatherCategories.includes(s.category) && !sponsoredCategories.includes(s.category) && !communityCategories.includes(s.category))
   const sportsStories = currentStories.filter(s => sportsCategories.includes(s.category))
   const weatherStories = currentStories.filter(s => weatherCategories.includes(s.category))
+  const communityStories = currentStories.filter(s => communityCategories.includes(s.category))
   const sponsoredStories = currentStories.filter(s => sponsoredCategories.includes(s.category))
 
   const featured = currentStories.find(s => s.featured) || newsStories[0]
   const newsRest = newsStories.filter(s => s !== featured)
   const sportsRest = sportsStories.filter(s => s !== featured)
   const weatherRest = weatherStories.filter(s => s !== featured)
+  const communityRest = communityStories.filter(s => s !== featured)
   const rest = newsRest
 
   return (
@@ -150,6 +155,12 @@ export default function HomePage({ onOpenStory }) {
             <span className="hover:text-white cursor-pointer transition-colors">Investigates</span>
             <span className="text-wcpo-red font-semibold flex items-center gap-1">
               <Zap size={13} /> Interactive
+            </span>
+            <span
+              onClick={() => onOpenStory('neighborhood-pulse')}
+              className="text-emerald-400 font-semibold flex items-center gap-1 cursor-pointer hover:text-emerald-300 transition-colors"
+            >
+              <Activity size={13} /> Live Pulse
             </span>
           </nav>
           <div className="flex items-center gap-3">
@@ -272,6 +283,27 @@ export default function HomePage({ onOpenStory }) {
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {weatherRest.map((story, i) => (
+                <StoryCard
+                  key={story.id}
+                  story={story}
+                  index={i}
+                  onClick={() => onOpenStory(story.id)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* === COMMUNITY SECTION === */}
+        {communityRest.length > 0 && (
+          <section className="mt-12">
+            <div className="flex items-center gap-3 mb-6">
+              <Activity size={14} className="text-emerald-600" />
+              <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Community</h2>
+              <div className="flex-1 h-px bg-rule" />
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {communityRest.map((story, i) => (
                 <StoryCard
                   key={story.id}
                   story={story}
@@ -434,6 +466,7 @@ function StoryCard({ story, index, onClick }) {
     flood: { bg: 'bg-sky-100', text: 'text-sky-700' },
     fire: { bg: 'bg-red-100', text: 'text-red-700' },
     carseat: { bg: 'bg-cyan-100', text: 'text-cyan-700' },
+    pulse: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
   }
   const colors = iconColors[story.image] || { bg: 'bg-gray-100', text: 'text-gray-600' }
   const Icon = storyIcons[story.image] || Construction

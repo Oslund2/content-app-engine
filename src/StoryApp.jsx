@@ -12,6 +12,7 @@ import StormReady from './stories/StormReady'
 import FloodRisk from './stories/FloodRisk'
 import FireCrisis from './stories/FireCrisis'
 import CarSeatSafety from './stories/CarSeatSafety'
+import NeighborhoodPulse from './stories/NeighborhoodPulse'
 
 const storyComponents = {
   'opening-day': OpeningDayPlanner,
@@ -25,6 +26,7 @@ const storyComponents = {
   'flood-risk': FloodRisk,
   'fire-crisis': FireCrisis,
   'car-seat': CarSeatSafety,
+  'neighborhood-pulse': NeighborhoodPulse,
 }
 
 export default function StoryApp() {
