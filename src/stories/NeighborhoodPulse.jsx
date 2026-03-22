@@ -62,13 +62,28 @@ function gradeLabel(avg) {
   return 'D'
 }
 
-function getStatusColor(fireAvg, stormAvg) {
-  const scores = [fireAvg, stormAvg].filter(s => s !== null)
-  if (scores.length === 0) return 'gray'
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length
-  if (avg >= 6) return 'green'
-  if (avg >= 3) return 'amber'
+function getStatusColor(stats) {
+  if (stats.total === 0) return 'gray'
+  const allScores = Object.values(stats.scores).flat()
+  if (allScores.length === 0) return 'gray'
+  const avg = allScores.reduce((a, b) => a + b, 0) / allScores.length
+  if (avg >= 60) return 'green'
+  if (avg >= 35) return 'amber'
   return 'red'
+}
+
+const STORY_SHORT = {
+  'fire-crisis': 'Fire Safety',
+  'storm-ready': 'Storm Ready',
+  'safety-survey': 'Safety',
+  'flood-risk': 'Flood',
+  'bridge-impact': 'Bridge',
+  'opening-day': 'Opening Day',
+  'bengals-draft': 'Draft',
+  'fc-cincinnati': 'FCC',
+  'sidewalk-repair': 'Sidewalk',
+  'sharon-lake': 'Sharon Lake',
+  'car-seat': 'Car Seat',
 }
 
 const statusColors = {
@@ -100,22 +115,23 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
     load()
   }, [])
 
-  // Aggregate by neighborhood
+  // Aggregate by neighborhood — track which stories have data per neighborhood
   const neighborhoodStats = useMemo(() => {
     const stats = {}
     NEIGHBORHOODS.forEach(n => {
-      stats[n] = { total: 0, fireScores: [], stormScores: [] }
+      stats[n] = { total: 0, stories: {}, scores: {} }
     })
     pollData.forEach(row => {
       const hood = row.neighborhood
       if (!hood || !stats[hood]) return
       stats[hood].total += 1
+      // Count per story
+      stats[hood].stories[row.story_id] = (stats[hood].stories[row.story_id] || 0) + 1
+      // Collect numeric scores per story
       const grade = getGradeFromPollData(row.poll_data, row.story_id)
-      if (row.story_id === 'fire-crisis' && grade !== null) {
-        stats[hood].fireScores.push(grade)
-      }
-      if (row.story_id === 'storm-ready' && grade !== null) {
-        stats[hood].stormScores.push(grade)
+      if (grade !== null) {
+        if (!stats[hood].scores[row.story_id]) stats[hood].scores[row.story_id] = []
+        stats[hood].scores[row.story_id].push(grade)
       }
     })
     return stats
@@ -232,15 +248,13 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             {NEIGHBORHOODS.map((name, i) => {
               const stats = neighborhoodStats[name]
-              const fireAvg = stats.fireScores.length > 0
-                ? stats.fireScores.reduce((a, b) => a + b, 0) / stats.fireScores.length
-                : null
-              const stormAvg = stats.stormScores.length > 0
-                ? stats.stormScores.reduce((a, b) => a + b, 0) / stats.stormScores.length
-                : null
-              const status = getStatusColor(fireAvg, stormAvg)
+              const status = getStatusColor(stats)
               const colors = statusColors[status]
               const barWidth = maxEngagement > 0 ? (stats.total / maxEngagement) * 100 : 0
+              // Get the top 3 stories this neighborhood has data for
+              const topStories = Object.entries(stats.stories)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
 
               return (
                 <motion.div
@@ -248,19 +262,32 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: 0.04 * i }}
-                  className={`bg-white rounded-lg border border-rule p-4 hover:shadow-sm transition-shadow`}
+                  className="bg-white rounded-lg border border-rule p-4 hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
                       <h3 className="font-serif text-sm font-bold text-ink">{name}</h3>
                     </div>
-                    <span className="text-xs text-ink-muted">{stats.total} interactions</span>
+                    <span className="text-xs text-ink-muted">{stats.total} {stats.total === 1 ? 'person' : 'people'}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-ink-muted mb-3">
-                    <span>Fire: <span className="font-semibold text-ink">{gradeLabel(fireAvg)}</span></span>
-                    <span>Storm: <span className="font-semibold text-ink">{gradeLabel(stormAvg)}</span></span>
-                  </div>
+                  {topStories.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {topStories.map(([storyId, count]) => {
+                        const scores = stats.scores[storyId]
+                        const avg = scores && scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
+                        return (
+                          <span key={storyId} className="text-[10px] bg-paper-warm text-ink-muted px-2 py-0.5 rounded border border-rule">
+                            {STORY_SHORT[storyId] || storyId}
+                            {avg !== null && <span className="font-bold text-ink ml-1">{avg}%</span>}
+                            {avg === null && <span className="ml-1">({count})</span>}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-ink-muted mb-3 italic">No interactions yet</p>
+                  )}
                   <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
