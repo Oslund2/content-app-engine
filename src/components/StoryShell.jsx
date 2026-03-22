@@ -1,7 +1,16 @@
 import { motion } from 'framer-motion'
 import { ArrowLeft, Share2, Bookmark, Clock, Zap } from 'lucide-react'
+import useNarration from '../hooks/useNarration'
+import NarrationButton from './NarrationButton'
+import NarrationPlayer from './NarrationPlayer'
+import storyData from '../storyData.json'
 
 export default function StoryShell({ onBack, category, categoryColor, timestamp, readTime, storyId, children }) {
+  const narration = useNarration(storyId)
+  const storyMeta = storyData.stories.find(s => s.id === storyId)
+  const storyTitle = storyMeta?.headline || ''
+  const playerVisible = narration.isPlaying || narration.status === 'paused'
+
   return (
     <>
       {/* Compact header */}
@@ -33,11 +42,12 @@ export default function StoryShell({ onBack, category, categoryColor, timestamp,
           </span>
           <span className="text-ink-muted flex items-center gap-1"><Clock size={10} /> {timestamp}</span>
           <span className="text-ink-muted flex items-center gap-1"><Zap size={10} /> {readTime}</span>
+          <NarrationButton narration={narration} />
         </div>
       </div>
 
       {/* Content */}
-      <main className="max-w-3xl mx-auto px-5 sm:px-8 pt-10 pb-24">
+      <main className={`max-w-3xl mx-auto px-5 sm:px-8 pt-10 pb-24 ${playerVisible ? 'pb-40' : ''}`}>
         {children}
       </main>
 
@@ -46,6 +56,7 @@ export default function StoryShell({ onBack, category, categoryColor, timestamp,
         <p>A Content-as-an-Application demo &middot; WCPO 9 News &middot; Not financial or safety advice</p>
       </footer>
 
+      <NarrationPlayer narration={narration} storyTitle={storyTitle} />
     </>
   )
 }
