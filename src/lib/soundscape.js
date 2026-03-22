@@ -1,5 +1,5 @@
 // Soundscape generator using Web Audio API
-// Each story type gets a unique procedurally-generated ambient sound
+// Each story gets a distinctly different procedural ambient sound
 
 class Soundscape {
   constructor() {
@@ -7,6 +7,7 @@ class Soundscape {
     this.nodes = []
     this.gainNode = null
     this.playing = false
+    this.intervals = []
   }
 
   init() {
@@ -17,22 +18,20 @@ class Soundscape {
     this.gainNode.connect(this.ctx.destination)
   }
 
-  // Set volume (0-1)
   setVolume(v) {
     if (!this.gainNode) return
-    this.gainNode.gain.setTargetAtTime(v * 0.15, this.ctx.currentTime, 0.3) // max 15% volume
+    this.gainNode.gain.setTargetAtTime(v * 0.25, this.ctx.currentTime, 0.3)
   }
 
   stop() {
+    this.intervals.forEach(id => clearInterval(id))
+    this.intervals = []
     this.nodes.forEach(n => { try { n.stop?.(); n.disconnect?.() } catch {} })
     this.nodes = []
     this.playing = false
   }
 
-  // --- Sound generators ---
-
-  // Low rumble (fire, storm)
-  _noise(duration = 999) {
+  _noise() {
     const bufferSize = this.ctx.sampleRate * 2
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate)
     const data = buffer.getChannelData(0)
@@ -43,206 +42,314 @@ class Soundscape {
     return source
   }
 
-  // Filtered noise (wind, rain, water)
-  _filteredNoise(frequency, Q = 1) {
+  _filteredNoise(freq, Q = 1, type = 'bandpass') {
     const noise = this._noise()
     const filter = this.ctx.createBiquadFilter()
-    filter.type = 'bandpass'
-    filter.frequency.value = frequency
+    filter.type = type
+    filter.frequency.value = freq
     filter.Q.value = Q
     noise.connect(filter)
     return { source: noise, output: filter }
   }
 
-  // Tone (sirens, beeps)
-  _oscillator(freq, type = 'sine') {
+  _osc(freq, type = 'sine') {
     const osc = this.ctx.createOscillator()
     osc.type = type
     osc.frequency.value = freq
     return osc
   }
 
-  // LFO for modulation
-  _lfo(rate, amount, target) {
-    const lfo = this.ctx.createOscillator()
-    const lfoGain = this.ctx.createGain()
-    lfo.frequency.value = rate
-    lfoGain.gain.value = amount
-    lfo.connect(lfoGain)
-    lfoGain.connect(target)
-    return lfo
-  }
-
-  // --- Story-specific soundscapes ---
-
+  // === FIRE: crackling pops + deep roar ===
   playFire() {
     this.init(); this.stop()
-    // Crackling fire: filtered noise + random pops
-    const { source, output } = this._filteredNoise(3000, 5)
-    const crackleGain = this.ctx.createGain()
-    crackleGain.gain.value = 0.4
-    output.connect(crackleGain)
-    crackleGain.connect(this.gainNode)
-    source.start()
-    this.nodes.push(source)
-    // Low rumble
-    const { source: rumble, output: rumbleOut } = this._filteredNoise(80, 2)
-    const rumbleGain = this.ctx.createGain()
-    rumbleGain.gain.value = 0.3
-    rumbleOut.connect(rumbleGain)
-    rumbleGain.connect(this.gainNode)
-    rumble.start()
-    this.nodes.push(rumble)
+    // Deep fire roar
+    const { source: roar, output: roarOut } = this._filteredNoise(120, 3)
+    const roarGain = this.ctx.createGain()
+    roarGain.gain.value = 0.5
+    roarOut.connect(roarGain)
+    roarGain.connect(this.gainNode)
+    roar.start()
+    this.nodes.push(roar)
+    // Crackling: rapid random clicks using short noise bursts
+    const crackle = () => {
+      if (!this.ctx || !this.playing) return
+      const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.02, this.ctx.sampleRate)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (d.length * 0.15))
+      const s = this.ctx.createBufferSource()
+      s.buffer = buf
+      const g = this.ctx.createGain()
+      g.gain.value = 0.3 + Math.random() * 0.5
+      const f = this.ctx.createBiquadFilter()
+      f.type = 'highpass'
+      f.frequency.value = 2000 + Math.random() * 4000
+      s.connect(f)
+      f.connect(g)
+      g.connect(this.gainNode)
+      s.start()
+    }
+    this.intervals.push(setInterval(crackle, 80 + Math.random() * 120))
     this.playing = true
   }
 
+  // === STORM: rain hiss + rhythmic thunder rumbles ===
   playStorm() {
     this.init(); this.stop()
-    // Rain: high filtered noise
-    const { source: rain, output: rainOut } = this._filteredNoise(6000, 0.5)
+    // Rain: bright high-frequency noise
+    const { source: rain, output: rainOut } = this._filteredNoise(7000, 0.3, 'highpass')
     const rainGain = this.ctx.createGain()
-    rainGain.gain.value = 0.5
+    rainGain.gain.value = 0.35
     rainOut.connect(rainGain)
     rainGain.connect(this.gainNode)
     rain.start()
     this.nodes.push(rain)
-    // Thunder rumble: very low noise with slow LFO
-    const { source: thunder, output: thunderOut } = this._filteredNoise(40, 3)
-    const thunderGain = this.ctx.createGain()
-    thunderGain.gain.value = 0.6
-    const lfo = this._lfo(0.1, 0.5, thunderGain.gain)
-    thunderOut.connect(thunderGain)
-    thunderGain.connect(this.gainNode)
-    thunder.start()
-    lfo.start()
-    this.nodes.push(thunder, lfo)
+    // Thunder: periodic low booms
+    const thunder = () => {
+      if (!this.ctx || !this.playing) return
+      const osc = this.ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.value = 30 + Math.random() * 20
+      const g = this.ctx.createGain()
+      g.gain.setValueAtTime(0.7, this.ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2.5)
+      osc.connect(g)
+      g.connect(this.gainNode)
+      osc.start()
+      osc.stop(this.ctx.currentTime + 3)
+    }
+    thunder()
+    this.intervals.push(setInterval(thunder, 4000 + Math.random() * 6000))
     this.playing = true
   }
 
+  // === WATER: bubbling + gentle flow ===
   playWater() {
     this.init(); this.stop()
-    // Flowing water: mid-frequency noise with gentle modulation
-    const { source, output } = this._filteredNoise(1200, 1)
-    const waterGain = this.ctx.createGain()
-    waterGain.gain.value = 0.5
-    const lfo = this._lfo(0.3, 0.15, waterGain.gain)
-    output.connect(waterGain)
-    waterGain.connect(this.gainNode)
+    // Flowing base
+    const { source, output } = this._filteredNoise(600, 0.8)
+    const flowGain = this.ctx.createGain()
+    flowGain.gain.value = 0.3
+    // Slow volume swell for wave effect
+    const lfo = this.ctx.createOscillator()
+    const lfoGain = this.ctx.createGain()
+    lfo.frequency.value = 0.2
+    lfoGain.gain.value = 0.15
+    lfo.connect(lfoGain)
+    lfoGain.connect(flowGain.gain)
+    output.connect(flowGain)
+    flowGain.connect(this.gainNode)
     source.start()
     lfo.start()
     this.nodes.push(source, lfo)
+    // Bubbles: short pitched blips
+    const bubble = () => {
+      if (!this.ctx || !this.playing) return
+      const osc = this.ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.value = 400 + Math.random() * 800
+      const g = this.ctx.createGain()
+      g.gain.setValueAtTime(0.15, this.ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15)
+      osc.connect(g)
+      g.connect(this.gainNode)
+      osc.start()
+      osc.stop(this.ctx.currentTime + 0.2)
+    }
+    this.intervals.push(setInterval(bubble, 300 + Math.random() * 500))
     this.playing = true
   }
 
+  // === CROWD: layered murmur + occasional cheers ===
   playCrowd() {
     this.init(); this.stop()
-    // Crowd murmur: multiple filtered noise bands
-    const bands = [200, 400, 800, 1600]
-    bands.forEach(freq => {
-      const { source, output } = this._filteredNoise(freq, 0.8)
+    // Warm murmur base (multiple bands for "voices")
+    ;[180, 350, 700].forEach(freq => {
+      const { source, output } = this._filteredNoise(freq, 2)
       const g = this.ctx.createGain()
-      g.gain.value = 0.15
+      g.gain.value = 0.2
       output.connect(g)
       g.connect(this.gainNode)
       source.start()
       this.nodes.push(source)
     })
+    // Periodic "crowd swell" — volume bump
+    const cheer = () => {
+      if (!this.ctx || !this.playing) return
+      const { source, output } = this._filteredNoise(1200, 1)
+      const g = this.ctx.createGain()
+      g.gain.setValueAtTime(0.01, this.ctx.currentTime)
+      g.gain.linearRampToValueAtTime(0.4, this.ctx.currentTime + 0.3)
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2)
+      output.connect(g)
+      g.connect(this.gainNode)
+      source.start()
+      source.stop(this.ctx.currentTime + 2.5)
+    }
+    this.intervals.push(setInterval(cheer, 5000 + Math.random() * 5000))
     this.playing = true
   }
 
+  // === NATURE: wind gusts + bird-like chirps ===
   playNature() {
     this.init(); this.stop()
-    // Wind through trees: slow-modulated filtered noise
-    const { source, output } = this._filteredNoise(800, 0.3)
+    // Wind: slow-modulated low noise
+    const { source: wind, output: windOut } = this._filteredNoise(400, 0.3)
     const windGain = this.ctx.createGain()
-    windGain.gain.value = 0.4
-    const lfo = this._lfo(0.15, 0.2, windGain.gain)
-    output.connect(windGain)
+    windGain.gain.value = 0.25
+    const windLfo = this.ctx.createOscillator()
+    const windLfoGain = this.ctx.createGain()
+    windLfo.frequency.value = 0.08
+    windLfoGain.gain.value = 0.2
+    windLfo.connect(windLfoGain)
+    windLfoGain.connect(windGain.gain)
+    windOut.connect(windGain)
     windGain.connect(this.gainNode)
-    source.start()
-    lfo.start()
-    this.nodes.push(source, lfo)
-    // High gentle hiss (leaves)
-    const { source: leaves, output: leavesOut } = this._filteredNoise(4000, 0.5)
-    const leavesGain = this.ctx.createGain()
-    leavesGain.gain.value = 0.15
-    leavesOut.connect(leavesGain)
-    leavesGain.connect(this.gainNode)
-    leaves.start()
-    this.nodes.push(leaves)
+    wind.start()
+    windLfo.start()
+    this.nodes.push(wind, windLfo)
+    // Bird chirps: short descending tones
+    const chirp = () => {
+      if (!this.ctx || !this.playing) return
+      const osc = this.ctx.createOscillator()
+      osc.type = 'sine'
+      const baseFreq = 2000 + Math.random() * 2000
+      osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.7, this.ctx.currentTime + 0.1)
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.1, this.ctx.currentTime + 0.15)
+      const g = this.ctx.createGain()
+      g.gain.setValueAtTime(0.12, this.ctx.currentTime)
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2)
+      osc.connect(g)
+      g.connect(this.gainNode)
+      osc.start()
+      osc.stop(this.ctx.currentTime + 0.25)
+    }
+    this.intervals.push(setInterval(chirp, 1500 + Math.random() * 3000))
     this.playing = true
   }
 
+  // === TRAFFIC: engine drone + periodic horn honks ===
   playTraffic() {
     this.init(); this.stop()
-    // Road noise: low-mid filtered noise
-    const { source, output } = this._filteredNoise(300, 0.5)
-    const g = this.ctx.createGain()
-    g.gain.value = 0.5
-    const lfo = this._lfo(0.08, 0.15, g.gain)
-    output.connect(g)
-    g.connect(this.gainNode)
-    source.start()
-    lfo.start()
-    this.nodes.push(source, lfo)
-    this.playing = true
-  }
-
-  playTension() {
-    this.init(); this.stop()
-    // Low drone: sine oscillator with slow pitch wobble
-    const osc = this._oscillator(55, 'sine')
-    const oscGain = this.ctx.createGain()
-    oscGain.gain.value = 0.4
-    const lfo = this._lfo(0.05, 3, osc.frequency)
-    osc.connect(oscGain)
-    oscGain.connect(this.gainNode)
-    osc.start()
-    lfo.start()
-    this.nodes.push(osc, lfo)
-    // Subtle high shimmer
-    const { source, output } = this._filteredNoise(8000, 5)
-    const shimmerGain = this.ctx.createGain()
-    shimmerGain.gain.value = 0.08
-    output.connect(shimmerGain)
-    shimmerGain.connect(this.gainNode)
+    // Engine drone
+    const { source, output } = this._filteredNoise(200, 1.5)
+    const droneGain = this.ctx.createGain()
+    droneGain.gain.value = 0.35
+    output.connect(droneGain)
+    droneGain.connect(this.gainNode)
     source.start()
     this.nodes.push(source)
+    // Periodic car pass: whoosh sound (rising then falling pitch noise)
+    const whoosh = () => {
+      if (!this.ctx || !this.playing) return
+      const noise = this._noise()
+      const filter = this.ctx.createBiquadFilter()
+      filter.type = 'bandpass'
+      filter.Q.value = 3
+      filter.frequency.setValueAtTime(200, this.ctx.currentTime)
+      filter.frequency.exponentialRampToValueAtTime(1500, this.ctx.currentTime + 0.4)
+      filter.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.8)
+      const g = this.ctx.createGain()
+      g.gain.setValueAtTime(0.01, this.ctx.currentTime)
+      g.gain.linearRampToValueAtTime(0.3, this.ctx.currentTime + 0.3)
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 1)
+      noise.connect(filter)
+      filter.connect(g)
+      g.connect(this.gainNode)
+      noise.start()
+      noise.stop(this.ctx.currentTime + 1.2)
+    }
+    this.intervals.push(setInterval(whoosh, 2000 + Math.random() * 3000))
     this.playing = true
   }
 
+  // === TENSION: deep pulsing drone + eerie high tone ===
+  playTension() {
+    this.init(); this.stop()
+    // Deep pulse
+    const sub = this._osc(45, 'sine')
+    const subGain = this.ctx.createGain()
+    subGain.gain.value = 0.5
+    // Pulse the volume
+    const pulseLfo = this.ctx.createOscillator()
+    const pulseGain = this.ctx.createGain()
+    pulseLfo.frequency.value = 0.5 // slow pulse
+    pulseGain.gain.value = 0.3
+    pulseLfo.connect(pulseGain)
+    pulseGain.connect(subGain.gain)
+    sub.connect(subGain)
+    subGain.connect(this.gainNode)
+    sub.start()
+    pulseLfo.start()
+    this.nodes.push(sub, pulseLfo)
+    // Eerie high tone: detuned fifth
+    const high1 = this._osc(660, 'sine')
+    const high2 = this._osc(667, 'sine') // slight detune for beating
+    const highGain = this.ctx.createGain()
+    highGain.gain.value = 0.06
+    high1.connect(highGain)
+    high2.connect(highGain)
+    highGain.connect(this.gainNode)
+    high1.start()
+    high2.start()
+    this.nodes.push(high1, high2)
+    this.playing = true
+  }
+
+  // === URBAN: distant hum + occasional siren wail ===
   playUrban() {
     this.init(); this.stop()
-    // City ambience: layered noise bands
-    const { source: low, output: lowOut } = this._filteredNoise(150, 1)
-    const lowGain = this.ctx.createGain()
-    lowGain.gain.value = 0.3
-    lowOut.connect(lowGain)
-    lowGain.connect(this.gainNode)
-    low.start()
-    this.nodes.push(low)
-    // Mid hum
-    const { source: mid, output: midOut } = this._filteredNoise(500, 0.5)
-    const midGain = this.ctx.createGain()
-    midGain.gain.value = 0.15
-    midOut.connect(midGain)
-    midGain.connect(this.gainNode)
-    mid.start()
-    this.nodes.push(mid)
+    // City hum: 60Hz electrical hum + harmonics
+    const hum = this._osc(60, 'sawtooth')
+    const humFilter = this.ctx.createBiquadFilter()
+    humFilter.type = 'lowpass'
+    humFilter.frequency.value = 200
+    const humGain = this.ctx.createGain()
+    humGain.gain.value = 0.2
+    hum.connect(humFilter)
+    humFilter.connect(humGain)
+    humGain.connect(this.gainNode)
+    hum.start()
+    this.nodes.push(hum)
+    // Ambient distant noise
+    const { source, output } = this._filteredNoise(300, 0.5)
+    const ambGain = this.ctx.createGain()
+    ambGain.gain.value = 0.15
+    output.connect(ambGain)
+    ambGain.connect(this.gainNode)
+    source.start()
+    this.nodes.push(source)
+    // Periodic distant siren
+    const siren = () => {
+      if (!this.ctx || !this.playing) return
+      const osc = this.ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(600, this.ctx.currentTime)
+      osc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 0.6)
+      osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 1.2)
+      osc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 1.8)
+      const g = this.ctx.createGain()
+      g.gain.setValueAtTime(0.03, this.ctx.currentTime) // very quiet/distant
+      g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2)
+      osc.connect(g)
+      g.connect(this.gainNode)
+      osc.start()
+      osc.stop(this.ctx.currentTime + 2.5)
+    }
+    this.intervals.push(setInterval(siren, 8000 + Math.random() * 12000))
     this.playing = true
   }
 
   destroy() {
     this.stop()
     if (this.ctx) {
-      this.ctx.close()
+      this.ctx.close().catch(() => {})
       this.ctx = null
     }
     this.gainNode = null
   }
 }
 
-// Story-to-soundscape mapping
 const storyScapes = {
   'fire-crisis': 'playFire',
   'opening-day': 'playCrowd',
