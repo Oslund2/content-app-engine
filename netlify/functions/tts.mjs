@@ -25,10 +25,9 @@ const narrationScripts = {
 }
 
 export default async (req) => {
-  // GET: availability check
+  // GET: availability check — edge-tts is always available (no API key needed)
   if (req.method === 'GET') {
-    const available = !!(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID)
-    return new Response(JSON.stringify({ available }), {
+    return new Response(JSON.stringify({ available: true }), {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' },
     })
   }
@@ -45,39 +44,19 @@ export default async (req) => {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 })
   }
 
-  const apiKey = process.env.ELEVENLABS_API_KEY
-  const voiceId = process.env.ELEVENLABS_VOICE_ID
-  if (!apiKey || !voiceId) {
-    return new Response(JSON.stringify({ error: 'TTS not configured', available: false }), { status: 200 })
-  }
-
   try {
+    const { EdgeTTS } = await import('@andresaya/edge-tts')
+
     const { storyId } = await req.json()
     const text = narrationScripts[storyId]
     if (!text) {
       return new Response(JSON.stringify({ error: 'Unknown story' }), { status: 200 })
     }
 
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg',
-      },
-      body: JSON.stringify({
-        text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-      }),
-    })
+    const edgeTts = new EdgeTTS()
+    await edgeTts.synthesize(text, 'en-US-GuyNeural', { rate: '-5%', pitch: '-2Hz' })
+    const audioBuffer = edgeTts.toBuffer()
 
-    if (!response.ok) {
-      console.error('ElevenLabs error:', response.status, await response.text())
-      return new Response(JSON.stringify({ error: 'TTS generation failed' }), { status: 200 })
-    }
-
-    const audioBuffer = await response.arrayBuffer()
     return new Response(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
