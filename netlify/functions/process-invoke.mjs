@@ -120,10 +120,10 @@ export default async (req, context) => {
           continue
         }
 
-        // Stage 2: Config Generation (Sonnet) - simplified prompt for speed
+        // Stage 2: Config Generation (Sonnet)
         var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
-          'You are an interactive journalist at WCPO Cincinnati. Generate a JSON config for an interactive Story-App. Output ONLY valid JSON with: appType, theme{accentColor,categoryLabel,icon}, hero{headline,subhead,leadParagraphs[],keyStats[]}, inputs[], calculations[], results{showAfterInputs[],scoreCards[],charts[],actionItems[]}, narrative{systemPrompt,profileFields[]}, poll{question,fields[]}, narrationScript. Use REAL Cincinnati neighborhoods and data from the article.',
-          'Convert this article to an interactive Story-App config:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + triage.suggested_app_type + '\n\nFULL TEXT:\n' + articleText.slice(0, 4000),
+          'You are an interactive journalist at WCPO Cincinnati. Generate a JSON config. inputs must use type: "button-array"|"slider"|"dropdown"|"quiz"|"checkbox-group"|"radio". Options must be objects: {"id":"x","label":"Y","data":{}}. Calculations must use arithmetic formulas referencing "inputs.id.data.field". Charts must use type "area"|"bar"|"radar" with data arrays. Output ONLY valid JSON.',
+          'Convert this article to an interactive Story-App config:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + (triage.suggested_app_type || 'data-explorer') + '\n\nFULL TEXT:\n' + articleText.slice(0, 4000),
           4096)
         console.log('Config response length: ' + configText.length + ' chars')
         var config

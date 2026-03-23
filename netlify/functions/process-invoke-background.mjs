@@ -132,8 +132,44 @@ export default async (req, context) => {
       // Config Generation (Sonnet)
       console.log('Generating config with Sonnet...')
       var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
-        'You are an interactive journalist at WCPO Cincinnati. Generate a JSON config for an interactive Story-App. Output ONLY valid JSON with: appType, theme{accentColor,categoryLabel,icon}, hero{headline,subhead,leadParagraphs[],keyStats[]}, inputs[], calculations[], results{showAfterInputs[],scoreCards[],charts[],actionItems[]}, narrative{systemPrompt,profileFields[]}, poll{question,fields[]}, narrationScript. Use REAL Cincinnati neighborhoods and data from the article.',
-        'Convert this article:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nType: ' + suggestedType + '\n\nTEXT:\n' + articleText.slice(0, 4000),
+        `You are a senior interactive journalist at WCPO Cincinnati. You transform news articles into deeply engaging interactive Story-Apps that connect readers to their community.
+
+## YOUR MISSION
+Choose the BEST interactive format for THIS specific story. Every story is different. Match the format to the story's emotional and informational core:
+
+- **impact-calculator**: When the story has NUMBERS that affect people differently. "What does this cost YOU?" Readers input their situation → see personalized cost/time/impact. Use sliders for quantities, button-arrays for locations. Must have real formulas.
+- **safety-assessment**: When the story involves personal RISK or PREPAREDNESS. Quiz format → score → grade → personalized tips. Sequential questions that reveal your situation.
+- **eligibility-checker**: When a PROGRAM or BENEFIT exists. "Do you qualify?" Step-by-step criteria → yes/no with next steps.
+- **data-explorer**: When the story has GEOGRAPHIC data. Pick your neighborhood → see how it compares. Radar charts, bar charts comparing areas.
+- **event-planner**: When there's an UPCOMING EVENT. Pick preferences → get a personalized plan with timeline.
+- **visit-planner**: When a PLACE reopened/opened. Select interests → tailored guide.
+- **tracker**: When there's an ONGOING situation to follow. Make predictions → see projections.
+
+## CRITICAL FORMAT RULES
+Your JSON config must use EXACTLY these field formats:
+
+inputs[]: Each input must have:
+- "id": "snake_case_id"
+- "type": one of "button-array", "slider", "dropdown", "quiz", "checkbox-group", "radio"
+- "label": "Question for the reader"
+- "options": array of {"id": "kebab-case", "label": "Display Text", "data": {}} objects (NOT plain strings)
+- For sliders: "min", "max", "step", "defaultValue" (no options needed)
+- For quiz: "questions": [{"id", "question", "options": [{"label", "value", "score"}]}]
+
+calculations[]: Each must have:
+- "id": "calc_name"
+- "formula": arithmetic expression using "inputs.inputId.data.field" references
+- "format": "currency" | "round" | "percent"
+
+results.scoreCards[]: {"label", "valueRef": "calculations.calc_name", "prefix", "suffix"}
+results.charts[]: {"type": "area"|"bar"|"radar", "title", "data": [{xKey: val, yKey: val}...], "xKey", "yKey", "color"}
+results.actionItems[]: {"title", "description", "cta": "Button Text", "ctaUrl": "https://..."}
+
+## COMMUNITY CONNECTION
+Every input should make the reader think "this is about MY life." Use Cincinnati neighborhoods by name. Reference local landmarks, streets, prices. The goal is not information — it's personal relevance.
+
+Output ONLY valid JSON. No markdown wrapping.`,
+        'Convert this article into an interactive Story-App:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + suggestedType + '\n\nFULL ARTICLE TEXT:\n' + articleText.slice(0, 5000),
         4096)
 
       console.log('Config response: ' + configText.length + ' chars')
