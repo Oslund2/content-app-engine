@@ -4,7 +4,7 @@ import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
   MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
-  Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart, Settings
+  Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart, Settings, X
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -80,6 +80,7 @@ export default function HomePage({ onOpenStory }) {
   const [savedProfiles, setSavedProfiles] = useState([])
   const [showArchive, setShowArchive] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showLive, setShowLive] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -172,14 +173,12 @@ export default function HomePage({ onOpenStory }) {
               className="text-white/60 cursor-pointer hover:text-white transition-colors"
               onClick={() => onOpenStory('admin-hub')}
             />
-            <a
-              href="https://assets.scrippsdigital.com/cms/video/player.html?video=https://content.uplynk.com/channel/d8a0c6e385814acc8c310e2b841ae563.m3u8&live=1&autoplay=true&purl=/live&da=1&poster=https://ewscripps.brightspotcdn.com/a6/13/ee80fd6b460481b06c0756952494/24-sn-1355113946-the-national-report-web-investigative-300x200.png&title=The%20National%20Report&kw=&contplay=*recent&mute=0&cust_params=temp%3D%26weather%3D&paramOverrides=%3Frepl%3Daboi&host=wcpo.com&s=wcpo&env=production&channel=wcpo-main-channel"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => setShowLive(prev => !prev)}
               className="hidden sm:flex items-center gap-1.5 bg-wcpo-red text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-red-700 transition-colors"
             >
               <Play size={11} fill="currentColor" /> LIVE
-            </a>
+            </button>
           </div>
         </div>
 
@@ -194,6 +193,38 @@ export default function HomePage({ onOpenStory }) {
           </div>
         </div>
       </header>
+
+      {/* === LIVE PLAYER === */}
+      <AnimatePresence>
+        {showLive && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden bg-black"
+          >
+            <div className="max-w-4xl mx-auto relative">
+              <button
+                onClick={() => setShowLive(false)}
+                className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/80 transition-colors"
+              >
+                <X size={16} />
+              </button>
+              <div className="aspect-video">
+                <iframe
+                  src="https://assets.scrippsdigital.com/cms/video/player.html?video=https://content.uplynk.com/channel/d8a0c6e385814acc8c310e2b841ae563.m3u8&live=1&autoplay=true&purl=/live&da=1&poster=https://ewscripps.brightspotcdn.com/a6/13/ee80fd6b460481b06c0756952494/24-sn-1355113946-the-national-report-web-investigative-300x200.png&title=The%20National%20Report&kw=&contplay=*recent&mute=0&cust_params=temp%3D%26weather%3D&paramOverrides=%3Frepl%3Daboi&host=wcpo.com&s=wcpo&env=production&channel=wcpo-main-channel"
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title="WCPO Live Stream"
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* === MAIN CONTENT === */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
