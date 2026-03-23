@@ -1,5 +1,5 @@
-// Netlify scheduled function — RSS feed ingestion
-// Polls 5 WCPO RSS feeds every 15 minutes, deduplicates by guid, stores in rss_items table
+// HTTP-callable trigger for RSS ingestion (for manual/dashboard use)
+// The scheduled rss-ingest function can't be called via HTTP, so this wrapper exists
 
 function getFeeds() {
   return [
@@ -54,12 +54,8 @@ function parseItems(xml) {
 function clean(str) {
   if (!str) return ''
   return str
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
 }
 
 async function fetchFeed(feed) {
@@ -70,7 +66,6 @@ async function fetchFeed(feed) {
     if (!res.ok) throw new Error('HTTP ' + res.status)
     var xml = await res.text()
     var items = parseItems(xml)
-
     return items.map(function(item) {
       return {
         guid: item.guid || item.link || '',
@@ -89,18 +84,36 @@ async function fetchFeed(feed) {
   }
 }
 
-async function upsertItems(items) {
-  var supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
-  var supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing Supabase credentials')
-    return 0
-  }
+export default async (req, context) => {
+  try {
+    var supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
+    var supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !supabaseKey) {
+      return new Response(JSON.stringify({ error: 'Missing Supabase credentials' }), {
+        status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
 
-  var inserted = 0
-  for (var i = 0; i < items.length; i += 25) {
-    var batch = items.slice(i, i + 25)
-    try {
+    var feeds = getFeeds()
+    var feedResults = await Promise.all(feeds.map(fetchFeed))
+    var allItems = feedResults.flat()
+
+    if (allItems.length === 0) {
+      return new Response(JSON.stringify({ message: 'No items fetched', inserted: 0 }), {
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
+    var seen = new Set()
+    var unique = allItems.filter(function(item) {
+      if (!item.guid || seen.has(item.guid)) return false
+      seen.add(item.guid)
+      return true
+    })
+
+    var inserted = 0
+    for (var i = 0; i < unique.length; i += 25) {
+      var batch = unique.slice(i, i + 25)
       var res = await fetch(supabaseUrl + '/rest/v1/rss_items', {
         method: 'POST',
         headers: {
@@ -115,40 +128,25 @@ async function upsertItems(items) {
         var data = await res.json()
         inserted += data.length
       } else {
-        var errText = await res.text()
-        console.error('Supabase upsert error: ' + errText)
+        console.error('Supabase error: ' + await res.text())
       }
-    } catch (err) {
-      console.error('Upsert batch error: ' + err.message)
     }
+
+    return new Response(JSON.stringify({
+      message: 'RSS ingestion complete',
+      fetched: allItems.length,
+      unique: unique.length,
+      inserted: inserted,
+    }), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    })
   }
-  return inserted
-}
-
-export default async (req) => {
-  console.log('RSS ingestion starting...')
-
-  var feeds = getFeeds()
-  var feedResults = await Promise.all(feeds.map(fetchFeed))
-  var allItems = feedResults.flat()
-  console.log('Fetched ' + allItems.length + ' items from ' + feeds.length + ' feeds')
-
-  if (allItems.length === 0) {
-    console.log('No items fetched')
-    return
-  }
-
-  var seen = new Set()
-  var unique = allItems.filter(function(item) {
-    if (!item.guid || seen.has(item.guid)) return false
-    seen.add(item.guid)
-    return true
-  })
-
-  var inserted = await upsertItems(unique)
-  console.log('Inserted ' + inserted + ' new items (' + unique.length + ' unique)')
 }
 
 export const config = {
-  schedule: '*/15 * * * *',
+  path: '/api/rss-invoke',
 }

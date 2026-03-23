@@ -342,15 +342,13 @@ Respond with JSON: { "sensitivityLevel": "low|moderate|high|critical", "designCo
 export default async (req) => {
   console.log('Story processing pipeline starting...')
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  const supabaseUrl = process.env.VITE_SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const apiKey = Netlify.env.get('ANTHROPIC_API_KEY')
+  const supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
+  const supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
   if (!apiKey || !supabaseUrl || !supabaseKey) {
-    return new Response(JSON.stringify({ error: 'Missing required environment variables' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    console.error('Missing required environment variables')
+    return
   }
 
   // Fetch up to 5 unprocessed RSS items
@@ -360,16 +358,12 @@ export default async (req) => {
       'rss_items?processed=eq.false&order=pub_date.desc&limit=5', 'GET')
   } catch (err) {
     console.error('Failed to fetch unprocessed items:', err.message)
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+    return
   }
 
   if (!items || items.length === 0) {
-    return new Response(JSON.stringify({ message: 'No unprocessed items', processed: 0 }), {
-      headers: { 'Content-Type': 'application/json' },
-    })
+    console.log('No unprocessed items')
+    return
   }
 
   const results = []
@@ -392,19 +386,10 @@ export default async (req) => {
     }
   }
 
-  console.log(`Pipeline complete. Processed ${results.length} items.`)
-
-  return new Response(JSON.stringify({
-    message: 'Processing complete',
-    processed: results.length,
-    results,
-  }), {
-    headers: { 'Content-Type': 'application/json' },
-  })
+  console.log('Pipeline complete. Processed ' + results.length + ' items.')
 }
 
 export const config = {
-  path: '/.netlify/functions/process-stories',
   schedule: '*/30 * * * *',
 }
 
