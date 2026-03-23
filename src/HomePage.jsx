@@ -172,9 +172,14 @@ export default function HomePage({ onOpenStory }) {
               className="text-white/60 cursor-pointer hover:text-white transition-colors"
               onClick={() => onOpenStory('admin-hub')}
             />
-            <button className="hidden sm:flex items-center gap-1.5 bg-wcpo-red text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-red-700 transition-colors">
+            <a
+              href="https://assets.scrippsdigital.com/cms/video/player.html?video=https://content.uplynk.com/channel/d8a0c6e385814acc8c310e2b841ae563.m3u8&live=1&autoplay=true&purl=/live&da=1&poster=https://ewscripps.brightspotcdn.com/a6/13/ee80fd6b460481b06c0756952494/24-sn-1355113946-the-national-report-web-investigative-300x200.png&title=The%20National%20Report&kw=&contplay=*recent&mute=0&cust_params=temp%3D%26weather%3D&paramOverrides=%3Frepl%3Daboi&host=wcpo.com&s=wcpo&env=production&channel=wcpo-main-channel"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex items-center gap-1.5 bg-wcpo-red text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-red-700 transition-colors"
+            >
               <Play size={11} fill="currentColor" /> LIVE
-            </button>
+            </a>
           </div>
         </div>
 
