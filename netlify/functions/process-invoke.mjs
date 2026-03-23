@@ -25,13 +25,16 @@ async function callAnthropic(apiKey, model, system, userMessage, maxTokens) {
     },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: userMessage }] }),
   })
+  var rawBody = await response.text()
   if (!response.ok) {
-    var errBody = await response.text()
-    throw new Error('Anthropic API error ' + response.status + ': ' + errBody.slice(0, 200))
+    throw new Error('Anthropic API error ' + response.status + ': ' + rawBody.slice(0, 300))
   }
-  var data = await response.json()
+  var data
+  try { data = JSON.parse(rawBody) } catch(e) {
+    throw new Error('Anthropic response not JSON (' + rawBody.length + ' chars): ' + rawBody.slice(0, 200))
+  }
   var text = data.content && data.content[0] ? data.content[0].text : ''
-  if (!text) throw new Error('Empty response from ' + model + ' (stop_reason: ' + data.stop_reason + ')')
+  if (!text) throw new Error('Empty response from ' + model + ' (stop_reason: ' + data.stop_reason + ', keys: ' + Object.keys(data).join(',') + ')')
   return text
 }
 
