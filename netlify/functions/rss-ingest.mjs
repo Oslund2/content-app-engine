@@ -1,7 +1,6 @@
 // Netlify scheduled function — RSS feed ingestion
 // Polls 5 WCPO RSS feeds every 15 minutes, deduplicates by guid, stores in rss_items table
-
-import { XMLParser } from 'fast-xml-parser'
+// Uses regex-based XML parsing (no external dependencies)
 
 const FEEDS = [
   { name: 'news', url: 'https://www.wcpo.com/news.rss' },
@@ -11,18 +10,42 @@ const FEEDS = [
   { name: 'lifestyle', url: 'https://www.wcpo.com/lifestyle.rss' },
 ]
 
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  cdataPropName: '__cdata',
-  textNodeName: '__text',
-})
+// Simple RSS XML extraction helpers (no external deps)
+function extractTag(xml, tag) {
+  // Handle both <tag>text</tag> and <tag><![CDATA[text]]></tag>
+  const regex = new RegExp(`<${tag}[^>]*>\\s*(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))\\s*</${tag}>`, 'i')
+  const match = xml.match(regex)
+  if (!match) return ''
+  return (match[1] || match[2] || '').trim()
+}
 
-function extractText(node) {
-  if (!node) return ''
-  if (typeof node === 'string') return node
-  if (node.__cdata) return node.__cdata
-  if (node.__text) return node.__text
-  return String(node)
+function extractItems(xml) {
+  const items = []
+  const itemRegex = /<item>([\s\S]*?)<\/item>/gi
+  let match
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const block = match[1]
+    items.push({
+      title: extractTag(block, 'title'),
+      link: extractTag(block, 'link'),
+      description: extractTag(block, 'description'),
+      contentEncoded: extractTag(block, 'content:encoded'),
+      author: extractTag(block, 'author') || extractTag(block, 'dc:creator'),
+      pubDate: extractTag(block, 'pubDate'),
+      guid: extractTag(block, 'guid'),
+    })
+  }
+  return items
+}
+
+function decodeEntities(str) {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
 }
 
 async function fetchFeed(feed) {
@@ -32,21 +55,16 @@ async function fetchFeed(feed) {
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const xml = await res.text()
-    const parsed = parser.parse(xml)
-
-    const channel = parsed?.rss?.channel
-    if (!channel) return []
-
-    const items = Array.isArray(channel.item) ? channel.item : [channel.item].filter(Boolean)
+    const items = extractItems(xml)
 
     return items.map(item => ({
-      guid: extractText(item.guid) || item.link || '',
+      guid: item.guid || item.link || '',
       feed_name: feed.name,
-      title: extractText(item.title) || '',
-      link: item.link || '',
-      description: extractText(item.description) || '',
-      content_encoded: extractText(item['content:encoded']) || '',
-      author: extractText(item.author) || extractText(item['dc:creator']) || '',
+      title: decodeEntities(item.title),
+      link: item.link,
+      description: decodeEntities(item.description),
+      content_encoded: item.contentEncoded,
+      author: decodeEntities(item.author),
       pub_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
     }))
   } catch (err) {
