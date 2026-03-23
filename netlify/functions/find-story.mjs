@@ -1,15 +1,12 @@
-// Netlify function — AI-powered story finder
-// Searches trending news, picks the best article for Cincinnati localization
-// GET /api/find-story?topic=housing (optional topic filter)
+// Netlify function — AI-powered 3rd party story finder
+// Fetches Google News RSS, asks Haiku to pick the best one for Cincinnati.
+// Writes recommendation to Supabase so frontend can poll for it.
+// GET /api/find-story?topic=housing (optional)
+// GET /api/find-story?check=true (poll for result)
 
-import { callAnthropic, parseJson, stripHtml } from './lib/pipeline.mjs'
+import { callAnthropic, parseJson, stripHtml, sbQuery } from './lib/pipeline.mjs'
 
-// News RSS feeds — fast, reliable sources
-const NEWS_FEEDS = [
-  { name: 'AP Top News', url: 'https://feedx.net/rss/ap.xml' },
-  { name: 'NPR News', url: 'https://feeds.npr.org/1001/rss.xml' },
-  { name: 'PBS NewsHour', url: 'https://www.pbs.org/newshour/feeds/rss/headlines' },
-]
+const GOOGLE_NEWS_URL = 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en'
 
 function getTagContent(xml, tagName) {
   var startTag = '<' + tagName
@@ -22,16 +19,14 @@ function getTagContent(xml, tagName) {
   var endIdx = xml.indexOf(endTag, contentStart)
   if (endIdx === -1) return ''
   var raw = xml.substring(contentStart, endIdx).trim()
-  if (raw.startsWith('<![CDATA[') && raw.endsWith(']]>')) {
-    raw = raw.substring(9, raw.length - 3)
-  }
+  if (raw.startsWith('<![CDATA[') && raw.endsWith(']]>')) raw = raw.substring(9, raw.length - 3)
   return raw.trim()
 }
 
-function parseRssItems(xml, feedName) {
+function parseRssItems(xml) {
   var results = []
   var searchFrom = 0
-  while (results.length < 15) {
+  while (results.length < 25) {
     var itemStart = xml.indexOf('<item>', searchFrom)
     if (itemStart === -1) itemStart = xml.indexOf('<item ', searchFrom)
     if (itemStart === -1) break
@@ -40,140 +35,74 @@ function parseRssItems(xml, feedName) {
     var block = xml.substring(itemStart, itemEnd)
     var title = stripHtml(getTagContent(block, 'title'))
     var link = getTagContent(block, 'link')
-    var description = stripHtml(getTagContent(block, 'description'))
-    if (title && link) {
-      results.push({ title, link, description: description.slice(0, 300), source: feedName })
-    }
+    var source = stripHtml(getTagContent(block, 'source'))
+    if (title && link) results.push({ title, link, source: source || 'News' })
     searchFrom = itemEnd + 7
   }
   return results
 }
 
-async function fetchFeed(feed) {
-  try {
-    var res = await fetch(feed.url, {
-      headers: { 'User-Agent': 'WCPO-ContentAppEngine/1.0' },
-      signal: AbortSignal.timeout(4000),
-    })
-    if (!res.ok) return []
-    var xml = await res.text()
-    return parseRssItems(xml, feed.name)
-  } catch (err) {
-    console.error('Feed error (' + feed.name + '): ' + err.message)
-    return []
-  }
-}
+const PICKER_PROMPT = `Pick the ONE article best suited for an interactive Story-App localized for Cincinnati, Ohio.
 
-const FINDER_PROMPT = `You are a senior editor at WCPO Cincinnati. You're scanning national/international news for stories that would make AMAZING localized interactive Story-Apps for Cincinnati readers.
-
-A Story-App turns a news article into an interactive experience — calculators, quizzes, planners, explorers, assessments. The best candidates have:
-
-1. DATA & NUMBERS that can drive calculations (costs, percentages, distances, timelines)
-2. PERSONAL RELEVANCE — readers can see how it affects THEM specifically
-3. LOCAL ANGLE — the national trend has a clear Cincinnati/Ohio/tri-state connection
-4. MULTIPLE INTERACTIVE ANGLES — not just one chart, but 2-3 different tools
-5. EMOTIONAL ENGAGEMENT — readers CARE about this topic
-
-Think about what connects to Cincinnati:
-- Cost of living, housing, rent burden
-- Infrastructure (bridges, roads, water systems)
-- Weather/climate impacts (Ohio River flooding, tornados, heat)
-- Employment/economy (manufacturing, P&G, Kroger, GE Aviation)
-- Education (CPS, University of Cincinnati, NKU)
-- Sports (Bengals, Reds, FC Cincinnati)
-- Health (Cincinnati Children's, UC Health)
-- Food/culture (OTR restaurants, Findlay Market)
-- Transportation (CVG airport, Metro bus, I-75 corridor)
-
-From the articles below, pick the ONE story that would make the most engaging, unique interactive Story-App for Cincinnati readers.
+Best candidates: data/numbers, personal relevance, Cincinnati/Ohio angle, emotional engagement.
+Cincinnati: housing/rent crisis, Brent Spence Bridge, Ohio River, P&G/Kroger/GE Aviation, Bengals/Reds/FCC, Cincinnati Children's, UC Health, CVG airport, OTR, manufacturing, obesity/GLP-1s, school safety, cost of living.
 
 ARTICLES:
 {articles}
 
-Respond with ONLY a JSON object:
-{
-  "chosen_url": "the article URL",
-  "chosen_title": "the headline",
-  "chosen_source": "source name",
-  "localization_angle": "2-3 sentences explaining HOW this story connects to Cincinnati and what makes it personally relevant to local readers",
-  "interactive_ideas": [
-    "Specific interactive tool idea 1 (e.g., 'Slider: How much of your income goes to X?')",
-    "Specific interactive tool idea 2",
-    "Specific interactive tool idea 3"
-  ],
-  "why_this_story": "1 sentence on why this beats the other candidates",
-  "suggested_app_type": "impact-calculator|safety-assessment|event-planner|data-explorer|eligibility-checker"
-}`
+JSON only:
+{"chosen_url":"URL","chosen_title":"title","chosen_source":"source","localization_angle":"How this connects to Cincinnati (2 sentences)","interactive_ideas":["idea 1","idea 2","idea 3"],"why_this_story":"1 sentence"}`
 
 export default async (req) => {
+  var headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+
   if (req.method === 'OPTIONS') {
-    return new Response('', {
-      headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET', 'Access-Control-Allow-Headers': 'Content-Type' },
-    })
+    return new Response('', { headers: { ...headers, 'Access-Control-Allow-Methods': 'GET' } })
   }
 
   var apiKey = Netlify.env.get('ANTHROPIC_API_KEY')
-  if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key not configured' }), {
-      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
-  }
+  if (!apiKey) return new Response(JSON.stringify({ error: 'No API key' }), { status: 500, headers })
 
   try {
-    // Optional topic filter from query string
-    var url = new URL(req.url)
-    var topicFilter = url.searchParams.get('topic') || null
-
-    console.log('Fetching news feeds...')
-
-    // Fetch all feeds in parallel
-    var feedResults = await Promise.all(NEWS_FEEDS.map(fetchFeed))
-    var allArticles = feedResults.flat()
-
-    if (allArticles.length === 0) {
-      return new Response(JSON.stringify({ error: 'Could not fetch any news feeds' }), {
-        status: 502, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
-    }
-
-    // Limit to 30 most recent articles to keep prompt small and fast
-    var trimmed = allArticles.slice(0, 30)
-    console.log('Using ' + trimmed.length + ' articles from ' + NEWS_FEEDS.length + ' feeds')
-
-    // Build the article list for Claude — compact format
-    var articleList = trimmed.map(function (a, i) {
-      return (i + 1) + '. [' + a.source + '] ' + a.title + '\n   URL: ' + a.link + '\n   ' + a.description.slice(0, 150)
-    }).join('\n\n')
-
-    var userPrompt = FINDER_PROMPT.replace('{articles}', articleList)
-    if (topicFilter) {
-      userPrompt += '\n\nIMPORTANT: Prefer articles related to the topic: "' + topicFilter + '"'
-    }
-
-    console.log('Asking Haiku to pick the best story...')
-    var responseText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
-      'You are a news editor selecting stories for localization. Respond with ONLY valid JSON.',
-      userPrompt, 600)
-
-    var recommendation = parseJson(responseText)
-    console.log('Recommended: ' + recommendation.chosen_title)
-
-    return new Response(JSON.stringify({
-      recommendation,
-      totalScanned: allArticles.length,
-      feedsScanned: NEWS_FEEDS.length,
-    }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    console.log('Fetching Google News...')
+    var feedRes = await fetch(GOOGLE_NEWS_URL, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(8000),
     })
 
+    if (!feedRes.ok) {
+      return new Response(JSON.stringify({ error: 'Google News feed returned ' + feedRes.status }), { status: 502, headers })
+    }
+
+    var xml = await feedRes.text()
+    var articles = parseRssItems(xml)
+    console.log('Parsed ' + articles.length + ' articles')
+
+    if (articles.length === 0) {
+      return new Response(JSON.stringify({ error: 'No articles found in feed' }), { status: 502, headers })
+    }
+
+    var topicFilter = new URL(req.url).searchParams.get('topic') || null
+
+    var articleList = articles.map(function (a, i) {
+      return (i + 1) + '. [' + a.source + '] ' + a.title + ' | ' + a.link
+    }).join('\n')
+
+    var prompt = PICKER_PROMPT.replace('{articles}', articleList)
+    if (topicFilter) prompt += '\nPrefer: ' + topicFilter
+
+    console.log('Calling Haiku...')
+    var text = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
+      'Pick best story for Cincinnati. JSON only.', prompt, 350)
+
+    var rec = parseJson(text)
+    console.log('Picked: ' + (rec.chosen_title || '').slice(0, 40))
+
+    return new Response(JSON.stringify({ recommendation: rec, totalScanned: articles.length, feedsScanned: 1 }), { headers })
   } catch (err) {
-    console.error('Find story error:', err)
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
+    console.error('Find-story error:', err)
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers })
   }
 }
 
-export const config = {
-  path: '/api/find-story',
-}
+export const config = { path: '/api/find-story' }
