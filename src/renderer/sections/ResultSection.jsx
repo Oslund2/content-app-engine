@@ -38,26 +38,30 @@ export default function ResultSection({ results, storyId }) {
           >
             {scoreCards.map((card, i) => {
               // Resolve value from calculations if it's a reference string
+              const calcRef = card.calcId || card.valueRef
               const raw =
-                typeof card.calcId === 'string'
-                  ? calculations[card.calcId]
+                typeof calcRef === 'string'
+                  ? calculations[calcRef] ?? calculations[calcRef.replace('calculations.', '')]
                   : card.value
-              const display =
-                card.format && typeof raw === 'number'
+
+              // Handle level-based cards (where Sonnet generated levels/descriptions instead of a number)
+              const hasLevels = card.levels || card.scoreRanges
+              const display = hasLevels
+                ? null // Will show description instead
+                : (card.format && typeof raw === 'number')
                   ? formatValue(raw, card.format)
                   : raw
 
               return (
-                <ScoreCard
-                  key={card.calcId || i}
-                  label={card.label}
-                  value={display}
-                  prefix={card.prefix}
-                  suffix={card.suffix}
-                  color={card.color}
-                  size={card.size}
-                  icon={card.icon}
-                />
+                <div key={card.calcId || card.id || i} className="bg-white border border-rule rounded-xl p-5">
+                  <h4 className="text-sm font-bold text-ink mb-1">{card.label || card.title}</h4>
+                  {display != null && (
+                    <p className="text-2xl font-bold text-wcpo-red">{card.prefix}{display}{card.suffix}</p>
+                  )}
+                  {card.description && (
+                    <p className="text-sm text-ink-light mt-2 leading-relaxed">{card.description}</p>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -94,20 +98,20 @@ export default function ResultSection({ results, storyId }) {
                 transition={{ duration: 0.3, delay: i * 0.06 }}
                 className="bg-white border border-rule rounded-xl p-4"
               >
-                <p className="text-sm font-semibold text-ink">{item.title}</p>
+                <p className="text-sm font-semibold text-ink">{item.title || item.label}</p>
                 {item.description && (
                   <p className="text-sm text-ink-light mt-1 leading-relaxed">
                     {item.description}
                   </p>
                 )}
-                {item.cta && (
+                {(item.cta || item.ctaUrl || item.url) && (
                   <a
-                    href={item.ctaUrl || '#'}
+                    href={item.ctaUrl || item.url || '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-semibold text-wcpo-red mt-2 hover:underline"
                   >
-                    {item.cta} <ExternalLink size={10} />
+                    {item.cta || 'Learn More'} <ExternalLink size={10} />
                   </a>
                 )}
               </motion.div>

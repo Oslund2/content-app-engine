@@ -10,12 +10,18 @@ import {
 } from '../inputs'
 
 const inputComponents = {
-  slider: SliderInput,
-  buttonArray: ButtonArrayInput,
-  dropdown: DropdownInput,
-  quiz: QuizInput,
-  checkboxGroup: CheckboxGroupInput,
-  radioGroup: RadioGroupInput,
+  'slider': SliderInput,
+  'button-array': ButtonArrayInput,
+  'buttonArray': ButtonArrayInput,
+  'dropdown': DropdownInput,
+  'select': DropdownInput,
+  'quiz': QuizInput,
+  'checkbox-group': CheckboxGroupInput,
+  'checkboxGroup': CheckboxGroupInput,
+  'multiselect': CheckboxGroupInput,
+  'radio': RadioGroupInput,
+  'radio-group': RadioGroupInput,
+  'radioGroup': RadioGroupInput,
 }
 
 export default function InputSection({ inputs }) {

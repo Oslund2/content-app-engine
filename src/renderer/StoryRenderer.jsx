@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { ConfigProvider, useConfig } from './ConfigContext'
+import { normalizeConfig } from './normalizeConfig'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
@@ -93,12 +95,13 @@ function StoryContent({ config, storyId, onBack, onOpenStory }) {
  *   <StoryRenderer config={configObject} storyId="my-story" onBack={() => {}} onOpenStory={(id) => {}} />
  */
 export default function StoryRenderer({ config, storyId, onBack, onOpenStory }) {
-  if (!config) return null
+  const normalized = useMemo(() => normalizeConfig(config), [config])
+  if (!normalized) return null
 
   return (
-    <ConfigProvider config={config}>
+    <ConfigProvider config={normalized}>
       <StoryContent
-        config={config}
+        config={normalized}
         storyId={storyId}
         onBack={onBack}
         onOpenStory={onOpenStory}
