@@ -95,10 +95,12 @@ export default async (req, context) => {
 
         // Stage 1: Triage (Haiku)
         var triageText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
-          'You evaluate news articles for interactive app potential. Return JSON: { "worthiness_score": 0-100, "suggested_app_type": "string", "skip_reason": "string if score<40" }',
+          'You evaluate news articles for interactive app potential. Respond with ONLY a JSON object, nothing else: { "worthiness_score": 0-100, "suggested_app_type": "string", "skip_reason": "string if score<40" }',
           'HEADLINE: ' + item.title + '\nSUMMARY: ' + (item.description || '').slice(0, 300) + '\nARTICLE: ' + articleText.slice(0, 1000),
           300)
-        var triage = parseJson(triageText)
+        console.log('Triage response for "' + item.title.slice(0, 40) + '": ' + triageText.slice(0, 200))
+        var triage
+        try { triage = parseJson(triageText) } catch(e) { throw new Error('Triage parse failed: ' + triageText.slice(0, 100)) }
 
         await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH',
           { worthiness_score: triage.worthiness_score, skip_reason: triage.skip_reason || null, processed: true })
@@ -113,7 +115,9 @@ export default async (req, context) => {
           'You are an interactive journalist at WCPO Cincinnati. Generate a JSON config for an interactive Story-App. Output ONLY valid JSON with: appType, theme{accentColor,categoryLabel,icon}, hero{headline,subhead,leadParagraphs[],keyStats[]}, inputs[], calculations[], results{showAfterInputs[],scoreCards[],charts[],actionItems[]}, narrative{systemPrompt,profileFields[]}, poll{question,fields[]}, narrationScript. Use REAL Cincinnati neighborhoods and data from the article.',
           'Convert this article to an interactive Story-App config:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + triage.suggested_app_type + '\n\nFULL TEXT:\n' + articleText.slice(0, 4000),
           4096)
-        var config = parseJson(configText)
+        console.log('Config response length: ' + configText.length + ' chars')
+        var config
+        try { config = parseJson(configText) } catch(e) { throw new Error('Config parse failed (len=' + configText.length + '): ' + configText.slice(0, 150)) }
 
         var storyId = slugify(item.title)
         var categoryColors = { news: '#dc2626', 'local-news': '#dc2626', sports: '#16a34a', entertainment: '#9333ea', lifestyle: '#0891b2' }
