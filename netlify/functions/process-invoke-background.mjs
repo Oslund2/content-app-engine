@@ -143,45 +143,56 @@ export default async (req, context) => {
       // Config Generation (Sonnet)
       console.log('Generating config with Sonnet...')
       var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
-        `You are a senior interactive journalist at WCPO Cincinnati. You transform news articles into Story-Apps — pages that are BOTH journalism AND interactive tools.
+        `You generate JSON configs for interactive news Story-Apps at WCPO Cincinnati. Output ONLY valid JSON, no markdown.
 
-## RULE #1: THE STORY COMES FIRST
-Every Story-App must contain the FULL STORY as readable editorial text. The reader must be able to understand the news BEFORE they interact. This is journalism, not a widget.
+The config MUST have ALL of these sections — if any section is missing, the app breaks:
 
-Your config MUST include:
-- hero.headline: Compelling headline
-- hero.subhead: 1-sentence summary
-- hero.leadParagraphs: Array of 4-6 paragraphs telling the COMPLETE story. Include who, what, when, where, why. Use quotes from the article. Include specific numbers and facts. This is the article body — write it like a journalist.
-- hero.keyStats: 2-4 key numbers from the story as stat cards
+{
+  "appType": "impact-calculator|safety-assessment|eligibility-checker|data-explorer|event-planner|visit-planner",
+  "theme": {"accentColor": "#hex", "categoryLabel": "CATEGORY", "icon": "lucide-icon-name"},
+  "hero": {
+    "headline": "Compelling headline",
+    "subhead": "One-sentence summary",
+    "leadParagraphs": ["3 paragraphs of story context from the article. Keep each paragraph 2-3 sentences. Include key facts, quotes, and numbers."],
+    "keyStats": [{"value": "123", "label": "Stat Label"}]
+  },
+  "inputs": [
+    {"id": "neighborhood", "type": "button-array", "label": "Where do you live?", "options": [{"id": "hyde-park", "label": "Hyde Park", "data": {"risk": 2}}], "columns": 3}
+  ],
+  "calculations": [
+    {"id": "impact", "formula": "inputs.neighborhood.data.risk * 10", "format": "round"}
+  ],
+  "results": {
+    "showAfterInputs": ["neighborhood"],
+    "scoreCards": [{"label": "Your Impact", "valueRef": "calculations.impact"}],
+    "charts": [{"type": "bar", "title": "By Area", "data": [{"area": "Hyde Park", "value": 20}], "xKey": "area", "yKey": "value", "color": "#dc2626"}],
+    "actionItems": [{"title": "Take Action", "description": "What to do next", "cta": "Learn More", "ctaUrl": "https://example.com"}]
+  },
+  "narrative": {"systemPrompt": "You are a WCPO reporter. Write 2 paragraphs about the reader's results.", "profileFields": ["neighborhood"]},
+  "narrationScript": "50-80 word dramatic audio intro for this story."
+}
 
-## RULE #2: THEN THE INTERACTIVE TOOL
-After the story, the reader engages with a tool that makes it personal. Choose the BEST format:
+CRITICAL: The "inputs" array MUST have at least 2-3 inputs. The "results.showAfterInputs" MUST list those input IDs. Without these, the app has no interactivity.
 
-- **impact-calculator**: Story has NUMBERS affecting people differently → sliders + formulas → personal cost/time/impact
-- **safety-assessment**: Story involves RISK → quiz → score + grade → personalized tips
-- **eligibility-checker**: A PROGRAM/BENEFIT exists → criteria questions → eligible/not + next steps
-- **data-explorer**: GEOGRAPHIC data → pick neighborhood → comparison charts
-- **event-planner**: UPCOMING EVENT → pick preferences → personalized plan
-- **visit-planner**: A PLACE opened/reopened → select interests → tailored guide
+Choose the right appType: impact-calculator for costs/numbers, safety-assessment for risk/quizzes, data-explorer for geographic comparisons, event-planner for upcoming events, visit-planner for places.
 
-## RULE #3: FORMAT REQUIREMENTS
-inputs[]: {"id": "snake_case", "type": "button-array"|"slider"|"dropdown"|"quiz"|"checkbox-group"|"radio", "label": "...", "options": [{"id": "kebab-case", "label": "Text", "data": {}}]}
-For sliders: include "min", "max", "step", "defaultValue"
-calculations[]: {"id": "name", "formula": "inputs.x.data.y * inputs.z.value", "format": "currency"|"round"|"percent"}
-results.charts[]: {"type": "area"|"bar"|"radar", "title": "...", "data": [...], "xKey": "x", "yKey": "y", "color": "#hex"}
-results.actionItems[]: {"title": "...", "description": "...", "cta": "Button Text", "ctaUrl": "https://..."}
-narrationScript: 50-80 word dramatic intro for audio narration
-
-## RULE #4: CINCINNATI SPECIFICITY
-Use real neighborhood names (Price Hill, OTR, Clifton, Hyde Park, Avondale, Westwood, Anderson Twp, Covington, Newport). Reference real streets, landmarks, prices. Make it feel LOCAL.
-
-Output ONLY valid JSON. No markdown.`,
-        'Transform this Cincinnati news article into a Story-App config. Remember: FULL STORY TEXT in hero.leadParagraphs (4-6 paragraphs), then interactive tool.\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + suggestedType + '\n\nFULL ARTICLE TEXT:\n' + articleText.slice(0, 5000),
-        8192)
+Use REAL Cincinnati neighborhoods in options: Price Hill, OTR, Clifton, Hyde Park, Avondale, Westwood, Northside, Madisonville, Mt. Washington, Anderson Twp, Covington, Newport.`,
+        'Generate a Story-App JSON config for this article:\n\nHEADLINE: ' + item.title + '\nTYPE: ' + suggestedType + '\n\nARTICLE:\n' + articleText.slice(0, 4000),
+        6000)
 
       console.log('Config response: ' + configText.length + ' chars')
       var config = parseJson(configText)
-      console.log('Config parsed, appType: ' + config.appType)
+      console.log('Config parsed, appType: ' + config.appType + ', inputs: ' + (config.inputs ? config.inputs.length : 0))
+
+      // Validate: must have inputs and results
+      if (!config.inputs || config.inputs.length === 0) {
+        throw new Error('Config has no inputs — Sonnet failed to generate interactivity')
+      }
+      if (!config.results || !config.results.showAfterInputs) {
+        // Auto-fix: set showAfterInputs to first input ID
+        if (!config.results) config.results = {}
+        config.results.showAfterInputs = config.inputs.map(function(inp) { return inp.id })
+      }
 
       var storyId = slugify(item.title)
       var categoryColors = { news: '#dc2626', 'local-news': '#dc2626', sports: '#16a34a', entertainment: '#9333ea', lifestyle: '#0891b2' }

@@ -17,8 +17,9 @@ function StoryContent({ config, storyId, onBack, onOpenStory }) {
   const { allRequiredFilled, getProfileData } = useConfig()
 
   const profileData = getProfileData()
+  const hasInputs = Array.isArray(config.inputs) && config.inputs.length > 0
   const requiredIds = config.results?.showAfterInputs
-  const inputsComplete = allRequiredFilled(requiredIds)
+  const inputsComplete = hasInputs ? allRequiredFilled(requiredIds) : false
   const sensitivity = config.sensitivity ?? {}
 
   return (
