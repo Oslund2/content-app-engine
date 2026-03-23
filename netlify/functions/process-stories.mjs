@@ -403,3 +403,8 @@ export default async (req) => {
   })
 }
 
+export const config = {
+  path: '/.netlify/functions/process-stories',
+  schedule: '*/30 * * * *',
+}
+
