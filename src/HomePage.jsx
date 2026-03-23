@@ -118,25 +118,15 @@ export default function HomePage({ onOpenStory, generatedStories = [] }) {
   // Merge legacy stories with generated stories
   const legacyStories = allStories.length > 0 ? allStories : storyData.stories
   const genStories = generatedStories.map(generatedToStory)
-  const today = new Date().toISOString().split('T')[0]
 
-  // Today's generated stories appear first, then legacy stories
-  const todayGenerated = genStories.filter(s => s.publishDate === today)
-  const olderGenerated = genStories.filter(s => s.publishDate !== today)
-
-  const stories = [...todayGenerated, ...legacyStories]
+  // Combine: legacy stories first (preserving original order), then generated stories mixed in
+  const stories = [...legacyStories, ...genStories]
 
   // Show all this week's stories on the main page; archive is for older weeks
   const thisWeekCutoff = '2026-03-15' // Monday of current week
   const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff || s.isGenerated)
-  const archiveStories = [
-    ...legacyStories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff),
-    ...olderGenerated,
-  ]
-  const archiveDates = [...new Set([
-    ...dates.filter(d => d < thisWeekCutoff),
-    ...olderGenerated.map(s => s.publishDate),
-  ])].sort().reverse()
+  const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff && !s.isGenerated)
+  const archiveDates = dates.filter(d => d < thisWeekCutoff)
 
   const sportsCategories = ['SPORTS']
   const weatherCategories = ['WEATHER']
