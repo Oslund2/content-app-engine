@@ -79,7 +79,9 @@ function RssQueue({ items, loading, onRefresh }) {
     setProcessResult(null)
     try {
       const res = await fetch('/api/process-invoke')
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response (status ' + res.status + ')' } }
       setProcessResult(data)
       if (onRefresh) onRefresh()
     } catch (err) {
@@ -370,7 +372,13 @@ function ExternalIngest({ onRefresh }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: url.trim(), topic_slug: topicSlug || null }),
       })
-      const data = await res.json()
+      const text = await res.text()
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = { error: 'Server returned non-JSON response (status ' + res.status + '). The URL may be unreachable or the function timed out.' }
+      }
       setResult(data)
       if (data.success && onRefresh) onRefresh()
     } catch (err) {
