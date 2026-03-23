@@ -48,9 +48,39 @@ export default async (req) => {
     const { EdgeTTS } = await import('@andresaya/edge-tts')
 
     const { storyId } = await req.json()
-    const text = narrationScripts[storyId]
+    let text = narrationScripts[storyId]
+
+    // Fallback: fetch narration_script from generated_stories table
     if (!text) {
-      return new Response(JSON.stringify({ error: 'Unknown story' }), { status: 200 })
+      const supabaseUrl = process.env.VITE_SUPABASE_URL
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (supabaseUrl && supabaseServiceKey) {
+        try {
+          const res = await fetch(
+            `${supabaseUrl}/rest/v1/generated_stories?story_id=eq.${encodeURIComponent(storyId)}&select=narration_script`,
+            {
+              headers: {
+                'apikey': supabaseServiceKey,
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+              },
+            }
+          )
+          if (res.ok) {
+            const rows = await res.json()
+            if (rows.length > 0 && rows[0].narration_script) {
+              text = rows[0].narration_script
+            }
+          }
+        } catch (e) {
+          console.error('Supabase fetch error:', e)
+        }
+      }
+      if (!text) {
+        return new Response(JSON.stringify({ error: 'No narration available' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        })
+      }
     }
 
     const edgeTts = new EdgeTTS()

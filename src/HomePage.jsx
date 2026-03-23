@@ -7,7 +7,7 @@ import {
   Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart, Settings, X
 } from 'lucide-react'
 import storyData from './storyData.json'
-import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
+import { fetchStories, fetchStoryDates, fetchMyProfiles, fetchGeneratedStories } from './lib/supabase'
 
 const storyIcons = {
   baseball: Baseline,
@@ -73,7 +73,25 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-export default function HomePage({ onOpenStory }) {
+// Convert generated story rows to display format
+function generatedToStory(row) {
+  return {
+    id: row.story_id,
+    category: row.category,
+    categoryColor: row.category_color || '#dc2626',
+    headline: row.headline,
+    subhead: row.subhead || row.config?.hero?.subhead || '',
+    image: null,
+    photo: row.image_url || null,
+    timestamp: formatDate(row.publish_date),
+    readTime: '5 min',
+    featured: row.featured,
+    publishDate: row.publish_date,
+    isGenerated: true,
+  }
+}
+
+export default function HomePage({ onOpenStory, generatedStories = [] }) {
   const { brand } = storyData
   const [allStories, setAllStories] = useState([])
   const [dates, setDates] = useState([])
@@ -97,13 +115,28 @@ export default function HomePage({ onOpenStory }) {
     load()
   }, [])
 
-  // Use local JSON as fallback if Supabase hasn't loaded or returned empty
-  const stories = allStories.length > 0 ? allStories : storyData.stories
+  // Merge legacy stories with generated stories
+  const legacyStories = allStories.length > 0 ? allStories : storyData.stories
+  const genStories = generatedStories.map(generatedToStory)
+  const today = new Date().toISOString().split('T')[0]
+
+  // Today's generated stories appear first, then legacy stories
+  const todayGenerated = genStories.filter(s => s.publishDate === today)
+  const olderGenerated = genStories.filter(s => s.publishDate !== today)
+
+  const stories = [...todayGenerated, ...legacyStories]
+
   // Show all this week's stories on the main page; archive is for older weeks
   const thisWeekCutoff = '2026-03-15' // Monday of current week
-  const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff)
-  const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff)
-  const archiveDates = dates.filter(d => d < thisWeekCutoff)
+  const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff || s.isGenerated)
+  const archiveStories = [
+    ...legacyStories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff),
+    ...olderGenerated,
+  ]
+  const archiveDates = [...new Set([
+    ...dates.filter(d => d < thisWeekCutoff),
+    ...olderGenerated.map(s => s.publishDate),
+  ])].sort().reverse()
 
   const sportsCategories = ['SPORTS']
   const weatherCategories = ['WEATHER']

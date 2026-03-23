@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { ArrowLeft, Shield, Code2 } from 'lucide-react'
+import { ArrowLeft, Shield, Code2, Newspaper } from 'lucide-react'
 import SensitivityAdmin from './SensitivityAdmin'
+import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
 
 const tabs = [
   { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
   { id: 'embed', label: 'Embed Center', icon: Code2 },
+  { id: 'pipeline', label: 'Story Pipeline', icon: Newspaper },
 ]
 
 function EmbedCenter() {
@@ -131,6 +133,7 @@ export default function AdminHub({ onBack }) {
         {/* Tab content */}
         {activeTab === 'sensitivity' && <SensitivityAdmin />}
         {activeTab === 'embed' && <EmbedCenter />}
+        {activeTab === 'pipeline' && <StoryPipeline />}
       </main>
     </>
   )

@@ -57,19 +57,28 @@ function evaluateCondition(condition, profileData) {
   }
 }
 
-export default function StoryConnections({ storyId, profileData, onOpenStory }) {
+export default function StoryConnections({ storyId, profileData, onOpenStory, configConnections }) {
   const matched = useMemo(() => {
     if (!storyId || !profileData) return []
 
-    const rules = connections
+    // Static connections from connections.json
+    const staticRules = connections
       .filter(r => r.sourceStory === storyId)
       .filter(r => evaluateCondition(r.condition, profileData))
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+
+    // Dynamic connections from generated story config
+    const dynamicRules = (configConnections || [])
+      .filter(r => evaluateCondition(r.condition, profileData))
+      .map(r => ({ ...r, targetStory: r.targetStoryId, priority: r.priority || 5 }))
+
+    const allRules = [...staticRules, ...dynamicRules]
       .sort((a, b) => (b.priority || 0) - (a.priority || 0))
 
     // Deduplicate by targetStory, keeping highest priority
     const seen = new Set()
     const unique = []
-    for (const rule of rules) {
+    for (const rule of allRules) {
       if (!seen.has(rule.targetStory)) {
         seen.add(rule.targetStory)
         unique.push(rule)
@@ -77,7 +86,7 @@ export default function StoryConnections({ storyId, profileData, onOpenStory }) 
     }
 
     return unique.slice(0, 2)
-  }, [storyId, profileData])
+  }, [storyId, profileData, configConnections])
 
   if (matched.length === 0 || !onOpenStory) return null
 
@@ -100,7 +109,11 @@ export default function StoryConnections({ storyId, profileData, onOpenStory }) 
 
       <div className="space-y-3">
         {matched.map((rule, i) => {
-          const story = storyMap[rule.targetStory]
+          const story = storyMap[rule.targetStory] || {
+            headline: rule.headline || rule.targetStory,
+            category: rule.category || 'NEWS',
+            categoryColor: rule.categoryColor || '#dc2626',
+          }
           if (!story) return null
 
           return (

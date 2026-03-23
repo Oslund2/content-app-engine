@@ -203,3 +203,108 @@ export async function fetchPollStats(storyId, neighborhood) {
 
   return { total, neighborhoodCount, allData: data, neighborhoodData }
 }
+
+// --- Generated Stories (RSS Pipeline) ---
+
+export async function fetchGeneratedStories(status = 'published') {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*')
+    .eq('status', status)
+    .order('publish_date', { ascending: false })
+  if (error) {
+    console.error('Error fetching generated stories:', error)
+    return []
+  }
+  return data
+}
+
+export async function fetchGeneratedStoriesByDate(date) {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*')
+    .eq('status', 'published')
+    .eq('publish_date', date)
+    .order('featured', { ascending: false })
+  if (error) {
+    console.error('Error fetching generated stories by date:', error)
+    return []
+  }
+  return data
+}
+
+export async function fetchGeneratedStoryBySlug(storyId) {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*')
+    .eq('story_id', storyId)
+    .eq('status', 'published')
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchAllGeneratedStories() {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*, rss_items(title, link, feed_name)')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function updateGeneratedStoryStatus(id, status, editorNotes) {
+  const updates = {
+    status,
+    updated_at: new Date().toISOString(),
+  }
+  if (status === 'published') {
+    updates.approved_by = 'editor'
+    updates.approved_at = new Date().toISOString()
+    updates.publish_date = new Date().toISOString().split('T')[0]
+  }
+  if (editorNotes) updates.editor_notes = editorNotes
+
+  const { error } = await supabase
+    .from('generated_stories')
+    .update(updates)
+    .eq('id', id)
+  if (error) console.error('Error updating story status:', error)
+  return !error
+}
+
+export async function updateGeneratedStoryConfig(id, config) {
+  const { error } = await supabase
+    .from('generated_stories')
+    .update({ config, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) console.error('Error updating story config:', error)
+  return !error
+}
+
+// --- RSS Items (Pipeline Dashboard) ---
+
+export async function fetchRssItems(processed = null) {
+  let query = supabase
+    .from('rss_items')
+    .select('*')
+    .order('pub_date', { ascending: false })
+    .limit(100)
+
+  if (processed !== null) {
+    query = query.eq('processed', processed)
+  }
+  const { data, error } = await query
+  if (error) return []
+  return data
+}
+
+// --- App Types ---
+
+export async function fetchAppTypes() {
+  const { data, error } = await supabase
+    .from('app_types')
+    .select('*')
+  if (error) return []
+  return data
+}

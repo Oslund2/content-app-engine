@@ -36,9 +36,37 @@ export default async (req) => {
 
   try {
     const { storyId, profileData } = await req.json()
-    const systemPrompt = storyPrompts[storyId]
+    let systemPrompt = storyPrompts[storyId]
+
+    // Fallback: fetch narrative_prompt from generated_stories table
     if (!systemPrompt) {
-      return new Response(JSON.stringify({ error: 'Unknown story', fallback: true }), { status: 200 })
+      const supabaseUrl = process.env.VITE_SUPABASE_URL
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (supabaseUrl && supabaseServiceKey) {
+        try {
+          const res = await fetch(
+            `${supabaseUrl}/rest/v1/generated_stories?story_id=eq.${encodeURIComponent(storyId)}&select=narrative_prompt`,
+            {
+              headers: {
+                'apikey': supabaseServiceKey,
+                'Authorization': `Bearer ${supabaseServiceKey}`,
+              },
+            }
+          )
+          if (res.ok) {
+            const rows = await res.json()
+            if (rows.length > 0 && rows[0].narrative_prompt) {
+              systemPrompt = rows[0].narrative_prompt
+            }
+          }
+        } catch (e) {
+          console.error('Supabase fetch error:', e)
+        }
+      }
+      // Generic fallback if Supabase didn't return a prompt
+      if (!systemPrompt) {
+        systemPrompt = `You are a journalist at WCPO Cincinnati writing a personalized analysis for a reader based on their input data. Be direct, specific to the reader's situation, and actionable. Write exactly 2 paragraphs.`
+      }
     }
 
     const userMessage = `Here is the reader's profile data from the interactive story:\n\n${JSON.stringify(profileData, null, 2)}\n\nWrite your personalized analysis based on this data. Use the editorial voice described in your instructions. Be specific to their inputs — do not be generic.`

@@ -7,3 +7,11 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# RSS ingestion: poll feeds every 15 minutes
+[functions."rss-ingest"]
+  schedule = "*/15 * * * *"
+
+# AI story processing: process unprocessed items every 30 minutes
+[functions."process-stories"]
+  schedule = "*/30 * * * *"
