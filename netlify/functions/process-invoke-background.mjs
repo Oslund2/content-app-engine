@@ -53,7 +53,7 @@ async function sbQuery(url, key, path, method, body) {
     'apikey': key,
     'Authorization': 'Bearer ' + key,
   }
-  if (method === 'POST') headers['Prefer'] = 'return=representation'
+  if (method === 'POST') headers['Prefer'] = 'resolution=merge-duplicates,return=representation'
   if (method === 'PATCH') headers['Prefer'] = 'return=minimal'
   var res = await fetch(url + '/rest/v1/' + path, {
     method: method,
