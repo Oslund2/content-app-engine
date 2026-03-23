@@ -77,8 +77,28 @@ export default function SensitivityAdmin() {
       if (data.error) {
         setError(`${story.id}: ${data.error}`)
       } else if (data.analysis) {
-        const updated = await fetchAllAnalyses()
-        setAnalyses(updated)
+        // Use the analysis directly from the API response (in case Supabase persist failed)
+        const a = data.analysis
+        const record = {
+          story_id: story.id,
+          sensitivity_level: a.sensitivityLevel,
+          recommended_treatment: a.recommendedTreatment,
+          design_constraints: a.designConstraints,
+          suggested_focus: a.suggestedFocus,
+          flags: a.flags,
+          reasoning: a.reasoning,
+          publisher_advisory: a.publisherAdvisory,
+          model_used: 'claude-sonnet-4-6',
+          created_at: new Date().toISOString(),
+        }
+        setAnalyses(prev => {
+          const without = prev.filter(x => x.story_id !== story.id)
+          return [record, ...without]
+        })
+        // Also try to refresh from Supabase in background
+        fetchAllAnalyses().then(updated => {
+          if (updated.length > 0) setAnalyses(updated)
+        })
       }
     } catch (e) {
       setError(`${story.id}: ${e.message}`)
