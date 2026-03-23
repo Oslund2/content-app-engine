@@ -23,10 +23,22 @@ function getTagContent(xml, tagName) {
   return raw.trim()
 }
 
+// Resolve Google News redirect URLs to actual article URLs
+async function resolveGoogleLink(gnUrl) {
+  try {
+    var res = await fetch(gnUrl, { redirect: 'manual', signal: AbortSignal.timeout(3000) })
+    var loc = res.headers.get('location')
+    if (loc && loc.startsWith('http')) return loc
+  } catch {}
+  // Fallback: try to extract URL from the Google News path
+  var match = gnUrl.match(/articles\/([A-Za-z0-9_-]+)/)
+  return gnUrl // return as-is if we can't resolve
+}
+
 function parseRssItems(xml) {
   var results = []
   var searchFrom = 0
-  while (results.length < 25) {
+  while (results.length < 20) {
     var itemStart = xml.indexOf('<item>', searchFrom)
     if (itemStart === -1) itemStart = xml.indexOf('<item ', searchFrom)
     if (itemStart === -1) break
@@ -50,8 +62,8 @@ Cincinnati: housing/rent crisis, Brent Spence Bridge, Ohio River, P&G/Kroger/GE 
 ARTICLES:
 {articles}
 
-JSON only:
-{"chosen_url":"URL","chosen_title":"title","chosen_source":"source","localization_angle":"How this connects to Cincinnati (2 sentences)","interactive_ideas":["idea 1","idea 2","idea 3"],"why_this_story":"1 sentence"}`
+Respond with a raw JSON object (NO markdown, NO backticks):
+{"chosen_index":1,"chosen_title":"title","chosen_source":"source","localization_angle":"How this connects to Cincinnati (2 sentences)","interactive_ideas":["idea 1","idea 2","idea 3"],"why_this_story":"1 sentence"}`
 
 export default async (req) => {
   var headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
@@ -96,7 +108,12 @@ export default async (req) => {
       'Pick best story for Cincinnati. JSON only.', prompt, 350)
 
     var rec = parseJson(text)
-    console.log('Picked: ' + (rec.chosen_title || '').slice(0, 40))
+    console.log('Picked index ' + rec.chosen_index + ': ' + (rec.chosen_title || '').slice(0, 40))
+
+    // Resolve the actual article URL from the chosen index
+    var chosenArticle = articles[(rec.chosen_index || 1) - 1] || articles[0]
+    var resolvedUrl = await resolveGoogleLink(chosenArticle.link)
+    rec.chosen_url = resolvedUrl
 
     return new Response(JSON.stringify({ recommendation: rec, totalScanned: articles.length, feedsScanned: 1 }), { headers })
   } catch (err) {
