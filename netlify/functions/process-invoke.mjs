@@ -48,18 +48,22 @@ function parseJson(text) {
 }
 
 async function sbQuery(url, key, path, method, body) {
+  var headers = {
+    'Content-Type': 'application/json',
+    'apikey': key,
+    'Authorization': 'Bearer ' + key,
+  }
+  if (method === 'POST') headers['Prefer'] = 'return=representation'
+  if (method === 'PATCH') headers['Prefer'] = 'return=minimal'
   var res = await fetch(url + '/rest/v1/' + path, {
     method: method,
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': key,
-      'Authorization': 'Bearer ' + key,
-      'Prefer': method === 'POST' ? 'return=representation' : '',
-    },
+    headers: headers,
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) throw new Error('Supabase ' + method + ' ' + path + ': ' + await res.text())
-  return res.json()
+  var text = await res.text()
+  if (!text) return null
+  try { return JSON.parse(text) } catch(e) { return null }
 }
 
 export default async (req, context) => {
