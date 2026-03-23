@@ -31,17 +31,20 @@ export default function CheckboxGroupInput({
     4: 'grid-cols-2 sm:grid-cols-4',
   }[columns] || 'grid-cols-1 sm:grid-cols-2'
 
+  const valueIds = values.map(v => typeof v === 'object' ? v.id : v)
   const atLimit = maxSelections != null && values.length >= maxSelections
 
   const handleToggle = (optId) => {
-    const isSelected = values.includes(optId)
+    const currentIds = values.map(v => typeof v === 'object' ? v.id : v)
+    const isSelected = currentIds.includes(optId)
     let next
 
     if (isSelected) {
-      next = values.filter((v) => v !== optId)
+      next = values.filter((v) => (typeof v === 'object' ? v.id : v) !== optId)
     } else {
       if (atLimit) return
-      next = [...values, optId]
+      const opt = options.find(o => o.id === optId)
+      next = [...values, opt || optId]
     }
 
     onChange?.(next)
@@ -67,7 +70,7 @@ export default function CheckboxGroupInput({
         className={`grid ${gridClass} gap-3`}
       >
         {options.map((opt) => {
-          const isSelected = values.includes(opt.id)
+          const isSelected = valueIds.includes(opt.id)
           const isDisabled = !isSelected && atLimit
           const Icon = opt.icon
 

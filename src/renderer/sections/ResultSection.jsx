@@ -68,21 +68,32 @@ export default function ResultSection({ results, storyId }) {
         )}
 
         {/* Grade display */}
-        {grade && (
-          <div className="flex justify-center mb-6">
-            <GradeDisplay
-              grade={
-                typeof grade.calcId === 'string'
-                  ? calculations[grade.calcId]
-                  : grade.value
+        {grade && (() => {
+          const rawScore = typeof grade.calcId === 'string'
+            ? calculations[grade.calcId] ?? calculations[grade.calcId.replace('calculations.', '')]
+            : grade.value
+          // Resolve numeric score to letter grade using scale
+          let letter = rawScore
+          if (typeof rawScore === 'number' && grade.scale) {
+            for (const [g, range] of Object.entries(grade.scale)) {
+              if (Array.isArray(range) && rawScore >= range[0] && rawScore <= range[1]) {
+                letter = g
+                break
               }
-              label={grade.label}
-              description={grade.description}
-              scale={grade.scale}
-              color={grade.color}
-            />
-          </div>
-        )}
+            }
+          }
+          const desc = grade.descriptions?.[letter] || grade.description || ''
+          return (
+            <div className="flex justify-center mb-6">
+              <GradeDisplay
+                grade={letter}
+                label={grade.label}
+                description={desc}
+                color={grade.color}
+              />
+            </div>
+          )
+        })()}
 
         {/* Action items */}
         {actionItems.length > 0 && (

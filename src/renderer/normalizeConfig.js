@@ -8,16 +8,27 @@ function normalizeId(str) {
 
 function normalizeOption(opt) {
   if (typeof opt === 'string') {
-    return { id: normalizeId(opt), label: opt }
+    return { id: normalizeId(opt), label: opt, data: {} }
   }
   if (opt && typeof opt === 'object') {
+    // Preserve data if explicitly set; otherwise extract numeric fields as data
+    let data = opt.data
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      // Auto-extract numeric fields from the option as data
+      data = {}
+      for (const [k, v] of Object.entries(opt)) {
+        if (typeof v === 'number') data[k] = v
+      }
+    }
     return {
       id: opt.id || opt.value || normalizeId(opt.label || opt.name || ''),
       label: opt.label || opt.name || opt.id || '',
-      data: opt.data || opt,
+      data: Object.keys(data).length > 0 ? data : opt,
+      // Preserve description for radio/checkbox display
+      ...(opt.description ? { description: opt.description } : {}),
     }
   }
-  return { id: String(opt), label: String(opt) }
+  return { id: String(opt), label: String(opt), data: {} }
 }
 
 function normalizeInputType(type) {
@@ -29,24 +40,71 @@ function normalizeInputType(type) {
     'checkbox-group': 'checkbox-group',
     'checkbox': 'checkbox-group',
     'button-array': 'button-array',
+    'buttonArray': 'button-array',
     'buttons': 'button-array',
     'slider': 'slider',
     'range': 'slider',
     'quiz': 'quiz',
     'radio': 'radio',
     'radio-group': 'radio',
-    'text': 'dropdown', // Fallback: text inputs become dropdowns with no options (hidden)
+    'radioGroup': 'radio',
+    'text': 'dropdown', // Fallback: text inputs become dropdowns
   }
-  return map[type] || 'dropdown'
+  return map[type] || 'button-array'
+}
+
+function normalizeQuizQuestion(q) {
+  if (!q) return null
+  return {
+    id: q.id || normalizeId(q.question || ''),
+    question: q.question || q.label || '',
+    helpText: q.helpText || q.description || '',
+    options: (q.options || []).map(opt => ({
+      label: opt.label || opt.text || '',
+      value: opt.value || opt.id || normalizeId(opt.label || ''),
+      score: typeof opt.score === 'number' ? opt.score : 0,
+    })),
+  }
 }
 
 function normalizeInput(input) {
   if (!input) return null
   const type = normalizeInputType(input.type)
-  const options = (input.options || []).map(normalizeOption)
 
   // Text inputs: skip them (we can't render free text in the config renderer)
-  if (input.type === 'text') return null
+  if (input.type === 'text' && (!input.options || input.options.length === 0)) return null
+
+  // Quiz inputs have a special structure
+  if (type === 'quiz') {
+    const questions = (input.questions || []).map(normalizeQuizQuestion).filter(Boolean)
+    if (questions.length === 0) return null
+    return {
+      ...input,
+      id: input.id || normalizeId(input.label || 'quiz'),
+      type: 'quiz',
+      label: input.label || 'Assessment',
+      questions,
+      helpText: input.helpText || '',
+    }
+  }
+
+  const options = (input.options || []).map(normalizeOption)
+
+  // Slider: ensure min/max/step
+  if (type === 'slider') {
+    return {
+      ...input,
+      id: input.id || normalizeId(input.label || ''),
+      type: 'slider',
+      label: input.label || input.question || '',
+      min: input.min ?? 0,
+      max: input.max ?? 100,
+      step: input.step ?? 1,
+      defaultValue: input.defaultValue ?? input.default ?? input.min ?? 50,
+      unit: input.unit || '',
+      helpText: input.helpText || input.description || '',
+    }
+  }
 
   return {
     ...input,
@@ -67,10 +125,11 @@ function normalizeChart(chart) {
     'area': 'area',
     'bar': 'bar',
     'radar': 'radar',
-    'ranked-list': 'bar', // Render ranked lists as bar charts
-    'icon-explainer': null, // Skip non-chart types
+    'ranked-list': 'bar',
+    'icon-explainer': null,
     'timeline': 'bar',
     'line': 'area',
+    'pie': 'bar', // Approximate pie as bar
   }
 
   const mappedType = typeMap[chart.type]
@@ -84,13 +143,11 @@ function normalizeChart(chart) {
   if (data.length > 0 && !data[0][xKey]) {
     const firstItem = data[0]
     const keys = Object.keys(firstItem)
-    // Find a string key for x and a number key for y
     const strKey = keys.find(k => typeof firstItem[k] === 'string')
     const numKey = keys.find(k => typeof firstItem[k] === 'number')
     if (strKey) xKey = strKey
     if (numKey) yKey = numKey
 
-    // If still no numeric key, create one from rank/index
     if (!numKey) {
       data = data.map((item, i) => ({ ...item, _value: data.length - i }))
       yKey = '_value'
@@ -111,13 +168,27 @@ function normalizeChart(chart) {
 function normalizeScoreCard(card) {
   if (!card) return null
 
-  // Handle various scoreCard formats Sonnet might generate
   return {
     label: card.title || card.label || '',
-    value: card.value || '',
+    calcId: card.calcId || card.valueRef || card.calculation || null,
+    value: card.value,
+    format: card.format || null,
+    prefix: card.prefix || '',
+    suffix: card.suffix || '',
     description: card.description || '',
-    // If it has levels (like HIGH/MODERATE/LOW), store them for display
     levels: card.levels || card.scoreRanges || null,
+  }
+}
+
+function normalizeGrade(grade) {
+  if (!grade) return null
+  return {
+    calcId: grade.calcId || grade.valueRef || grade.calculation || null,
+    value: grade.value,
+    label: grade.label || 'Your Grade',
+    description: grade.description || '',
+    scale: grade.scale || { A: [90, 100], B: [70, 89], C: [50, 69], D: [30, 49], F: [0, 29] },
+    color: grade.color || null,
   }
 }
 
@@ -130,7 +201,12 @@ export function normalizeConfig(config) {
   if (config.inputs) {
     normalized.inputs = config.inputs
       .map(normalizeInput)
-      .filter(Boolean) // Remove nulls (skipped text inputs)
+      .filter(Boolean)
+  }
+
+  // Ensure calculations array exists at top level (some configs nest it)
+  if (!normalized.calculations && config.results?.calculations) {
+    normalized.calculations = config.results.calculations
   }
 
   // Normalize results
@@ -151,17 +227,58 @@ export function normalizeConfig(config) {
         .filter(Boolean)
     }
 
+    // Normalize grade
+    if (config.results.grade) {
+      normalized.results.grade = normalizeGrade(config.results.grade)
+    }
+
     // Normalize showAfterInputs — make sure referenced inputs exist
-    if (config.results.showAfterInputs && normalized.inputs) {
-      const inputIds = new Set(normalized.inputs.map(i => i.id))
-      normalized.results.showAfterInputs = config.results.showAfterInputs
-        .filter(id => inputIds.has(id))
+    if (normalized.inputs && normalized.inputs.length > 0) {
+      if (!config.results.showAfterInputs || config.results.showAfterInputs.length === 0) {
+        // Auto-set: require all non-quiz inputs
+        normalized.results.showAfterInputs = normalized.inputs
+          .filter(i => i.type !== 'quiz')
+          .map(i => i.id)
+      } else {
+        const inputIds = new Set(normalized.inputs.map(i => i.id))
+        const valid = config.results.showAfterInputs.filter(id => inputIds.has(id))
+        // If none are valid, fall back to all input IDs
+        normalized.results.showAfterInputs = valid.length > 0
+          ? valid
+          : normalized.inputs.filter(i => i.type !== 'quiz').map(i => i.id)
+      }
+    }
+
+    // Normalize actionItems: ensure consistent shape
+    if (config.results.actionItems) {
+      normalized.results.actionItems = config.results.actionItems.map(item => ({
+        title: item.title || item.label || '',
+        description: item.description || item.text || '',
+        cta: item.cta || item.ctaText || (item.ctaUrl || item.url ? 'Learn More' : null),
+        ctaUrl: item.ctaUrl || item.url || null,
+      }))
     }
   }
 
   // Normalize narrationScript — Sonnet sometimes nests it as an object
   if (config.narrationScript && typeof config.narrationScript === 'object') {
-    normalized.narrationScript = config.narrationScript.intro || ''
+    normalized.narrationScript = config.narrationScript.intro || config.narrationScript.text || ''
+  }
+
+  // Ensure hero exists with at least headline
+  if (!normalized.hero) {
+    normalized.hero = {
+      headline: config.headline || config.title || 'Interactive Story',
+      subhead: config.subhead || config.subtitle || '',
+    }
+  }
+
+  // Ensure theme exists
+  if (!normalized.theme) {
+    normalized.theme = {
+      accentColor: config.categoryColor || '#dc2626',
+      categoryLabel: config.category || 'NEWS',
+    }
   }
 
   return normalized

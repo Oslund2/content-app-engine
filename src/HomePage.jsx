@@ -122,8 +122,11 @@ export default function HomePage({ onOpenStory, generatedStories = [] }) {
   // Combine: legacy stories first (preserving original order), then generated stories mixed in
   const stories = [...legacyStories, ...genStories]
 
-  // Show all this week's stories on the main page; archive is for older weeks
-  const thisWeekCutoff = '2026-03-15' // Monday of current week
+  // Show stories from the last 7 days on the main page; archive is for older
+  const now = new Date()
+  const weekAgo = new Date(now)
+  weekAgo.setDate(now.getDate() - 7)
+  const thisWeekCutoff = weekAgo.toISOString().split('T')[0]
   const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff || s.isGenerated)
   const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff && !s.isGenerated)
   const archiveDates = dates.filter(d => d < thisWeekCutoff)

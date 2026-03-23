@@ -36,7 +36,7 @@ export default function RadioGroupInput({
         className="space-y-3"
       >
         {options.map((opt) => {
-          const isSelected = value === opt.id
+          const isSelected = value === opt.id || (value && typeof value === 'object' && value.id === opt.id)
           const Icon = opt.icon
 
           return (

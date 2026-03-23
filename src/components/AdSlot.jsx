@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ExternalLink, X } from 'lucide-react'
 import adConfig from '../adConfig.json'
@@ -27,7 +27,10 @@ function Interstitial({ storyId, onComplete, constraints }) {
   const [visible, setVisible] = useState(true)
   const [progress, setProgress] = useState(0)
   const [canSkip, setCanSkip] = useState(false)
-  const ad = getAd(storyId, 'interstitial')
+  // Stabilize ad selection so it doesn't change on re-render
+  const [ad] = useState(() => getAd(storyId, 'interstitial'))
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
   const DURATION = 3500 // ms
 
   useEffect(() => {
@@ -39,16 +42,16 @@ function Interstitial({ storyId, onComplete, constraints }) {
       if (elapsed >= DURATION) {
         clearInterval(timer)
         setVisible(false)
-        onComplete()
+        onCompleteRef.current?.()
       }
     }, 50)
     return () => clearInterval(timer)
-  }, [onComplete])
+  }, [])
 
   const skip = useCallback(() => {
     setVisible(false)
-    onComplete()
-  }, [onComplete])
+    onCompleteRef.current?.()
+  }, [])
 
   if (!visible) return null
 

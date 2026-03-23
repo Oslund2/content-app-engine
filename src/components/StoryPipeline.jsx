@@ -68,12 +68,48 @@ function EmptyState({ icon: Icon, message }) {
 }
 
 // --- RSS Queue View ---
-function RssQueue({ items, loading }) {
+function RssQueue({ items, loading, onRefresh }) {
+  const [processing, setProcessing] = useState(false)
+  const [processResult, setProcessResult] = useState(null)
+
+  const handleProcess = async () => {
+    setProcessing(true)
+    setProcessResult(null)
+    try {
+      const res = await fetch('/api/process-invoke')
+      const data = await res.json()
+      setProcessResult(data)
+      if (onRefresh) onRefresh()
+    } catch (err) {
+      setProcessResult({ error: err.message })
+    }
+    setProcessing(false)
+  }
+
   if (loading) return <LoadingSpinner />
   if (!items.length) return <EmptyState icon={Rss} message="No unprocessed RSS items in the queue." />
 
   return (
-    <div className="overflow-x-auto">
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        <button
+          onClick={handleProcess}
+          disabled={processing}
+          className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-wcpo-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
+        >
+          {processing ? <><Loader2 size={13} className="animate-spin" />Processing...</> : <><Rss size={13} />Process Next Story</>}
+        </button>
+        {processResult && (
+          <span className={`text-xs ${processResult.error ? 'text-red-600' : 'text-green-600'}`}>
+            {processResult.error
+              ? `Error: ${processResult.error}`
+              : processResult.results?.length
+                ? processResult.results.map(r => r.storyId ? `Created: ${r.storyId}` : r.reason || r.error || 'Skipped').join(', ')
+                : processResult.message || 'Done'}
+          </span>
+        )}
+      </div>
+      <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-rule text-left text-xs text-ink-muted uppercase tracking-wider">
@@ -98,6 +134,7 @@ function RssQueue({ items, loading }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
@@ -397,7 +434,7 @@ export default function StoryPipeline() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'rss' && <RssQueue items={rssItems} loading={loadingRss} />}
+      {activeTab === 'rss' && <RssQueue items={rssItems} loading={loadingRss} onRefresh={refresh} />}
       {activeTab === 'drafts' && (
         loadingStories ? <LoadingSpinner /> : <DraftsView stories={stories} onRefresh={refresh} />
       )}

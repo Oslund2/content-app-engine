@@ -59,7 +59,7 @@ export default function InputSection({ inputs }) {
               }
               onAnswer={
                 isQuiz
-                  ? (answers) => setInput(def.id, answers)
+                  ? (_qId, _val, _opt, allAnswers) => setInput(def.id, allAnswers)
                   : undefined
               }
             />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Loader2 } from 'lucide-react'
 
@@ -13,9 +13,17 @@ export default function DynamicNarrative({ storyId, profileData }) {
   const [narrative, setNarrative] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+  const fetchedRef = useRef(null)
+
+  // Stabilize profileData by serializing — avoids infinite re-fetch from new object refs
+  const profileKey = useMemo(() => JSON.stringify(profileData), [profileData])
 
   useEffect(() => {
     if (!storyId || !profileData) return
+    // Don't re-fetch if we already fetched for this exact profile
+    const key = `${storyId}:${profileKey}`
+    if (fetchedRef.current === key) return
+    fetchedRef.current = key
 
     let cancelled = false
     setLoading(true)
@@ -47,7 +55,7 @@ export default function DynamicNarrative({ storyId, profileData }) {
 
     fetchNarrative()
     return () => { cancelled = true }
-  }, [storyId, profileData])
+  }, [storyId, profileKey, profileData])
 
   if (error || (!loading && !narrative)) return null
 

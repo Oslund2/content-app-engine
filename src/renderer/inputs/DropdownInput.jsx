@@ -27,8 +27,12 @@ export default function DropdownInput({
 
       <select
         id={id}
-        value={value ?? ''}
-        onChange={(e) => onChange?.(e.target.value || null)}
+        value={typeof value === 'object' ? value?.id : (value ?? '')}
+        onChange={(e) => {
+          const selectedId = e.target.value || null
+          const opt = options.find((o) => o.id === selectedId)
+          onChange?.(selectedId, opt || null)
+        }}
         className="w-full px-4 py-3 rounded-lg border-2 border-rule bg-white text-ink text-sm
           focus:border-accent focus:outline-none transition-all duration-200"
       >
