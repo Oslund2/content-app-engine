@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Shield, Code2, Newspaper } from 'lucide-react'
 import SensitivityAdmin from './SensitivityAdmin'
 import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
+import { fetchAllGeneratedStories } from '../lib/supabase'
 
 const tabs = [
   { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
@@ -13,16 +14,32 @@ const tabs = [
 function EmbedCenter() {
   const [selected, setSelected] = useState(null)
   const [copied, setCopied] = useState(false)
-  const stories = storyData.stories.filter(s => s.id !== 'neighborhood-pulse')
+  const [generatedStories, setGeneratedStories] = useState([])
+
+  useEffect(() => {
+    fetchAllGeneratedStories().then(data => setGeneratedStories(data || []))
+  }, [])
+
+  const legacyStories = storyData.stories.filter(s => s.id !== 'neighborhood-pulse')
+  const genStories = generatedStories.map(s => ({
+    id: s.story_id,
+    headline: s.headline,
+    category: s.category,
+    categoryColor: s.category_color || '#dc2626',
+    readTime: '5 min',
+    isGenerated: true,
+  }))
+  const stories = [...genStories, ...legacyStories]
 
   const getEmbedCode = (storyId) => {
+    const story = stories.find(s => s.id === storyId)
     return `<iframe
   src="https://content-app-engine.netlify.app/?story=${storyId}&embed=true"
   width="100%"
   height="800"
   frameborder="0"
   style="border: 1px solid #e5e7eb; border-radius: 12px; max-width: 720px;"
-  title="WCPO Interactive: ${storyData.stories.find(s => s.id === storyId)?.headline || storyId}"
+  title="WCPO Interactive: ${story?.headline || storyId}"
   allow="clipboard-write"
 ></iframe>`
   }
