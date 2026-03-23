@@ -25,9 +25,14 @@ async function callAnthropic(apiKey, model, system, userMessage, maxTokens) {
     },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: userMessage }] }),
   })
-  if (!response.ok) throw new Error('Anthropic API error: ' + response.status)
+  if (!response.ok) {
+    var errBody = await response.text()
+    throw new Error('Anthropic API error ' + response.status + ': ' + errBody.slice(0, 200))
+  }
   var data = await response.json()
-  return data.content && data.content[0] ? data.content[0].text : ''
+  var text = data.content && data.content[0] ? data.content[0].text : ''
+  if (!text) throw new Error('Empty response from ' + model + ' (stop_reason: ' + data.stop_reason + ')')
+  return text
 }
 
 function parseJson(text) {
@@ -98,7 +103,7 @@ export default async (req, context) => {
         await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH',
           { worthiness_score: triage.worthiness_score, skip_reason: triage.skip_reason || null, processed: true })
 
-        if (triage.worthiness_score < 40) {
+        if (triage.worthiness_score < 30) {
           results.push({ title: item.title, skipped: true, score: triage.worthiness_score, reason: triage.skip_reason })
           continue
         }
@@ -107,7 +112,7 @@ export default async (req, context) => {
         var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
           'You are an interactive journalist at WCPO Cincinnati. Generate a JSON config for an interactive Story-App. Output ONLY valid JSON with: appType, theme{accentColor,categoryLabel,icon}, hero{headline,subhead,leadParagraphs[],keyStats[]}, inputs[], calculations[], results{showAfterInputs[],scoreCards[],charts[],actionItems[]}, narrative{systemPrompt,profileFields[]}, poll{question,fields[]}, narrationScript. Use REAL Cincinnati neighborhoods and data from the article.',
           'Convert this article to an interactive Story-App config:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + triage.suggested_app_type + '\n\nFULL TEXT:\n' + articleText.slice(0, 4000),
-          3000)
+          4096)
         var config = parseJson(configText)
 
         var storyId = slugify(item.title)
