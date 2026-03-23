@@ -80,7 +80,7 @@ export default async (req, context) => {
 
     // Fetch up to 3 unprocessed RSS items (limit to stay within 26s timeout)
     var items = await sbQuery(supabaseUrl, supabaseKey,
-      'rss_items?processed=eq.false&order=pub_date.desc&limit=3', 'GET')
+      'rss_items?processed=eq.false&order=worthiness_score.desc.nullslast&limit=1', 'GET')
 
     if (!items || items.length === 0) {
       return new Response(JSON.stringify({ message: 'No unprocessed items', processed: 0 }), {
