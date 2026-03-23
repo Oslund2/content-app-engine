@@ -5,7 +5,7 @@ import {
   Sparkles, Zap
 } from 'lucide-react'
 
-const NEWS_FEED_COUNT = 5
+const NEWS_FEED_COUNT = 3
 import {
   fetchRssItems, fetchAllGeneratedStories,
   updateGeneratedStoryStatus, updateGeneratedStoryConfig,

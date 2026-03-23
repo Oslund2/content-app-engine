@@ -4,13 +4,11 @@
 
 import { callAnthropic, parseJson, stripHtml } from './lib/pipeline.mjs'
 
-// News RSS feeds to scan for trending stories
+// News RSS feeds — fast, reliable sources
 const NEWS_FEEDS = [
   { name: 'AP Top News', url: 'https://feedx.net/rss/ap.xml' },
-  { name: 'Reuters Top', url: 'https://feedx.net/rss/reuters.xml' },
   { name: 'NPR News', url: 'https://feeds.npr.org/1001/rss.xml' },
   { name: 'PBS NewsHour', url: 'https://www.pbs.org/newshour/feeds/rss/headlines' },
-  { name: 'USA Today', url: 'https://rssfeeds.usatoday.com/usatoday-NewsTopStories' },
 ]
 
 function getTagContent(xml, tagName) {
@@ -55,7 +53,7 @@ async function fetchFeed(feed) {
   try {
     var res = await fetch(feed.url, {
       headers: { 'User-Agent': 'WCPO-ContentAppEngine/1.0' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(4000),
     })
     if (!res.ok) return []
     var xml = await res.text()
@@ -138,11 +136,13 @@ export default async (req) => {
       })
     }
 
-    console.log('Found ' + allArticles.length + ' articles from ' + NEWS_FEEDS.length + ' feeds')
+    // Limit to 30 most recent articles to keep prompt small and fast
+    var trimmed = allArticles.slice(0, 30)
+    console.log('Using ' + trimmed.length + ' articles from ' + NEWS_FEEDS.length + ' feeds')
 
-    // Build the article list for Claude
-    var articleList = allArticles.map(function (a, i) {
-      return (i + 1) + '. [' + a.source + '] ' + a.title + '\n   URL: ' + a.link + '\n   ' + a.description
+    // Build the article list for Claude — compact format
+    var articleList = trimmed.map(function (a, i) {
+      return (i + 1) + '. [' + a.source + '] ' + a.title + '\n   URL: ' + a.link + '\n   ' + a.description.slice(0, 150)
     }).join('\n\n')
 
     var userPrompt = FINDER_PROMPT.replace('{articles}', articleList)
@@ -150,10 +150,10 @@ export default async (req) => {
       userPrompt += '\n\nIMPORTANT: Prefer articles related to the topic: "' + topicFilter + '"'
     }
 
-    console.log('Asking Claude to pick the best story...')
-    var responseText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
+    console.log('Asking Haiku to pick the best story...')
+    var responseText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
       'You are a news editor selecting stories for localization. Respond with ONLY valid JSON.',
-      userPrompt, 800)
+      userPrompt, 600)
 
     var recommendation = parseJson(responseText)
     console.log('Recommended: ' + recommendation.chosen_title)
