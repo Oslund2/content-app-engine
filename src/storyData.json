@@ -131,6 +131,18 @@
       "featured": false
     },
     {
+      "id": "community-response",
+      "category": "COMMUNITY",
+      "categoryColor": "#1e293b",
+      "headline": "Nazir Owens Was 15. Here's How Cincinnati Can Respond.",
+      "subhead": "Resources, support, and a space for community reflection after an Avondale shooting.",
+      "image": "community",
+      "photo": "/photos/community.jpg",
+      "timestamp": "March 22, 2026",
+      "readTime": "Community Response",
+      "featured": true
+    },
+    {
       "id": "neighborhood-pulse",
       "category": "COMMUNITY",
       "categoryColor": "#059669",

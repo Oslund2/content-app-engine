@@ -111,6 +111,48 @@ export async function fetchAllPollData() {
   return data
 }
 
+// --- Community Reflections ---
+
+export async function submitReflection(storyId, commitment, message, neighborhood) {
+  const sessionId = getSessionId()
+  const { error } = await supabase
+    .from('community_reflections')
+    .insert({
+      story_id: storyId,
+      session_id: sessionId,
+      commitment,
+      message: message || null,
+      neighborhood: neighborhood || null,
+    })
+  if (error) console.error('Error submitting reflection:', error)
+  return !error
+}
+
+export async function fetchReflections(storyId) {
+  const { data, error } = await supabase
+    .from('community_reflections')
+    .select('commitment, message, created_at')
+    .eq('story_id', storyId)
+    .eq('flagged', false)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return { total: 0, commitments: {}, messages: [] }
+
+  const commitments = {}
+  data.forEach(d => {
+    commitments[d.commitment] = (commitments[d.commitment] || 0) + 1
+  })
+
+  const messages = data
+    .filter(d => d.message)
+    .slice(0, 10)
+    .map(d => ({ text: d.message, time: d.created_at }))
+
+  return { total: data.length, commitments, messages }
+}
+
+// --- Live Polls ---
+
 export async function fetchPollStats(storyId, neighborhood) {
   const { data, error } = await supabase
     .from('story_polls')

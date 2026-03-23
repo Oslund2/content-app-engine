@@ -217,5 +217,27 @@
     "targetStory": "bridge-impact",
     "message": "The river demands infrastructure. The Fourth Street Bridge is gone until 2028 — calculate what the detour costs you.",
     "priority": 4
+  },
+
+  {
+    "sourceStory": "community-response",
+    "condition": { "type": "always" },
+    "targetStory": "neighborhood-pulse",
+    "message": "See how people across Cincinnati are engaging with their neighborhoods.",
+    "priority": 5
+  },
+  {
+    "sourceStory": "community-response",
+    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["Avondale"] },
+    "targetStory": "fire-crisis",
+    "message": "Avondale has also been affected by this year's fire crisis. If you're in the neighborhood, the fire safety check takes 2 minutes.",
+    "priority": 8
+  },
+  {
+    "sourceStory": "safety-survey",
+    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["Avondale"] },
+    "targetStory": "community-response",
+    "message": "A 15-year-old was killed in Avondale early Sunday morning. See community resources and how Cincinnati is responding.",
+    "priority": 9
   }
 ]

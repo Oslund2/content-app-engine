@@ -4,7 +4,7 @@ import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
   MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
-  Trophy, CloudLightning, Droplets, Flame, Baby, Activity
+  Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -22,6 +22,7 @@ const storyIcons = {
   fire: Flame,
   carseat: Baby,
   pulse: Activity,
+  community: Heart,
 }
 
 function Baseline() {
@@ -47,6 +48,7 @@ const storyPhotos = {
   'flood-risk': '/photos/flood.jpg',
   'car-seat': '/photos/carseat.jpg',
   'neighborhood-pulse': '/photos/safety.jpg',
+  'community-response': '/photos/community.jpg',
 }
 
 // Map DB rows back to the format our components expect
