@@ -474,6 +474,7 @@ function StoryCard({ story, index, onClick }) {
     fire: { bg: 'bg-red-100', text: 'text-red-700' },
     carseat: { bg: 'bg-cyan-100', text: 'text-cyan-700' },
     pulse: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    community: { bg: 'bg-slate-100', text: 'text-slate-700' },
   }
   const colors = iconColors[story.image] || { bg: 'bg-gray-100', text: 'text-gray-600' }
   const Icon = storyIcons[story.image] || Construction
