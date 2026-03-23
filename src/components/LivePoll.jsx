@@ -155,7 +155,9 @@ function AnimatedCount({ value }) {
   return <span>{display.toLocaleString()}</span>
 }
 
-export default function LivePoll({ storyId, neighborhood, pollData }) {
+export default function LivePoll({ storyId, neighborhood, pollData, constraints }) {
+  // Respect sensitivity constraints
+  if (constraints?.disablePolls) return null
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
 

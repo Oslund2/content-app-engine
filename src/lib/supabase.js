@@ -151,6 +151,40 @@ export async function fetchReflections(storyId) {
   return { total: data.length, commitments, messages }
 }
 
+// --- Story Analyses ---
+
+export async function fetchStoryAnalysis(storyId) {
+  const { data, error } = await supabase
+    .from('story_analyses')
+    .select('*')
+    .eq('story_id', storyId)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchAllAnalyses() {
+  const { data, error } = await supabase
+    .from('story_analyses')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function saveEditorialOverride(storyId, override) {
+  const { error } = await supabase
+    .from('story_analyses')
+    .update({
+      editorial_override: override,
+      override_by: 'editor',
+      override_at: new Date().toISOString(),
+    })
+    .eq('story_id', storyId)
+  if (error) console.error('Error saving override:', error)
+  return !error
+}
+
 // --- Live Polls ---
 
 export async function fetchPollStats(storyId, neighborhood) {

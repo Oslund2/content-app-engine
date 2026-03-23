@@ -18,7 +18,12 @@ function getAd(storyId, placement) {
  *
  * Usage: <AdSlot.Interstitial storyId="fire-crisis" onComplete={() => setShowResults(true)} />
  */
-function Interstitial({ storyId, onComplete }) {
+function Interstitial({ storyId, onComplete, constraints }) {
+  // Respect sensitivity constraints — skip ad entirely
+  if (constraints?.disableAds || constraints?.disableInterstitials) {
+    if (onComplete) setTimeout(onComplete, 0)
+    return null
+  }
   const [visible, setVisible] = useState(true)
   const [progress, setProgress] = useState(0)
   const [canSkip, setCanSkip] = useState(false)
@@ -118,7 +123,8 @@ function Interstitial({ storyId, onComplete }) {
  *
  * Usage: <AdSlot.ResultCard storyId="fire-crisis" />
  */
-function ResultCard({ storyId }) {
+function ResultCard({ storyId, constraints }) {
+  if (constraints?.disableAds) return null
   const ad = getAd(storyId, 'result')
 
   return (
@@ -154,7 +160,8 @@ function ResultCard({ storyId }) {
  *
  * Usage: <AdSlot.Insight storyId="fire-crisis" />
  */
-function Insight({ storyId }) {
+function Insight({ storyId, constraints }) {
+  if (constraints?.disableAds || constraints?.disableSponsoredInsights) return null
   const direct = adConfig.direct[storyId]?.insight
   if (!direct) return null
 

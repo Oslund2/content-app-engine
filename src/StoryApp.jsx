@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import HomePage from './HomePage'
 import OpeningDayPlanner from './stories/OpeningDayPlanner'
@@ -14,6 +14,7 @@ import FireCrisis from './stories/FireCrisis'
 import CarSeatSafety from './stories/CarSeatSafety'
 import NeighborhoodPulse from './stories/NeighborhoodPulse'
 import CommunityResponse from './stories/CommunityResponse'
+import SensitivityAdmin from './components/SensitivityAdmin'
 
 const storyComponents = {
   'opening-day': OpeningDayPlanner,
@@ -29,6 +30,7 @@ const storyComponents = {
   'car-seat': CarSeatSafety,
   'neighborhood-pulse': NeighborhoodPulse,
   'community-response': CommunityResponse,
+  'admin-sensitivity': SensitivityAdmin,
 }
 
 export default function StoryApp() {
@@ -43,6 +45,18 @@ export default function StoryApp() {
     setActiveStory(null)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
+
+  // Ctrl+Shift+S opens sensitivity admin
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+        e.preventDefault()
+        openStory('admin-sensitivity')
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [openStory])
 
   const StoryComponent = activeStory ? storyComponents[activeStory] : null
 
