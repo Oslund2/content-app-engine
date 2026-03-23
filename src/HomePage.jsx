@@ -4,7 +4,7 @@ import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
   Circle, Shield, Construction, Trees, ArrowUpRight, Zap,
   MapPin, Thermometer, TrendingUp, Calendar, Archive, Bookmark, Loader2,
-  Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart
+  Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart, Settings
 } from 'lucide-react'
 import storyData from './storyData.json'
 import { fetchStories, fetchStoryDates, fetchMyProfiles } from './lib/supabase'
@@ -167,6 +167,11 @@ export default function HomePage({ onOpenStory }) {
           </nav>
           <div className="flex items-center gap-3">
             <Search size={18} className="text-white/60 cursor-pointer hover:text-white" />
+            <Settings
+              size={18}
+              className="text-white/60 cursor-pointer hover:text-white transition-colors"
+              onClick={() => onOpenStory('admin-hub')}
+            />
             <button className="hidden sm:flex items-center gap-1.5 bg-wcpo-red text-white text-xs font-bold px-3 py-1.5 rounded hover:bg-red-700 transition-colors">
               <Play size={11} fill="currentColor" /> LIVE
             </button>
