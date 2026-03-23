@@ -13,7 +13,7 @@ import ArticleBody from './sections/ArticleBody'
 /**
  * Inner component that can access ConfigContext.
  */
-function StoryContent({ config, storyId, onBack, onOpenStory }) {
+function StoryContent({ config, storyId, onBack, onOpenStory, sourceAttribution }) {
   const { allRequiredFilled, getProfileData } = useConfig()
 
   const profileData = getProfileData()
@@ -33,7 +33,7 @@ function StoryContent({ config, storyId, onBack, onOpenStory }) {
       readTime={config.readTime ?? '5 min'}
     >
       {/* Hero */}
-      <HeroSection hero={config.hero} />
+      <HeroSection hero={config.hero} sourceAttribution={sourceAttribution} />
 
       {/* Story body — the journalism, before any interactivity */}
       <ArticleBody config={config} />
@@ -99,7 +99,7 @@ function StoryContent({ config, storyId, onBack, onOpenStory }) {
  * Usage:
  *   <StoryRenderer config={configObject} storyId="my-story" onBack={() => {}} onOpenStory={(id) => {}} />
  */
-export default function StoryRenderer({ config, storyId, onBack, onOpenStory }) {
+export default function StoryRenderer({ config, storyId, onBack, onOpenStory, sourceAttribution }) {
   const normalized = useMemo(() => normalizeConfig(config), [config])
   if (!normalized) return null
 
@@ -110,6 +110,7 @@ export default function StoryRenderer({ config, storyId, onBack, onOpenStory }) 
         storyId={storyId}
         onBack={onBack}
         onOpenStory={onOpenStory}
+        sourceAttribution={sourceAttribution}
       />
     </ConfigProvider>
   )

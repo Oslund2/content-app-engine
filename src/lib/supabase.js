@@ -308,3 +308,63 @@ export async function fetchAppTypes() {
   if (error) return []
   return data
 }
+
+// --- Topics ---
+
+export async function fetchTopics(status = 'published') {
+  const { data, error } = await supabase
+    .from('topics')
+    .select('*')
+    .eq('status', status)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function fetchAllTopics() {
+  const { data, error } = await supabase
+    .from('topics')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function fetchTopicBySlug(slug) {
+  const { data, error } = await supabase
+    .from('topics')
+    .select('*')
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchStoriesByTopic(topicSlug) {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*')
+    .eq('topic_slug', topicSlug)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function assignStoryToTopic(storyId, topicSlug) {
+  const { error } = await supabase
+    .from('generated_stories')
+    .update({ topic_slug: topicSlug, updated_at: new Date().toISOString() })
+    .eq('id', storyId)
+  return !error
+}
+
+export async function upsertTopic(topic) {
+  const { data, error } = await supabase
+    .from('topics')
+    .upsert(topic, { onConflict: 'slug' })
+    .select()
+  if (error) { console.error('Upsert topic error:', error); return null }
+  return data?.[0]
+}

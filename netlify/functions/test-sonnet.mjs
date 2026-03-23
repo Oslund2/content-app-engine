@@ -79,5 +79,5 @@ export default async (req, context) => {
 }
 
 export const config = {
-  path: '/api/test-sonnet',
+  path: '/.netlify/functions/test-sonnet',
 }

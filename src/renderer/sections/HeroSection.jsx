@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
+import { ExternalLink } from 'lucide-react'
 
-export default function HeroSection({ hero }) {
+export default function HeroSection({ hero, sourceAttribution }) {
   if (!hero) return null
 
   const { headline, subhead, leadParagraphs = [], keyStats = [] } = hero
@@ -21,7 +22,26 @@ export default function HeroSection({ hero }) {
 
       {/* Subhead */}
       {subhead && (
-        <p className="text-lg text-ink-light leading-relaxed mb-6">{subhead}</p>
+        <p className="text-lg text-ink-light leading-relaxed mb-4">{subhead}</p>
+      )}
+
+      {/* Source attribution for external/3rd-party stories */}
+      {sourceAttribution && (
+        <div className="flex items-center gap-2 mb-6 px-3 py-2 bg-slate-50 rounded-lg border border-rule text-xs">
+          <ExternalLink size={12} className="text-ink-muted shrink-0" />
+          <span className="text-ink-muted">Based on reporting by</span>
+          <a
+            href={sourceAttribution.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-ink hover:text-wcpo-red transition-colors"
+          >
+            {sourceAttribution.author || sourceAttribution.name || 'Source'}
+          </a>
+          {sourceAttribution.name && sourceAttribution.author && (
+            <span className="text-ink-muted">({sourceAttribution.name})</span>
+          )}
+        </div>
       )}
 
       {/* Key stats grid */}

@@ -39,10 +39,13 @@ const storyComponents = {
 }
 
 // Read URL params once on load
+const TopicPage = lazy(() => import('./TopicPage'))
+
 function getUrlParams() {
   const params = new URLSearchParams(window.location.search)
   return {
     storyId: params.get('story') || null,
+    topicSlug: params.get('topic') || null,
     isEmbed: params.get('embed') === 'true',
   }
 }
@@ -50,6 +53,7 @@ function getUrlParams() {
 export default function StoryApp() {
   const urlParams = useMemo(getUrlParams, [])
   const [activeStory, setActiveStory] = useState(urlParams.storyId)
+  const [activeTopic, setActiveTopic] = useState(urlParams.topicSlug)
   const [isEmbed] = useState(urlParams.isEmbed)
   const [generatedStories, setGeneratedStories] = useState([])
   const [embedStory, setEmbedStory] = useState(null)
@@ -72,27 +76,47 @@ export default function StoryApp() {
 
   const openStory = useCallback((id) => {
     setActiveStory(id)
-    // Update URL without reload so embeds and direct links work
     const url = new URL(window.location)
     url.searchParams.set('story', id)
     window.history.pushState({}, '', url)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
+  const openTopic = useCallback((slug) => {
+    setActiveTopic(slug)
+    setActiveStory(null)
+    const url = new URL(window.location)
+    url.searchParams.set('topic', slug)
+    url.searchParams.delete('story')
+    window.history.pushState({}, '', url)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
   const goHome = useCallback(() => {
+    setActiveStory(null)
+    setActiveTopic(null)
+    const url = new URL(window.location)
+    url.searchParams.delete('story')
+    url.searchParams.delete('topic')
+    url.searchParams.delete('embed')
+    window.history.replaceState({}, '', url.pathname)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
+  const goBackToTopic = useCallback(() => {
     setActiveStory(null)
     const url = new URL(window.location)
     url.searchParams.delete('story')
-    url.searchParams.delete('embed')
-    window.history.replaceState({}, '', url.pathname)
+    window.history.pushState({}, '', url)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
   // Handle browser back/forward
   useEffect(() => {
     const handlePop = () => {
-      const { storyId } = getUrlParams()
+      const { storyId, topicSlug } = getUrlParams()
       setActiveStory(storyId)
+      setActiveTopic(topicSlug)
     }
     window.addEventListener('popstate', handlePop)
     return () => window.removeEventListener('popstate', handlePop)
@@ -104,19 +128,22 @@ export default function StoryApp() {
     ? generatedStories.find(s => s.story_id === activeStory) || embedStory
     : null
 
-  // Embed mode: just the story, no homepage chrome
-  if (isEmbed && !activeStory) {
+  // Embed mode: just the story/topic, no homepage chrome
+  if (isEmbed && !activeStory && !activeTopic) {
     return (
       <div className="flex items-center justify-center min-h-screen text-ink-muted text-sm">
-        No story specified. Use ?story=story-id&embed=true
+        No story specified. Use ?story=story-id&embed=true or ?topic=topic-slug&embed=true
       </div>
     )
   }
 
+  // Determine the back button behavior for stories
+  const storyBackFn = isEmbed ? undefined : (activeTopic ? goBackToTopic : goHome)
+
   return (
     <div className="min-h-screen bg-paper">
       <AnimatePresence mode="wait">
-        {!activeStory ? (
+        {!activeStory && !activeTopic ? (
           <motion.div
             key="home"
             initial={{ opacity: 0 }}
@@ -124,7 +151,28 @@ export default function StoryApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <HomePage onOpenStory={openStory} generatedStories={generatedStories} />
+            <HomePage onOpenStory={openStory} onOpenTopic={openTopic} generatedStories={generatedStories} />
+          </motion.div>
+        ) : !activeStory && activeTopic ? (
+          <motion.div
+            key={'topic-' + activeTopic}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-screen gap-2 text-ink-muted">
+                <Loader2 size={20} className="animate-spin" /> Loading topic...
+              </div>
+            }>
+              <TopicPage
+                topicSlug={activeTopic}
+                onBack={isEmbed ? undefined : goHome}
+                onOpenStory={openStory}
+                isEmbed={isEmbed}
+              />
+            </Suspense>
           </motion.div>
         ) : (
           <motion.div
@@ -135,7 +183,7 @@ export default function StoryApp() {
             transition={{ duration: isEmbed ? 0.2 : 0.4 }}
           >
             {LegacyComponent ? (
-              <LegacyComponent onBack={isEmbed ? undefined : goHome} onOpenStory={openStory} />
+              <LegacyComponent onBack={storyBackFn} onOpenStory={openStory} />
             ) : generatedStory ? (
               <Suspense fallback={
                 <div className="flex items-center justify-center min-h-screen gap-2 text-ink-muted">
@@ -145,8 +193,13 @@ export default function StoryApp() {
                 <StoryRenderer
                   config={generatedStory.config}
                   storyId={generatedStory.story_id}
-                  onBack={isEmbed ? undefined : goHome}
+                  onBack={storyBackFn}
                   onOpenStory={openStory}
+                  sourceAttribution={generatedStory.source_url ? {
+                    url: generatedStory.source_url,
+                    name: generatedStory.source_name,
+                    author: generatedStory.source_author,
+                  } : null}
                 />
               </Suspense>
             ) : (

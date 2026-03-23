@@ -7,7 +7,7 @@ import {
   Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart, Settings, X
 } from 'lucide-react'
 import storyData from './storyData.json'
-import { fetchStories, fetchStoryDates, fetchMyProfiles, fetchGeneratedStories } from './lib/supabase'
+import { fetchStories, fetchStoryDates, fetchMyProfiles, fetchGeneratedStories, fetchTopics } from './lib/supabase'
 
 const storyIcons = {
   baseball: Baseline,
@@ -91,25 +91,28 @@ function generatedToStory(row) {
   }
 }
 
-export default function HomePage({ onOpenStory, generatedStories = [] }) {
+export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = [] }) {
   const { brand } = storyData
   const [allStories, setAllStories] = useState([])
   const [dates, setDates] = useState([])
   const [savedProfiles, setSavedProfiles] = useState([])
+  const [topics, setTopics] = useState([])
   const [showArchive, setShowArchive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLive, setShowLive] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [stories, storyDates, profiles] = await Promise.all([
+      const [stories, storyDates, profiles, pubTopics] = await Promise.all([
         fetchStories(),
         fetchStoryDates(),
         fetchMyProfiles(),
+        fetchTopics('published'),
       ])
       setAllStories(stories.map(dbToStory))
       setDates(storyDates)
       setSavedProfiles(profiles)
+      setTopics(pubTopics)
       setLoading(false)
     }
     load()
@@ -300,6 +303,44 @@ export default function HomePage({ onOpenStory, generatedStories = [] }) {
               </div>
             </div>
           </motion.article>
+        )}
+
+        {/* Deep Dive Topics */}
+        {topics.length > 0 && (
+          <section className="mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <Construction size={14} className="text-ink-muted" />
+              <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Deep Dives</h2>
+              <div className="flex-1 h-px bg-rule" />
+            </div>
+            <div className="space-y-3">
+              {topics.map(topic => (
+                <motion.div
+                  key={topic.slug}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  onClick={() => onOpenTopic?.(topic.slug)}
+                  className="group cursor-pointer rounded-xl border border-rule overflow-hidden hover:shadow-md transition-all bg-white"
+                >
+                  <div className="h-1" style={{ backgroundColor: topic.accent_color || '#dc2626' }} />
+                  <div className="p-5 sm:p-6 flex items-center gap-4">
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: topic.accent_color || '#dc2626' }}>
+                        Deep Dive
+                      </span>
+                      <h3 className="font-serif text-xl font-bold text-ink leading-snug mt-1 group-hover:text-wcpo-red transition-colors">
+                        {topic.title}
+                      </h3>
+                      {topic.subtitle && (
+                        <p className="text-sm text-ink-muted leading-relaxed mt-1 line-clamp-2">{topic.subtitle}</p>
+                      )}
+                    </div>
+                    <ChevronRight size={20} className="text-ink-muted group-hover:text-wcpo-red transition-colors shrink-0" />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Section label */}

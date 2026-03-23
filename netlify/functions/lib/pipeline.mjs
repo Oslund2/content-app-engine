@@ -37,6 +37,81 @@ export function parseJson(text) {
   throw new Error('Could not parse JSON from: ' + text.slice(0, 100))
 }
 
+// ─── HTML Article Extraction (for external URLs) ────────────────────────────
+
+function getMetaContent(html, attr, value) {
+  var pattern = new RegExp('<meta[^>]+' + attr + '=["\']' + value + '["\'][^>]+content=["\']([^"\']+)["\']', 'i')
+  var match = html.match(pattern)
+  if (match) return match[1]
+  // Try reversed order (content before name)
+  pattern = new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]+' + attr + '=["\']' + value + '["\']', 'i')
+  match = html.match(pattern)
+  return match ? match[1] : null
+}
+
+function getTagText(html, tag) {
+  var match = html.match(new RegExp('<' + tag + '[^>]*>([\\s\\S]*?)</' + tag + '>', 'i'))
+  return match ? match[1].replace(/<[^>]+>/g, '').trim() : null
+}
+
+export function extractArticleMeta(html) {
+  if (!html) return { title: '', author: '', description: '', content: '', ogImage: null }
+
+  // Title: OG > meta > <title> > <h1>
+  var title = getMetaContent(html, 'property', 'og:title')
+    || getMetaContent(html, 'name', 'title')
+    || getTagText(html, 'title')
+    || getTagText(html, 'h1')
+    || ''
+
+  // Author
+  var author = getMetaContent(html, 'name', 'author')
+    || getMetaContent(html, 'property', 'article:author')
+    || ''
+
+  // Description
+  var description = getMetaContent(html, 'property', 'og:description')
+    || getMetaContent(html, 'name', 'description')
+    || ''
+
+  // OG Image
+  var ogImage = getMetaContent(html, 'property', 'og:image') || null
+
+  // Site name
+  var siteName = getMetaContent(html, 'property', 'og:site_name') || ''
+
+  // Article content: try <article>, then <main>, then <div class containing "article/content/body/story">
+  var content = ''
+  var articleMatch = html.match(/<article[^>]*>([\s\S]*?)<\/article>/i)
+  if (articleMatch) {
+    content = articleMatch[1]
+  } else {
+    var mainMatch = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i)
+    if (mainMatch) {
+      content = mainMatch[1]
+    } else {
+      // Find largest div with article-like class
+      var divMatch = html.match(/<div[^>]+class="[^"]*(?:article|content|story|body|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/i)
+      if (divMatch) content = divMatch[1]
+    }
+  }
+
+  // If no structured content found, use body
+  if (!content) {
+    var bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+    content = bodyMatch ? bodyMatch[1] : html
+  }
+
+  return {
+    title: stripHtml(title).slice(0, 300),
+    author: stripHtml(author).slice(0, 100),
+    description: stripHtml(description).slice(0, 500),
+    content: content, // raw HTML — caller should stripHtml when needed
+    ogImage: ogImage,
+    siteName: stripHtml(siteName).slice(0, 100),
+  }
+}
+
 const CATEGORY_COLORS = {
   news: '#dc2626',
   'local-news': '#dc2626',
@@ -358,6 +433,10 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
     model_used: 'claude-sonnet-4-6',
     narrative_prompt: config.narrative ? config.narrative.systemPrompt : null,
     narration_script: typeof narration === 'string' ? narration.slice(0, 500) : null,
+    source_url: item.source_url || null,
+    source_name: item.source_name || null,
+    source_author: item.source_author || null,
+    topic_slug: item.topic_slug || null,
   }
 
   await sbQuery(supabaseUrl, supabaseKey, 'generated_stories', 'POST', storyRow)
