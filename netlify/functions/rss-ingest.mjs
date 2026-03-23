@@ -110,7 +110,8 @@ async function upsertItems(items) {
   return inserted
 }
 
-export default async function handler(req) {
+export default async (req) => {
+  try {
   console.log('RSS ingestion starting...')
 
   // Fetch all feeds in parallel
@@ -145,9 +146,11 @@ export default async function handler(req) {
   }), {
     headers: { 'Content-Type': 'application/json' },
   })
-}
-
-// Netlify scheduled function config
-export const config = {
-  schedule: '*/15 * * * *',
+  } catch (err) {
+    console.error('RSS ingestion error:', err)
+    return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 }

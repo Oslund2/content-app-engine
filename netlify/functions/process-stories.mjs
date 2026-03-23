@@ -339,7 +339,7 @@ Respond with JSON: { "sensitivityLevel": "low|moderate|high|critical", "designCo
   }
 }
 
-export default async function handler(req) {
+export default async (req) => {
   console.log('Story processing pipeline starting...')
 
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -403,6 +403,3 @@ export default async function handler(req) {
   })
 }
 
-export const config = {
-  schedule: '*/30 * * * *',
-}
