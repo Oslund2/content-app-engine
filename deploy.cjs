@@ -24,9 +24,55 @@ function walkDir(dir, base) {
   return files;
 }
 
+const { execSync } = require('child_process');
+
 const distDir = path.join(__dirname, 'dist');
+const functionsDir = path.join(__dirname, 'netlify', 'functions');
 const fileHashes = walkDir(distDir, distDir);
-console.log('Files to deploy:', Object.keys(fileHashes).length);
+console.log('Static files to deploy:', Object.keys(fileHashes).length);
+
+// Build function hashes — bundle with esbuild then zip
+function buildFunctionHashes() {
+  const fnHashes = {};
+  if (!fs.existsSync(functionsDir)) return fnHashes;
+
+  // Bundle functions with esbuild first
+  const buildDir = path.join(__dirname, '.netlify', 'fn-build');
+  for (const entry of fs.readdirSync(functionsDir)) {
+    if (!entry.endsWith('.mjs')) continue;
+    const fnName = entry.replace('.mjs', '');
+    const srcPath = path.join(functionsDir, entry);
+    const outDir = path.join(buildDir, fnName);
+    fs.mkdirSync(outDir, { recursive: true });
+    execSync(`npx esbuild "${srcPath}" --bundle --platform=node --format=esm --outfile="${path.join(outDir, entry)}"`, { stdio: 'pipe' });
+  }
+
+  // Zip each bundled function
+  for (const entry of fs.readdirSync(functionsDir)) {
+    if (!entry.endsWith('.mjs')) continue;
+    const fnName = entry.replace('.mjs', '');
+    const bundleDir = path.join(buildDir, fnName);
+    const zipPath = path.join(__dirname, '.netlify', 'fn-zips', fnName + '.zip');
+    fs.mkdirSync(path.dirname(zipPath), { recursive: true });
+
+    try {
+      if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+      const psCmd = `Compress-Archive -Path '${bundleDir.replace(/\//g, '\\\\')}\\\\*' -DestinationPath '${zipPath.replace(/\//g, '\\\\')}' -Force`;
+      execSync(`powershell -NoProfile -Command "${psCmd}"`, { stdio: 'pipe' });
+      const zipContent = fs.readFileSync(zipPath);
+      const hash = crypto.createHash('sha1').update(zipContent).digest('hex');
+      fnHashes[fnName] = hash;
+      console.log(`  Function: ${fnName} (${zipContent.length}B zip)`);
+    } catch (e) {
+      console.error(`  Error zipping ${fnName}:`, e.message);
+    }
+  }
+  return fnHashes;
+}
+
+console.log('Building function zips...');
+const functionHashes = buildFunctionHashes();
+console.log('Functions to deploy:', Object.keys(functionHashes).length);
 
 function apiRequest(method, apiPath, data, contentType) {
   return new Promise((resolve, reject) => {
@@ -48,11 +94,16 @@ function apiRequest(method, apiPath, data, contentType) {
 }
 
 async function deploy() {
-  const body = JSON.stringify({ files: fileHashes });
+  const body = JSON.stringify({
+    files: fileHashes,
+    functions: functionHashes,
+  });
   const deploy = await apiRequest('POST', '/api/v1/sites/' + siteId + '/deploys', body);
   console.log('Deploy:', deploy.id, '| State:', deploy.state);
+
+  // Upload required static files
   const required = deploy.required || [];
-  console.log('Uploading:', required.length, 'files');
+  console.log('Uploading static files:', required.length);
   for (const hash of required) {
     const filePath = Object.keys(fileHashes).find(f => fileHashes[f] === hash);
     if (!filePath) continue;
@@ -60,6 +111,19 @@ async function deploy() {
     console.log(' ', filePath, '(' + content.length + 'B)');
     await apiRequest('PUT', '/api/v1/deploys/' + deploy.id + '/files' + filePath, content, 'application/octet-stream');
   }
+
+  // Upload required functions
+  const requiredFns = deploy.required_functions || [];
+  console.log('Uploading functions:', requiredFns.length);
+  for (const hash of requiredFns) {
+    const fnName = Object.keys(functionHashes).find(f => functionHashes[f] === hash);
+    if (!fnName) continue;
+    const zipPath = path.join(__dirname, '.netlify', 'fn-zips', fnName + '.zip');
+    const content = fs.readFileSync(zipPath);
+    console.log('  ', fnName, '(' + content.length + 'B)');
+    await apiRequest('PUT', '/api/v1/deploys/' + deploy.id + '/functions/' + fnName, content, 'application/zip');
+  }
+
   console.log('Done! https://content-app-engine.netlify.app');
 }
 deploy().catch(e => console.error(e));
