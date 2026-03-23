@@ -40,33 +40,47 @@ export default async (req) => {
 
     console.log('Ingesting external URL: ' + url)
 
-    // 1. Fetch HTML
+    // 1. Fetch HTML (follow redirects, use browser-like UA)
     var fetchRes = await fetch(url, {
-      headers: { 'User-Agent': 'WCPO-ContentAppEngine/1.0' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      redirect: 'follow',
     })
+    // If we got redirected, use the final URL for attribution
+    var finalUrl = fetchRes.url || url
     if (!fetchRes.ok) {
-      throw new Error('Failed to fetch URL: HTTP ' + fetchRes.status)
+      throw new Error('Failed to fetch URL: HTTP ' + fetchRes.status + ' from ' + finalUrl)
     }
     var html = await fetchRes.text()
-    console.log('Fetched ' + html.length + ' chars')
+    console.log('Fetched ' + html.length + ' chars from ' + finalUrl)
 
     // 2. Extract article metadata
     var meta = extractArticleMeta(html)
-    console.log('Extracted: title="' + meta.title.slice(0, 50) + '", author="' + meta.author + '"')
+    console.log('Extracted: title="' + (meta.title || '').slice(0, 50) + '", author="' + meta.author + '", content=' + (meta.content || '').length + ' chars')
 
     var articleText = stripHtml(meta.content || html)
     if (articleText.length < 100) {
-      return new Response(JSON.stringify({ error: 'Article too short to process (' + articleText.length + ' chars)' }), {
+      // Try stripping the full HTML body as fallback
+      articleText = stripHtml(html)
+    }
+    if (articleText.length < 100) {
+      return new Response(JSON.stringify({
+        error: 'Article too short to process (' + articleText.length + ' chars). The site may block automated access or require JavaScript.',
+        hint: 'Try a different source URL for this story, or paste from a site like AP News, NPR, or PBS.',
+      }), {
         status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
 
-    // 3. Insert into rss_items as external source
+    // 3. Insert into rss_items as external source (use final resolved URL)
     var rssItem = {
-      guid: url,
+      guid: finalUrl,
       feed_name: 'external',
       title: meta.title || 'External Article',
-      link: url,
+      link: finalUrl,
       description: meta.description || articleText.slice(0, 300),
       content_encoded: meta.content || html,
       author: meta.author || '',
@@ -96,7 +110,7 @@ export default async (req) => {
     console.log('RSS item ID: ' + inserted.id)
 
     // 4. Enrich the item with source metadata for processItem
-    inserted.source_url = url
+    inserted.source_url = finalUrl
     inserted.source_name = meta.siteName || new URL(url).hostname.replace('www.', '')
     inserted.source_author = meta.author || null
     inserted.topic_slug = topicSlug

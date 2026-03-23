@@ -23,16 +23,27 @@ function getTagContent(xml, tagName) {
   return raw.trim()
 }
 
-// Resolve Google News redirect URLs to actual article URLs
+// Resolve Google News redirect URLs to actual article URLs (follows up to 5 hops)
 async function resolveGoogleLink(gnUrl) {
-  try {
-    var res = await fetch(gnUrl, { redirect: 'manual', signal: AbortSignal.timeout(3000) })
-    var loc = res.headers.get('location')
-    if (loc && loc.startsWith('http')) return loc
-  } catch {}
-  // Fallback: try to extract URL from the Google News path
-  var match = gnUrl.match(/articles\/([A-Za-z0-9_-]+)/)
-  return gnUrl // return as-is if we can't resolve
+  var current = gnUrl
+  for (var hop = 0; hop < 5; hop++) {
+    try {
+      var res = await fetch(current, {
+        redirect: 'manual',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+        signal: AbortSignal.timeout(3000),
+      })
+      var loc = res.headers.get('location')
+      if (loc && loc.startsWith('http') && loc !== current) {
+        current = loc
+        continue
+      }
+      break
+    } catch { break }
+  }
+  // If we ended up somewhere different from Google News, that's the real URL
+  if (current !== gnUrl) return current
+  return gnUrl
 }
 
 function parseRssItems(xml) {
