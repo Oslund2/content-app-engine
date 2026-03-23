@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from 'react'
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import HomePage from './HomePage'
@@ -16,7 +16,7 @@ import CarSeatSafety from './stories/CarSeatSafety'
 import NeighborhoodPulse from './stories/NeighborhoodPulse'
 import CommunityResponse from './stories/CommunityResponse'
 import AdminHub from './components/AdminHub'
-import { fetchGeneratedStories } from './lib/supabase'
+import { fetchGeneratedStories, fetchGeneratedStoryBySlug } from './lib/supabase'
 
 const StoryRenderer = lazy(() => import('./renderer/StoryRenderer'))
 
@@ -38,30 +38,80 @@ const storyComponents = {
   'admin-hub': AdminHub,
 }
 
+// Read URL params once on load
+function getUrlParams() {
+  const params = new URLSearchParams(window.location.search)
+  return {
+    storyId: params.get('story') || null,
+    isEmbed: params.get('embed') === 'true',
+  }
+}
+
 export default function StoryApp() {
-  const [activeStory, setActiveStory] = useState(null)
+  const urlParams = useMemo(getUrlParams, [])
+  const [activeStory, setActiveStory] = useState(urlParams.storyId)
+  const [isEmbed] = useState(urlParams.isEmbed)
   const [generatedStories, setGeneratedStories] = useState([])
+  const [embedStory, setEmbedStory] = useState(null)
 
   // Fetch published generated stories on mount
   useEffect(() => {
     fetchGeneratedStories('published').then(setGeneratedStories).catch(() => {})
   }, [])
 
+  // For embed/direct-link: if the story isn't in published list and isn't legacy, fetch it by slug
+  useEffect(() => {
+    if (!activeStory) return
+    if (storyComponents[activeStory]) return // legacy
+    if (generatedStories.find(s => s.story_id === activeStory)) return // already loaded
+    // Try fetching by slug (covers published stories not yet in state)
+    fetchGeneratedStoryBySlug(activeStory).then(story => {
+      if (story) setEmbedStory(story)
+    }).catch(() => {})
+  }, [activeStory, generatedStories])
+
   const openStory = useCallback((id) => {
     setActiveStory(id)
+    // Update URL without reload so embeds and direct links work
+    const url = new URL(window.location)
+    url.searchParams.set('story', id)
+    window.history.pushState({}, '', url)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
   const goHome = useCallback(() => {
     setActiveStory(null)
+    const url = new URL(window.location)
+    url.searchParams.delete('story')
+    url.searchParams.delete('embed')
+    window.history.replaceState({}, '', url.pathname)
     window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePop = () => {
+      const { storyId } = getUrlParams()
+      setActiveStory(storyId)
+    }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
   }, [])
 
   // Check if it's a legacy component or a generated story
   const LegacyComponent = activeStory ? storyComponents[activeStory] : null
   const generatedStory = !LegacyComponent && activeStory
-    ? generatedStories.find(s => s.story_id === activeStory)
+    ? generatedStories.find(s => s.story_id === activeStory) || embedStory
     : null
+
+  // Embed mode: just the story, no homepage chrome
+  if (isEmbed && !activeStory) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-ink-muted text-sm">
+        No story specified. Use ?story=story-id&embed=true
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-paper">
@@ -79,13 +129,13 @@ export default function StoryApp() {
         ) : (
           <motion.div
             key={activeStory}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: isEmbed ? 0 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: isEmbed ? 0.2 : 0.4 }}
           >
             {LegacyComponent ? (
-              <LegacyComponent onBack={goHome} onOpenStory={openStory} />
+              <LegacyComponent onBack={isEmbed ? undefined : goHome} onOpenStory={openStory} />
             ) : generatedStory ? (
               <Suspense fallback={
                 <div className="flex items-center justify-center min-h-screen gap-2 text-ink-muted">
@@ -95,14 +145,13 @@ export default function StoryApp() {
                 <StoryRenderer
                   config={generatedStory.config}
                   storyId={generatedStory.story_id}
-                  onBack={goHome}
+                  onBack={isEmbed ? undefined : goHome}
                   onOpenStory={openStory}
                 />
               </Suspense>
             ) : (
               <div className="flex items-center justify-center min-h-screen text-ink-muted">
-                Story not found.
-                <button onClick={goHome} className="ml-2 text-wcpo-red underline">Go home</button>
+                <Loader2 size={16} className="animate-spin mr-2" /> Loading story...
               </div>
             )}
           </motion.div>
