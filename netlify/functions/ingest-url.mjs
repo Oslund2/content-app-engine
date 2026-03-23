@@ -1,27 +1,26 @@
-// Netlify function — Ingest an external URL and generate a Story-App
+// Netlify function — Ingest an external URL and queue for Story-App generation
 // POST /api/ingest-url { url, topic_slug? }
+// Fast: fetches HTML + inserts rss_item + returns immediately
+// The scheduled process-stories function picks it up for AI processing
 
-import { sbQuery, processItem, stripHtml, extractFirstImage, extractArticleMeta } from './lib/pipeline.mjs'
+import { sbQuery, stripHtml, extractArticleMeta } from './lib/pipeline.mjs'
 
 export default async (req) => {
-  // CORS
   if (req.method === 'OPTIONS') {
     return new Response('', {
       headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' },
     })
   }
-
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'POST required' }), {
       status: 405, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
 
-  var apiKey = Netlify.env.get('ANTHROPIC_API_KEY')
   var supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
   var supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseKey) {
+  if (!supabaseUrl || !supabaseKey) {
     return new Response(JSON.stringify({ error: 'Missing env vars' }), {
       status: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
@@ -38,44 +37,37 @@ export default async (req) => {
       })
     }
 
-    console.log('Ingesting external URL: ' + url)
+    console.log('Ingesting: ' + url)
 
-    // 1. Fetch HTML (follow redirects, use browser-like UA)
+    // 1. Fetch HTML (this is the only slow external call)
     var fetchRes = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
       },
       redirect: 'follow',
+      signal: AbortSignal.timeout(10000),
     })
-    // If we got redirected, use the final URL for attribution
     var finalUrl = fetchRes.url || url
-    if (!fetchRes.ok) {
-      throw new Error('Failed to fetch URL: HTTP ' + fetchRes.status + ' from ' + finalUrl)
-    }
+    if (!fetchRes.ok) throw new Error('HTTP ' + fetchRes.status + ' from ' + finalUrl)
     var html = await fetchRes.text()
-    console.log('Fetched ' + html.length + ' chars from ' + finalUrl)
+    console.log('Fetched ' + html.length + ' chars')
 
-    // 2. Extract article metadata
+    // 2. Extract metadata
     var meta = extractArticleMeta(html)
-    console.log('Extracted: title="' + (meta.title || '').slice(0, 50) + '", author="' + meta.author + '", content=' + (meta.content || '').length + ' chars')
-
     var articleText = stripHtml(meta.content || html)
-    if (articleText.length < 100) {
-      // Try stripping the full HTML body as fallback
-      articleText = stripHtml(html)
-    }
+    if (articleText.length < 100) articleText = stripHtml(html)
+
     if (articleText.length < 100) {
       return new Response(JSON.stringify({
-        error: 'Article too short to process (' + articleText.length + ' chars). The site may block automated access or require JavaScript.',
-        hint: 'Try a different source URL for this story, or paste from a site like AP News, NPR, or PBS.',
-      }), {
-        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-      })
+        error: 'Article too short (' + articleText.length + ' chars). Site may block scraping.',
+        hint: 'Try NPR, PBS, or BBC URLs — they work reliably.',
+      }), { status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
     }
 
-    // 3. Insert into rss_items as external source (use final resolved URL)
+    console.log('Article: "' + (meta.title || '').slice(0, 50) + '" (' + articleText.length + ' chars)')
+
+    // 3. Insert into rss_items (fast DB write)
     var rssItem = {
       guid: finalUrl,
       feed_name: 'external',
@@ -92,56 +84,40 @@ export default async (req) => {
     var inserted
     try {
       inserted = await sbQuery(supabaseUrl, supabaseKey, 'rss_items', 'POST', rssItem)
-      if (Array.isArray(inserted) && inserted.length > 0) {
-        inserted = inserted[0]
-      }
+      if (Array.isArray(inserted) && inserted.length > 0) inserted = inserted[0]
     } catch (err) {
-      // May fail on duplicate guid — try fetching existing
-      console.log('Insert failed (likely duplicate): ' + err.message)
+      // Duplicate — fetch existing
       var existing = await sbQuery(supabaseUrl, supabaseKey,
-        'rss_items?guid=eq.' + encodeURIComponent(url) + '&limit=1', 'GET')
+        'rss_items?guid=eq.' + encodeURIComponent(finalUrl) + '&limit=1', 'GET')
       if (existing && existing.length > 0) {
         inserted = existing[0]
       } else {
-        throw new Error('Could not insert or find rss_item for URL')
+        throw new Error('DB insert failed: ' + err.message)
       }
     }
 
-    console.log('RSS item ID: ' + inserted.id)
+    // 4. Store source metadata on the rss_item for the pipeline to pick up
+    var sourceName = meta.siteName || new URL(finalUrl).hostname.replace('www.', '')
+    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + inserted.id, 'PATCH', {
+      processed: false, // ensure pipeline picks it up
+      worthiness_score: 80, // boost priority so it's processed next
+    }).catch(function () {})
 
-    // 4. Enrich the item with source metadata for processItem
-    inserted.source_url = finalUrl
-    inserted.source_name = meta.siteName || new URL(url).hostname.replace('www.', '')
-    inserted.source_author = meta.author || null
-    inserted.topic_slug = topicSlug
+    // 5. Trigger the background processor (fire and forget)
+    var bgUrl = (req.headers.get('origin') || 'https://content-app-engine.netlify.app') + '/.netlify/functions/process-invoke-background'
+    fetch(bgUrl, { method: 'POST', signal: AbortSignal.timeout(2000) }).catch(function () {})
 
-    // 5. Process through the AI pipeline
-    var result = await processItem(inserted, apiKey, supabaseUrl, supabaseKey, { skipSensitivity: false })
-    console.log('Pipeline result: ' + JSON.stringify(result))
-
-    // 6. Mark as processed
-    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + inserted.id, 'PATCH', { processed: true })
-
-    // 7. If topic_slug was provided and story was created, ensure it's set on generated_stories
-    if (topicSlug && result.storyId && !result.skipped) {
-      await sbQuery(supabaseUrl, supabaseKey,
-        'generated_stories?story_id=eq.' + encodeURIComponent(result.storyId), 'PATCH',
-        { topic_slug: topicSlug }
-      ).catch(function (err) { console.error('Topic assign error:', err.message) })
-    }
-
+    // 6. Return immediately — story will appear in Drafts once pipeline finishes
     return new Response(JSON.stringify({
-      success: !result.skipped,
-      storyId: result.storyId || null,
-      appType: result.appType || null,
-      worthiness: result.worthiness || null,
-      skipped: result.skipped || false,
-      reason: result.reason || null,
-      sourceUrl: url,
-      sourceName: inserted.source_name,
-    }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    })
+      success: true,
+      queued: true,
+      message: 'Article queued for processing. Check Drafts tab in 30-60 seconds.',
+      title: meta.title,
+      sourceName: sourceName,
+      sourceUrl: finalUrl,
+      rssItemId: inserted.id,
+      topicSlug: topicSlug,
+    }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } })
 
   } catch (err) {
     console.error('Ingest error:', err)
@@ -151,6 +127,4 @@ export default async (req) => {
   }
 }
 
-export const config = {
-  path: '/api/ingest-url',
-}
+export const config = { path: '/api/ingest-url' }

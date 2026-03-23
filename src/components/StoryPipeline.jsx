@@ -523,12 +523,20 @@ function ExternalIngest({ onRefresh }) {
             <p className="text-sm text-red-700">Error: {result.error}</p>
           ) : result.success ? (
             <div>
-              <p className="text-sm font-semibold text-green-700 mb-1">Story created as draft!</p>
-              <p className="text-xs text-green-600">
-                Story ID: {result.storyId} &middot; Type: {result.appType} &middot; Score: {result.worthiness}
-                {result.sourceName && <> &middot; Source: {result.sourceName}</>}
+              <p className="text-sm font-semibold text-green-700 mb-1">
+                {result.queued ? 'Article queued for AI processing!' : 'Story created as draft!'}
               </p>
-              <p className="text-xs text-green-600 mt-1">Switch to the Drafts tab to preview and approve.</p>
+              <p className="text-xs text-green-600">
+                {result.title && <>{result.title}<br /></>}
+                {result.sourceName && <>Source: {result.sourceName} &middot; </>}
+                {result.storyId && <>ID: {result.storyId} &middot; </>}
+                {result.appType && <>Type: {result.appType}</>}
+              </p>
+              <p className="text-xs text-green-600 mt-1 font-medium">
+                {result.queued
+                  ? 'AI is generating the interactive Story-App now. Check the Drafts tab in 30-60 seconds.'
+                  : 'Switch to the Drafts tab to preview and approve.'}
+              </p>
             </div>
           ) : (
             <p className="text-sm text-yellow-700">Skipped: {result.reason || 'Article not suitable for interactive treatment'}</p>

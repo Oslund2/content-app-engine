@@ -30,6 +30,16 @@ export default async (req, context) => {
     console.log('--- Item ' + (idx + 1) + ': ' + item.title.slice(0, 50))
 
     try {
+      // For external items, enrich with source attribution
+      if (item.source_type === 'external' && item.link) {
+        try {
+          var hostname = new URL(item.link).hostname.replace('www.', '')
+          item.source_url = item.link
+          item.source_name = hostname
+          item.source_author = item.author || null
+        } catch {}
+      }
+
       var result = await processItem(item, apiKey, supabaseUrl, supabaseKey)
       console.log('Result:', JSON.stringify(result))
       await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true })

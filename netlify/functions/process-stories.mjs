@@ -36,6 +36,15 @@ export default async (req) => {
     console.log('--- Item ' + (idx + 1) + ': ' + item.title.slice(0, 50))
 
     try {
+      // Enrich external items with source attribution
+      if (item.source_type === 'external' && item.link) {
+        try {
+          item.source_url = item.link
+          item.source_name = new URL(item.link).hostname.replace('www.', '')
+          item.source_author = item.author || null
+        } catch {}
+      }
+
       var result = await processItem(item, apiKey, supabaseUrl, supabaseKey)
       console.log('Result:', JSON.stringify(result))
 
