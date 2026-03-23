@@ -4,10 +4,11 @@
 
 import { callAnthropic, parseJson, stripHtml } from './lib/pipeline.mjs'
 
-// Feeds with DIRECT article URLs (no JS redirects, no paywalls)
+// Feeds with DIRECT article URLs (no JS redirects, no paywalls, verified fast)
 var FEEDS = [
-  { name: 'AP News', url: 'https://apnews.com/feed' },
   { name: 'NPR', url: 'https://feeds.npr.org/1001/rss.xml' },
+  { name: 'BBC', url: 'https://feeds.bbci.co.uk/news/rss.xml' },
+  { name: 'PBS', url: 'https://www.pbs.org/newshour/feeds/rss/headlines' },
 ]
 
 function getTagContent(xml, tagName) {
@@ -50,7 +51,7 @@ async function fetchFeed(feed) {
   try {
     var res = await fetch(feed.url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; WCPO/1.0)' },
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(4000),
     })
     if (!res.ok) { console.log(feed.name + ': HTTP ' + res.status); return [] }
     var xml = await res.text()
