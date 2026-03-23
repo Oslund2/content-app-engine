@@ -8,6 +8,7 @@ import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
 import { HeroSection, InputSection, ResultSection, ChartSection } from './sections'
+import ArticleBody from './sections/ArticleBody'
 
 /**
  * Inner component that can access ConfigContext.
@@ -32,6 +33,9 @@ function StoryContent({ config, storyId, onBack, onOpenStory }) {
     >
       {/* Hero */}
       <HeroSection hero={config.hero} />
+
+      {/* Story body — the journalism, before any interactivity */}
+      <ArticleBody config={config} />
 
       {/* Interactive inputs */}
       <InputSection inputs={config.inputs} />

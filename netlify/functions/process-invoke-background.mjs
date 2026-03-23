@@ -143,45 +143,41 @@ export default async (req, context) => {
       // Config Generation (Sonnet)
       console.log('Generating config with Sonnet...')
       var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
-        `You are a senior interactive journalist at WCPO Cincinnati. You transform news articles into deeply engaging interactive Story-Apps that connect readers to their community.
+        `You are a senior interactive journalist at WCPO Cincinnati. You transform news articles into Story-Apps — pages that are BOTH journalism AND interactive tools.
 
-## YOUR MISSION
-Choose the BEST interactive format for THIS specific story. Every story is different. Match the format to the story's emotional and informational core:
+## RULE #1: THE STORY COMES FIRST
+Every Story-App must contain the FULL STORY as readable editorial text. The reader must be able to understand the news BEFORE they interact. This is journalism, not a widget.
 
-- **impact-calculator**: When the story has NUMBERS that affect people differently. "What does this cost YOU?" Readers input their situation → see personalized cost/time/impact. Use sliders for quantities, button-arrays for locations. Must have real formulas.
-- **safety-assessment**: When the story involves personal RISK or PREPAREDNESS. Quiz format → score → grade → personalized tips. Sequential questions that reveal your situation.
-- **eligibility-checker**: When a PROGRAM or BENEFIT exists. "Do you qualify?" Step-by-step criteria → yes/no with next steps.
-- **data-explorer**: When the story has GEOGRAPHIC data. Pick your neighborhood → see how it compares. Radar charts, bar charts comparing areas.
-- **event-planner**: When there's an UPCOMING EVENT. Pick preferences → get a personalized plan with timeline.
-- **visit-planner**: When a PLACE reopened/opened. Select interests → tailored guide.
-- **tracker**: When there's an ONGOING situation to follow. Make predictions → see projections.
+Your config MUST include:
+- hero.headline: Compelling headline
+- hero.subhead: 1-sentence summary
+- hero.leadParagraphs: Array of 4-6 paragraphs telling the COMPLETE story. Include who, what, when, where, why. Use quotes from the article. Include specific numbers and facts. This is the article body — write it like a journalist.
+- hero.keyStats: 2-4 key numbers from the story as stat cards
 
-## CRITICAL FORMAT RULES
-Your JSON config must use EXACTLY these field formats:
+## RULE #2: THEN THE INTERACTIVE TOOL
+After the story, the reader engages with a tool that makes it personal. Choose the BEST format:
 
-inputs[]: Each input must have:
-- "id": "snake_case_id"
-- "type": one of "button-array", "slider", "dropdown", "quiz", "checkbox-group", "radio"
-- "label": "Question for the reader"
-- "options": array of {"id": "kebab-case", "label": "Display Text", "data": {}} objects (NOT plain strings)
-- For sliders: "min", "max", "step", "defaultValue" (no options needed)
-- For quiz: "questions": [{"id", "question", "options": [{"label", "value", "score"}]}]
+- **impact-calculator**: Story has NUMBERS affecting people differently → sliders + formulas → personal cost/time/impact
+- **safety-assessment**: Story involves RISK → quiz → score + grade → personalized tips
+- **eligibility-checker**: A PROGRAM/BENEFIT exists → criteria questions → eligible/not + next steps
+- **data-explorer**: GEOGRAPHIC data → pick neighborhood → comparison charts
+- **event-planner**: UPCOMING EVENT → pick preferences → personalized plan
+- **visit-planner**: A PLACE opened/reopened → select interests → tailored guide
 
-calculations[]: Each must have:
-- "id": "calc_name"
-- "formula": arithmetic expression using "inputs.inputId.data.field" references
-- "format": "currency" | "round" | "percent"
+## RULE #3: FORMAT REQUIREMENTS
+inputs[]: {"id": "snake_case", "type": "button-array"|"slider"|"dropdown"|"quiz"|"checkbox-group"|"radio", "label": "...", "options": [{"id": "kebab-case", "label": "Text", "data": {}}]}
+For sliders: include "min", "max", "step", "defaultValue"
+calculations[]: {"id": "name", "formula": "inputs.x.data.y * inputs.z.value", "format": "currency"|"round"|"percent"}
+results.charts[]: {"type": "area"|"bar"|"radar", "title": "...", "data": [...], "xKey": "x", "yKey": "y", "color": "#hex"}
+results.actionItems[]: {"title": "...", "description": "...", "cta": "Button Text", "ctaUrl": "https://..."}
+narrationScript: 50-80 word dramatic intro for audio narration
 
-results.scoreCards[]: {"label", "valueRef": "calculations.calc_name", "prefix", "suffix"}
-results.charts[]: {"type": "area"|"bar"|"radar", "title", "data": [{xKey: val, yKey: val}...], "xKey", "yKey", "color"}
-results.actionItems[]: {"title", "description", "cta": "Button Text", "ctaUrl": "https://..."}
+## RULE #4: CINCINNATI SPECIFICITY
+Use real neighborhood names (Price Hill, OTR, Clifton, Hyde Park, Avondale, Westwood, Anderson Twp, Covington, Newport). Reference real streets, landmarks, prices. Make it feel LOCAL.
 
-## COMMUNITY CONNECTION
-Every input should make the reader think "this is about MY life." Use Cincinnati neighborhoods by name. Reference local landmarks, streets, prices. The goal is not information — it's personal relevance.
-
-Output ONLY valid JSON. No markdown wrapping.`,
-        'Convert this article into an interactive Story-App:\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + suggestedType + '\n\nFULL ARTICLE TEXT:\n' + articleText.slice(0, 5000),
-        4096)
+Output ONLY valid JSON. No markdown.`,
+        'Transform this Cincinnati news article into a Story-App config. Remember: FULL STORY TEXT in hero.leadParagraphs (4-6 paragraphs), then interactive tool.\n\nHEADLINE: ' + item.title + '\nFEED: ' + item.feed_name + '\nSuggested type: ' + suggestedType + '\n\nFULL ARTICLE TEXT:\n' + articleText.slice(0, 5000),
+        8192)
 
       console.log('Config response: ' + configText.length + ' chars')
       var config = parseJson(configText)
