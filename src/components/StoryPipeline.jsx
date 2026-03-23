@@ -1,8 +1,11 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import {
   Rss, FileEdit, CheckCircle2, XCircle, Eye, ThumbsUp, ThumbsDown,
-  RefreshCw, Clock, AlertTriangle, Loader2, Undo2, Link, ExternalLink
+  RefreshCw, Clock, AlertTriangle, Loader2, Undo2, Link, ExternalLink,
+  Sparkles, Zap
 } from 'lucide-react'
+
+const NEWS_FEED_COUNT = 5
 import {
   fetchRssItems, fetchAllGeneratedStories,
   updateGeneratedStoryStatus, updateGeneratedStoryConfig,
@@ -357,10 +360,34 @@ function ExternalIngest({ onRefresh }) {
   const [topics, setTopics] = useState([])
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState(null)
+  const [finding, setFinding] = useState(false)
+  const [recommendation, setRecommendation] = useState(null)
 
   useEffect(() => {
     fetchAllTopics().then(t => setTopics(t || []))
   }, [])
+
+  const handleFindStory = async () => {
+    setFinding(true)
+    setRecommendation(null)
+    try {
+      const res = await fetch('/api/find-story' + (topicSlug ? '?topic=' + topicSlug : ''))
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response' } }
+      if (data.error) {
+        setRecommendation({ error: data.error })
+      } else {
+        setRecommendation(data)
+        if (data.recommendation?.chosen_url) {
+          setUrl(data.recommendation.chosen_url)
+        }
+      }
+    } catch (err) {
+      setRecommendation({ error: err.message })
+    }
+    setFinding(false)
+  }
 
   const handleSubmit = async () => {
     if (!url.trim() || !url.startsWith('http')) return
@@ -390,8 +417,67 @@ function ExternalIngest({ onRefresh }) {
   return (
     <div>
       <p className="text-sm text-ink-muted mb-6">
-        Paste any news article URL to generate an interactive Story-App. The source will be attributed in the story.
+        Paste any news article URL, or let AI find a great story to localize for Cincinnati.
       </p>
+
+      {/* AI Story Finder */}
+      <div className="mb-8 p-5 rounded-xl border-2 border-dashed border-rule bg-paper-warm">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles size={16} className="text-wcpo-red" />
+          <h3 className="text-sm font-bold text-ink">AI Story Finder</h3>
+        </div>
+        <p className="text-xs text-ink-muted mb-4">
+          Scans AP, Reuters, NPR, PBS, and USA Today for trending stories, then picks the one that would make the best interactive Story-App for Cincinnati readers.
+        </p>
+        <button
+          onClick={handleFindStory}
+          disabled={finding}
+          className="flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-lg bg-ink text-white hover:bg-ink-light transition-colors disabled:opacity-50"
+        >
+          {finding ? <><Loader2 size={14} className="animate-spin" />Scanning {NEWS_FEED_COUNT} feeds...</> : <><Sparkles size={14} />Find Me a Great Story</>}
+        </button>
+
+        {/* Recommendation Card */}
+        {recommendation && !recommendation.error && recommendation.recommendation && (
+          <div className="mt-4 p-4 rounded-lg bg-white border border-rule">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+                <CheckCircle2 size={16} className="text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-ink-muted mb-1">
+                  Scanned {recommendation.totalScanned} articles from {recommendation.feedsScanned} feeds
+                </p>
+                <h4 className="text-sm font-bold text-ink mb-1">{recommendation.recommendation.chosen_title}</h4>
+                <p className="text-xs text-ink-muted mb-2">
+                  Source: {recommendation.recommendation.chosen_source}
+                </p>
+                <p className="text-sm text-ink-light leading-relaxed mb-3">
+                  {recommendation.recommendation.localization_angle}
+                </p>
+                {recommendation.recommendation.interactive_ideas && (
+                  <div className="mb-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-1">Interactive Ideas</p>
+                    <ul className="space-y-1">
+                      {recommendation.recommendation.interactive_ideas.map((idea, i) => (
+                        <li key={i} className="text-xs text-ink-light flex items-start gap-1.5">
+                          <Zap size={10} className="text-wcpo-red shrink-0 mt-0.5" />
+                          {idea}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="text-xs text-ink-muted italic mb-3">{recommendation.recommendation.why_this_story}</p>
+                <p className="text-xs text-green-600 font-medium">URL loaded below — click "Process URL" to create the Story-App.</p>
+              </div>
+            </div>
+          </div>
+        )}
+        {recommendation?.error && (
+          <p className="mt-3 text-xs text-red-600">Error: {recommendation.error}</p>
+        )}
+      </div>
 
       <div className="space-y-4 max-w-xl">
         <div>
