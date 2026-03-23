@@ -15,6 +15,17 @@ function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
 }
 
+function extractFirstImage(html) {
+  if (!html) return null
+  // Try src="https://...jpg/png/webp"
+  var match = html.match(/src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i)
+  if (match) return match[1]
+  // Try <img src="...">
+  match = html.match(/<img[^>]+src="(https?:\/\/[^"]+)"/i)
+  if (match) return match[1]
+  return null
+}
+
 async function callAnthropic(apiKey, model, system, userMessage, maxTokens) {
   var response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -179,6 +190,15 @@ Output ONLY valid JSON. No markdown wrapping.`,
       var storyId = slugify(item.title)
       var categoryColors = { news: '#dc2626', 'local-news': '#dc2626', sports: '#16a34a', entertainment: '#9333ea', lifestyle: '#0891b2' }
 
+      // Extract image from RSS content
+      var imageUrl = extractFirstImage(item.content_encoded)
+      console.log('Image: ' + (imageUrl ? imageUrl.slice(0, 60) : 'none'))
+
+      // Extract narration script — handle both string and object formats
+      var narration = config.narrationScript
+      if (narration && typeof narration === 'object') narration = narration.intro || narration.text || JSON.stringify(narration)
+      if (!narration) narration = config.hero ? config.hero.leadParagraphs?.[0]?.slice(0, 300) : item.description
+
       console.log('Inserting generated story: ' + storyId)
       var result = await sbQuery(supabaseUrl, supabaseKey, 'generated_stories', 'POST', {
         rss_item_id: item.id,
@@ -190,10 +210,11 @@ Output ONLY valid JSON. No markdown wrapping.`,
         subhead: (config.hero && config.hero.subhead) || '',
         category: (item.feed_name || 'news').toUpperCase().replace('-', ' '),
         category_color: categoryColors[item.feed_name] || '#dc2626',
+        image_url: imageUrl,
         publish_date: new Date().toISOString().split('T')[0],
         model_used: 'claude-sonnet-4-6',
         narrative_prompt: config.narrative ? config.narrative.systemPrompt : null,
-        narration_script: config.narrationScript || null,
+        narration_script: narration,
       })
 
       console.log('SUCCESS: Inserted ' + storyId)
