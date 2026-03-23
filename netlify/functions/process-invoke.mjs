@@ -100,19 +100,22 @@ export default async (req, context) => {
           continue
         }
 
-        // Stage 1: Triage (Haiku)
-        var triageText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
-          'You evaluate news articles for interactive app potential. Respond with ONLY a JSON object, nothing else: { "worthiness_score": 0-100, "suggested_app_type": "string", "skip_reason": "string if score<40" }',
-          'HEADLINE: ' + item.title + '\nSUMMARY: ' + (item.description || '').slice(0, 300) + '\nARTICLE: ' + articleText.slice(0, 1000),
-          300)
-        console.log('Triage response for "' + item.title.slice(0, 40) + '": ' + triageText.slice(0, 200))
+        // Stage 1: Triage — skip if already scored
         var triage
-        try { triage = parseJson(triageText) } catch(e) { throw new Error('Triage parse failed: ' + triageText.slice(0, 100)) }
-
-        await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH',
-          { worthiness_score: triage.worthiness_score, skip_reason: triage.skip_reason || null, processed: true })
+        if (item.worthiness_score != null) {
+          triage = { worthiness_score: item.worthiness_score, suggested_app_type: 'data-explorer' }
+        } else {
+          var triageText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
+            'You evaluate news articles for interactive app potential. Respond with ONLY a JSON object, nothing else: { "worthiness_score": 0-100, "suggested_app_type": "string", "skip_reason": "string if score<40" }',
+            'HEADLINE: ' + item.title + '\nSUMMARY: ' + (item.description || '').slice(0, 300) + '\nARTICLE: ' + articleText.slice(0, 1000),
+            300)
+          try { triage = parseJson(triageText) } catch(e) { throw new Error('Triage parse failed: ' + triageText.slice(0, 100)) }
+          await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH',
+            { worthiness_score: triage.worthiness_score, skip_reason: triage.skip_reason || null })
+        }
 
         if (triage.worthiness_score < 30) {
+          await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true })
           results.push({ title: item.title, skipped: true, score: triage.worthiness_score, reason: triage.skip_reason })
           continue
         }
