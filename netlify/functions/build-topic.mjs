@@ -133,9 +133,10 @@ export default async (req) => {
 
     // ── Stage 4: Create topic + insert rss_items ──
     var topicSlug = slugify(design.title)
+    var now = new Date().toISOString()
 
-    // Create topic row
-    await sbQuery(supabaseUrl, supabaseKey, 'topics', 'POST', {
+    // Upsert topic — if slug exists, update it (replaces previous build)
+    var topicBody = {
       slug: topicSlug,
       title: design.title,
       subtitle: design.subtitle,
@@ -144,10 +145,30 @@ export default async (req) => {
       poll_question: design.poll_question || null,
       timeline_events: [],
       status: 'draft',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      updated_at: now,
+    }
+    // Use on_conflict=slug so duplicate slugs update instead of error
+    var topicRes = await fetch(supabaseUrl + '/rest/v1/topics', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': 'Bearer ' + supabaseKey,
+        'Prefer': 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({ ...topicBody, created_at: now }),
     })
-    console.log('Topic created: ' + topicSlug)
+    if (!topicRes.ok) {
+      var topicErr = await topicRes.text()
+      console.error('Topic upsert error: ' + topicErr)
+      // If it's a duplicate, that's fine — we'll reuse the existing topic
+      if (!topicErr.includes('23505')) {
+        throw new Error('Topic creation failed: ' + topicErr.slice(0, 200))
+      }
+      // Update existing topic
+      await sbQuery(supabaseUrl, supabaseKey, 'topics?slug=eq.' + topicSlug, 'PATCH', topicBody)
+    }
+    console.log('Topic ready: ' + topicSlug)
 
     // Fetch each selected article and insert as rss_item
     var inserted = 0
@@ -167,8 +188,16 @@ export default async (req) => {
           continue
         }
 
-        // Insert as rss_item for the pipeline to process
-        await sbQuery(supabaseUrl, supabaseKey, 'rss_items', 'POST', {
+        // Insert as rss_item (ignore duplicates — same URL may have been queued before)
+        var rssRes = await fetch(supabaseUrl + '/rest/v1/rss_items', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+            'Authorization': 'Bearer ' + supabaseKey,
+            'Prefer': 'resolution=ignore-duplicates,return=representation',
+          },
+          body: JSON.stringify({
           guid: article.finalUrl || articleRef.url,
           feed_name: 'topic-builder',
           title: article.title || articleRef.title,
@@ -184,9 +213,27 @@ export default async (req) => {
           source_name: article.siteName || articleRef.source || '',
           source_author: article.author || null,
           topic_slug: topicSlug,
+        }),
         })
-        inserted++
-        console.log('Queued (' + inserted + '): ' + (article.title || '').slice(0, 50))
+        // Count as inserted even if it was a duplicate (ignore-duplicates returns empty array)
+        if (rssRes.ok) {
+          // For duplicates, reset processed so pipeline picks it up again
+          var guid = encodeURIComponent(article.finalUrl || articleRef.url)
+          await fetch(supabaseUrl + '/rest/v1/rss_items?guid=eq.' + guid, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': 'Bearer ' + supabaseKey,
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({ processed: false, topic_slug: topicSlug, worthiness_score: sel.confidence || 75 }),
+          })
+          inserted++
+          console.log('Queued (' + inserted + '): ' + (article.title || '').slice(0, 50))
+        } else {
+          console.log('RSS insert failed: ' + (await rssRes.text()).slice(0, 100))
+        }
       } catch (err) {
         console.log('Insert error: ' + err.message)
         errors.push((articleRef.title || '').slice(0, 40) + ': ' + err.message.slice(0, 50))
