@@ -328,43 +328,77 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
           </motion.article>
         )}
 
-        {/* Deep Dive Topics */}
-        {topics.length > 0 && (
-          <section className="mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <Construction size={14} className="text-ink-muted" />
-              <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Deep Dives</h2>
-              <div className="flex-1 h-px bg-rule" />
-            </div>
-            <div className="space-y-3">
-              {topics.map(topic => (
-                <motion.div
-                  key={topic.slug}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  onClick={() => onOpenTopic?.(topic.slug)}
-                  className="group cursor-pointer rounded-xl border border-rule overflow-hidden hover:shadow-md transition-all bg-white"
-                >
-                  <div className="h-1" style={{ backgroundColor: topic.accent_color || '#dc2626' }} />
-                  <div className="p-5 sm:p-6 flex items-center gap-4">
+        {/* Deep Dive Topics — prominent full-width banners */}
+        {topics.length > 0 && topics.map(topic => {
+          const accent = topic.accent_color || '#dc2626'
+          const stats = topic.hero_stats || []
+          return (
+            <motion.section
+              key={topic.slug}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              onClick={() => onOpenTopic?.(topic.slug)}
+              className="group cursor-pointer mb-10 -mx-4 sm:-mx-6"
+            >
+              <div
+                className="relative overflow-hidden rounded-none sm:rounded-2xl hover:shadow-xl transition-shadow duration-300"
+                style={{ background: `linear-gradient(135deg, ${accent}14 0%, ${accent}06 60%, transparent 100%)` }}
+              >
+                {/* Top accent bar */}
+                <div className="h-1.5" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}60, transparent)` }} />
+
+                <div className="px-6 sm:px-8 py-8 sm:py-10">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                    {/* Left: text content */}
                     <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: topic.accent_color || '#dc2626' }}>
-                        Deep Dive
-                      </span>
-                      <h3 className="font-serif text-xl font-bold text-ink leading-snug mt-1 group-hover:text-wcpo-red transition-colors">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span
+                          className="text-[10px] font-extrabold uppercase tracking-[0.2em] px-2.5 py-1 rounded-full"
+                          style={{ backgroundColor: `${accent}18`, color: accent }}
+                        >
+                          Deep Dive
+                        </span>
+                        <span className="text-[10px] text-ink-muted font-medium">Curated Experience</span>
+                      </div>
+                      <h2 className="font-serif text-2xl sm:text-3xl font-extrabold text-ink leading-tight mb-2 group-hover:text-wcpo-red transition-colors">
                         {topic.title}
-                      </h3>
+                      </h2>
                       {topic.subtitle && (
-                        <p className="text-sm text-ink-muted leading-relaxed mt-1 line-clamp-2">{topic.subtitle}</p>
+                        <p className="text-sm sm:text-base text-ink-light leading-relaxed mb-4 max-w-2xl">
+                          {topic.subtitle}
+                        </p>
                       )}
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold group-hover:gap-2.5 transition-all"
+                          style={{ color: accent }}
+                        >
+                          Explore All Stories <ArrowUpRight size={15} />
+                        </span>
+                      </div>
                     </div>
-                    <ChevronRight size={20} className="text-ink-muted group-hover:text-wcpo-red transition-colors shrink-0" />
+
+                    {/* Right: hero stats preview */}
+                    {stats.length > 0 && (
+                      <div className={`grid gap-3 shrink-0 ${stats.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                        {stats.slice(0, 3).map((stat, si) => (
+                          <div
+                            key={si}
+                            className="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-white/50 shadow-sm min-w-[100px]"
+                          >
+                            <p className="text-xl font-bold font-mono" style={{ color: accent }}>{stat.value}</p>
+                            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">{stat.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-        )}
+                </div>
+              </div>
+            </motion.section>
+          )
+        })}
 
         {/* Section label */}
         <div className="flex items-center gap-3 mb-6">

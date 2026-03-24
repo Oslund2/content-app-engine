@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { ArrowLeft, Shield, Code2, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { ArrowLeft, Shield, Code2, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw } from 'lucide-react'
 import SensitivityAdmin from './SensitivityAdmin'
 import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
-import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTopic } from '../lib/supabase'
+import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTopic, fetchAllStoriesByTopic, publishTopicAndStories } from '../lib/supabase'
 
 const tabs = [
   { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
@@ -162,14 +162,80 @@ export default function AdminHub({ onBack }) {
 function AutoBuildTopic({ onComplete }) {
   const [topicInput, setTopicInput] = useState('')
   const [building, setBuilding] = useState(false)
-  const [stage, setStage] = useState('')
   const [result, setResult] = useState(null)
+  const [polling, setPolling] = useState(false)
+  const [progress, setProgress] = useState(null)
+  const pollRef = useRef(null)
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    setPolling(false)
+  }, [])
+
+  // Poll for topic + stories progress
+  const startPolling = useCallback((topicText) => {
+    setPolling(true)
+    setProgress({ stage: 'Designing topic & searching sources...', topics: 0, stories: 0, published: 0, total: 0 })
+    let ticks = 0
+
+    pollRef.current = setInterval(async () => {
+      ticks++
+      try {
+        // Check all topics for one that matches (we don't know the slug yet)
+        const topics = await fetchAllTopics()
+        // Find a topic created in the last 5 minutes that fuzzy-matches
+        const recent = topics.find(t => {
+          const age = Date.now() - new Date(t.created_at).getTime()
+          return age < 5 * 60 * 1000
+        })
+
+        if (!recent) {
+          const stages = ['Designing topic & searching sources...', 'Scanning 30+ news feeds...', 'AI selecting best articles...']
+          setProgress(p => ({ ...p, stage: stages[Math.min(Math.floor(ticks / 2), stages.length - 1)] }))
+          return
+        }
+
+        // Topic exists — now check stories
+        const stories = await fetchAllStoriesByTopic(recent.slug)
+        const published = stories.filter(s => s.status === 'published').length
+        const drafts = stories.filter(s => s.status === 'draft').length
+        const total = stories.length
+
+        setProgress({
+          stage: total === 0 ? 'Topic created. Generating story-apps...' :
+            total < 4 ? `Generating story-apps... ${total} created` :
+            'Almost done...',
+          topicTitle: recent.title,
+          topicSlug: recent.slug,
+          topicStatus: recent.status,
+          stories: total,
+          published,
+          drafts,
+          total,
+        })
+
+        // Done: stop when we have 4+ stories or 3+ minutes elapsed
+        if (total >= 4 || ticks >= 18) {
+          stopPolling()
+          setProgress(p => ({
+            ...p,
+            stage: 'Complete!',
+            done: true,
+          }))
+          if (onComplete) onComplete()
+        }
+      } catch { /* ignore polling errors */ }
+    }, 10000)
+  }, [onComplete, stopPolling])
+
+  // Cleanup on unmount
+  useEffect(() => () => stopPolling(), [stopPolling])
 
   const handleBuild = async () => {
     if (!topicInput.trim() || topicInput.length < 5) return
     setBuilding(true)
     setResult(null)
-    setStage('Designing topic...')
+    setProgress(null)
 
     try {
       const res = await fetch('/api/build-topic', {
@@ -185,8 +251,7 @@ function AutoBuildTopic({ onComplete }) {
         setResult({ error: data.error })
       } else {
         setResult(data)
-        setStage('')
-        if (onComplete) onComplete()
+        startPolling(topicInput.trim())
       }
     } catch (err) {
       setResult({ error: err.message })
@@ -212,34 +277,65 @@ function AutoBuildTopic({ onComplete }) {
           onKeyDown={e => e.key === 'Enter' && handleBuild()}
           placeholder="e.g. Cincinnati housing affordability crisis"
           className="flex-1 px-4 py-2.5 rounded-lg border-2 border-rule bg-white text-ink text-sm focus:border-wcpo-red focus:outline-none transition-all"
-          disabled={building}
+          disabled={building || polling}
         />
         <button
           onClick={handleBuild}
-          disabled={building || topicInput.length < 5}
+          disabled={building || polling || topicInput.length < 5}
           className="flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-lg bg-ink text-white hover:bg-ink-light transition-colors disabled:opacity-50 shrink-0"
         >
-          {building ? <><Loader2 size={14} className="animate-spin" />{stage || 'Building...'}</> : <><Sparkles size={14} />Build Topic</>}
+          {building ? <><Loader2 size={14} className="animate-spin" />Sending...</> : <><Sparkles size={14} />Build Topic</>}
         </button>
       </div>
 
-      {/* Result */}
-      {result && !result.error && (
-        <div className="mt-4 p-4 rounded-lg bg-white border border-green-200">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
-              <CheckCircle2 size={16} className="text-green-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-green-700 mb-1">Topic build started!</p>
-              <p className="text-xs text-ink-muted mb-2">"{result.topic || topicInput}"</p>
-              <p className="text-xs text-green-600 font-medium">
-                {result.message || 'AI is designing the page, searching sources, and generating story-apps. Check the Topics list below in 2-3 minutes.'}
+      {/* Progress tracker */}
+      {(polling || progress?.done) && progress && (
+        <div className={`mt-4 p-4 rounded-lg bg-white border ${progress.done ? 'border-green-200' : 'border-blue-200'}`}>
+          <div className="flex items-center gap-3 mb-3">
+            {progress.done
+              ? <CheckCircle2 size={18} className="text-green-600 shrink-0" />
+              : <Loader2 size={18} className="text-blue-600 animate-spin shrink-0" />}
+            <div>
+              <p className={`text-sm font-bold ${progress.done ? 'text-green-700' : 'text-blue-700'}`}>
+                {progress.stage}
               </p>
+              {progress.topicTitle && (
+                <p className="text-xs text-ink-muted mt-0.5">"{progress.topicTitle}"</p>
+              )}
             </div>
           </div>
+
+          {progress.stories > 0 && (
+            <div className="space-y-2">
+              {/* Progress bar */}
+              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${progress.done ? 'bg-green-500' : 'bg-blue-500'}`}
+                  style={{ width: `${Math.min((progress.stories / 6) * 100, 100)}%` }}
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs text-ink-muted">
+                <span>{progress.stories} story-apps generated</span>
+                <span>
+                  {progress.published > 0 && <span className="text-green-600 font-medium">{progress.published} auto-published</span>}
+                  {progress.published > 0 && progress.drafts > 0 && ' · '}
+                  {progress.drafts > 0 && <span>{progress.drafts} drafts</span>}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {progress.done && progress.topicSlug && (
+            <div className="mt-3 pt-3 border-t border-rule flex items-center gap-2">
+              <p className="text-xs text-ink-muted flex-1">
+                Topic is <span className="font-bold">{progress.topicStatus}</span>.
+                {progress.topicStatus === 'draft' && ' Publish it below or approve stories in Story Pipeline → Drafts.'}
+              </p>
+            </div>
+          )}
         </div>
       )}
+
       {result?.error && (
         <p className="mt-3 text-xs text-red-600">Error: {result.error}</p>
       )}
@@ -374,8 +470,8 @@ function TopicAdmin() {
             ))}
           </div>
 
-          {/* Status */}
-          <div className="flex items-center gap-4 pt-4 border-t border-rule">
+          {/* Status + Actions */}
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-rule">
             <select value={editing.status} onChange={e => setEditing({ ...editing, status: e.target.value })}
               className="px-3 py-2 rounded-lg border border-rule text-sm">
               <option value="draft">Draft</option>
@@ -386,6 +482,21 @@ function TopicAdmin() {
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-wcpo-red text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50">
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Topic
+            </button>
+            <button
+              onClick={async () => {
+                if (!editing.slug) return
+                setSaving(true)
+                await publishTopicAndStories(editing.slug)
+                setSaving(false)
+                setEditing(null)
+                load()
+              }}
+              disabled={saving || !editing.slug}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Rocket size={14} />}
+              Publish Topic + All Stories
             </button>
           </div>
         </div>

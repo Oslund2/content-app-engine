@@ -368,3 +368,25 @@ export async function upsertTopic(topic) {
   if (error) { console.error('Upsert topic error:', error); return null }
   return data?.[0]
 }
+
+export async function fetchAllStoriesByTopic(topicSlug) {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*')
+    .eq('topic_slug', topicSlug)
+    .order('created_at', { ascending: false })
+  if (error) return []
+  return data
+}
+
+export async function publishTopicAndStories(topicSlug) {
+  const now = new Date().toISOString()
+  const today = now.split('T')[0]
+  // Publish the topic
+  await supabase.from('topics').update({ status: 'published', updated_at: now }).eq('slug', topicSlug)
+  // Publish all its stories
+  await supabase.from('generated_stories')
+    .update({ status: 'published', publish_date: today, updated_at: now })
+    .eq('topic_slug', topicSlug)
+    .neq('status', 'rejected')
+}
