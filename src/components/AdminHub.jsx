@@ -163,79 +163,62 @@ function AutoBuildTopic({ onComplete }) {
   const [topicInput, setTopicInput] = useState('')
   const [building, setBuilding] = useState(false)
   const [result, setResult] = useState(null)
-  const [polling, setPolling] = useState(false)
   const [progress, setProgress] = useState(null)
-  const pollRef = useRef(null)
+  const abortRef = useRef(false)
 
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
-    setPolling(false)
-  }, [])
+  // Process queued articles one at a time via /api/process-invoke
+  const processQueue = async (queued, topicSlug, topicTitle) => {
+    abortRef.current = false
+    for (let i = 0; i < queued && !abortRef.current; i++) {
+      setProgress(p => ({
+        ...p,
+        stage: `Generating story-app ${i + 1} of ${queued}...`,
+      }))
 
-  // Poll for topic + stories progress
-  const startPolling = useCallback((topicText) => {
-    setPolling(true)
-    setProgress({ stage: 'Designing topic & searching sources...', topics: 0, stories: 0, published: 0, total: 0 })
-    let ticks = 0
-
-    pollRef.current = setInterval(async () => {
-      ticks++
       try {
-        // Check all topics for one that matches (we don't know the slug yet)
-        const topics = await fetchAllTopics()
-        // Find a topic created in the last 5 minutes that fuzzy-matches
-        const recent = topics.find(t => {
-          const age = Date.now() - new Date(t.created_at).getTime()
-          return age < 5 * 60 * 1000
-        })
+        const res = await fetch('/api/process-invoke')
+        const text = await res.text()
+        let data
+        try { data = JSON.parse(text) } catch { data = {} }
 
-        if (!recent) {
-          const stages = ['Designing topic & searching sources...', 'Scanning 30+ news feeds...', 'AI selecting best articles...']
-          setProgress(p => ({ ...p, stage: stages[Math.min(Math.floor(ticks / 2), stages.length - 1)] }))
-          return
-        }
+        // Check how many stories exist now
+        const stories = await fetchAllStoriesByTopic(topicSlug)
+        setProgress(p => ({
+          ...p,
+          stories: stories.length,
+          published: stories.filter(s => s.status === 'published').length,
+          drafts: stories.filter(s => s.status === 'draft').length,
+          total: stories.length,
+          lastResult: data.results?.[0]?.storyId || data.results?.[0]?.reason || null,
+        }))
+      } catch (err) {
+        console.error('Process error:', err)
+      }
+    }
 
-        // Topic exists — now check stories
-        const stories = await fetchAllStoriesByTopic(recent.slug)
-        const published = stories.filter(s => s.status === 'published').length
-        const drafts = stories.filter(s => s.status === 'draft').length
-        const total = stories.length
+    // Done
+    const finalStories = await fetchAllStoriesByTopic(topicSlug)
+    setProgress(p => ({
+      ...p,
+      stage: `Complete! ${finalStories.length} story-apps created.`,
+      stories: finalStories.length,
+      published: finalStories.filter(s => s.status === 'published').length,
+      drafts: finalStories.filter(s => s.status === 'draft').length,
+      total: finalStories.length,
+      done: true,
+      topicSlug,
+      topicTitle,
+    }))
+    if (onComplete) onComplete()
+  }
 
-        setProgress({
-          stage: total === 0 ? 'Topic created. Generating story-apps...' :
-            total < 4 ? `Generating story-apps... ${total} created` :
-            'Almost done...',
-          topicTitle: recent.title,
-          topicSlug: recent.slug,
-          topicStatus: recent.status,
-          stories: total,
-          published,
-          drafts,
-          total,
-        })
-
-        // Done: stop when we have 4+ stories or 3+ minutes elapsed
-        if (total >= 4 || ticks >= 18) {
-          stopPolling()
-          setProgress(p => ({
-            ...p,
-            stage: 'Complete!',
-            done: true,
-          }))
-          if (onComplete) onComplete()
-        }
-      } catch { /* ignore polling errors */ }
-    }, 10000)
-  }, [onComplete, stopPolling])
-
-  // Cleanup on unmount
-  useEffect(() => () => stopPolling(), [stopPolling])
+  useEffect(() => () => { abortRef.current = true }, [])
 
   const handleBuild = async () => {
     if (!topicInput.trim() || topicInput.length < 5) return
     setBuilding(true)
     setResult(null)
-    setProgress(null)
+    setProgress({ stage: 'Designing topic & searching sources...', stories: 0, published: 0, drafts: 0, total: 0 })
 
     try {
       const res = await fetch('/api/build-topic', {
@@ -249,21 +232,25 @@ function AutoBuildTopic({ onComplete }) {
 
       if (data.error) {
         setResult({ error: data.error })
-      } else {
-        setResult(data)
-        // Show initial progress from sync response before polling takes over
-        if (data.articlesQueued > 0) {
-          setProgress({
-            stage: `${data.articlesQueued} articles queued. Pipeline is generating story-apps...`,
-            topicTitle: data.design?.title,
-            topicSlug: data.topicSlug,
-            stories: 0, published: 0, drafts: 0, total: 0,
-          })
-        }
-        startPolling(topicInput.trim())
+        setProgress(null)
+        setBuilding(false)
+        return
       }
+
+      setResult(data)
+      setProgress(p => ({
+        ...p,
+        stage: `${data.articlesQueued} articles queued. Generating story-apps...`,
+        topicTitle: data.design?.title,
+        topicSlug: data.topicSlug,
+        queued: data.articlesQueued,
+      }))
+
+      // Drive processing from frontend — one call per queued article
+      await processQueue(data.articlesQueued || 4, data.topicSlug, data.design?.title)
     } catch (err) {
       setResult({ error: err.message })
+      setProgress(null)
     }
     setBuilding(false)
   }

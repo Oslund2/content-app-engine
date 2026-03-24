@@ -7,7 +7,7 @@ import {
   Trophy, CloudLightning, Droplets, Flame, Baby, Activity, Heart, Settings, X
 } from 'lucide-react'
 import storyData from './storyData.json'
-import { fetchStories, fetchStoryDates, fetchMyProfiles, fetchGeneratedStories, fetchTopics } from './lib/supabase'
+import { fetchStories, fetchStoryDates, fetchMyProfiles, fetchGeneratedStories, fetchTopics, fetchStoriesByTopic } from './lib/supabase'
 
 const storyIcons = {
   baseball: Baseline,
@@ -117,6 +117,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const [showArchive, setShowArchive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLive, setShowLive] = useState(false)
+  const [topicStories, setTopicStories] = useState([])
   const [pageSeed] = useState(getPageSeed)
 
   useEffect(() => {
@@ -131,6 +132,10 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
       setDates(storyDates)
       setSavedProfiles(profiles)
       setTopics(pubTopics)
+      // Fetch stories for the most recent topic (for teasers)
+      if (pubTopics.length > 0) {
+        fetchStoriesByTopic(pubTopics[0].slug).then(setTopicStories).catch(() => {})
+      }
       setLoading(false)
     }
     load()
@@ -391,21 +396,35 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
                       </div>
                     </div>
 
-                    {/* Right: hero stats preview */}
-                    {stats.length > 0 && (
-                      <div className={`grid gap-3 shrink-0 ${stats.length <= 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                        {stats.slice(0, 3).map((stat, si) => (
-                          <div
-                            key={si}
-                            className="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-3 text-center border border-white/50 shadow-sm min-w-[100px]"
-                          >
-                            <p className="text-xl font-bold font-mono" style={{ color: accent }}>{stat.value}</p>
-                            <p className="text-[10px] font-semibold text-ink-muted uppercase tracking-wide">{stat.label}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
+
+                  {/* Story-app teasers */}
+                  {topicStories.length > 0 && (
+                    <div className="mt-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {topicStories.slice(0, 6).map((story, si) => (
+                        <div
+                          key={story.id}
+                          className="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/50 shadow-sm flex items-start gap-3 hover:bg-white/90 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); onOpenStory(story.story_id) }}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-sm"
+                            style={{ backgroundColor: `${accent}15` }}
+                          >
+                            {si + 1}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-ink leading-snug line-clamp-2">
+                              {story.headline || story.config?.hero?.headline || 'Story'}
+                            </p>
+                            {story.source_name && (
+                              <p className="text-[10px] text-ink-muted mt-0.5">Source: {story.source_name}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.section>

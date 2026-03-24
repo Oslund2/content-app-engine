@@ -19,14 +19,14 @@ var TOPIC_DESIGN_SYSTEM = `You are an editorial strategist at WCPO Cincinnati. Y
 
 Given a topic description, produce a topic page design. Be specific to Cincinnati when possible.
 
+IMPORTANT: Do NOT include hero_stats. Statistics must come from verified source articles, not from your training data. Leave hero_stats as an empty array.
+
 Respond with ONLY a JSON object:
 {
   "title": "Compelling 3-8 word title",
   "subtitle": "1-2 sentence description of why this matters to Cincinnati readers",
   "accent_color": "#hex (choose a color that fits the topic mood — red for crisis, blue for policy, green for environment, etc.)",
-  "hero_stats": [
-    {"value": "stat", "label": "Label", "sub": "context"}
-  ],
+  "hero_stats": [],
   "search_keywords": ["keyword1", "keyword2", "keyword3", "keyword4"],
   "story_angles": [
     {"angle": "angle description", "search_query": "search query for this angle"}
@@ -195,23 +195,14 @@ export default async (req) => {
 
     console.log('Inserted ' + inserted + ' rss_items for topic ' + topicSlug)
 
-    // ── Stage 5: Trigger the existing background processor ──
-    // Process each item one at a time via process-invoke
-    // Fire multiple triggers so the background processor picks up all items
-    var origin = 'https://content-app-engine.netlify.app'
-    for (var t = 0; t < Math.min(inserted, 6); t++) {
-      fetch(origin + '/.netlify/functions/process-invoke-background', {
-        method: 'POST',
-      }).catch(function() {})
-    }
-
+    // Return immediately — frontend will drive processing via /api/process-invoke calls
     return new Response(JSON.stringify({
       success: true,
       topicSlug: topicSlug,
       design: design,
       articlesQueued: inserted,
       errors: errors,
-      message: 'Topic "' + design.title + '" created with ' + inserted + ' articles queued for story-app generation. The pipeline will process them over the next few minutes.',
+      message: 'Topic "' + design.title + '" created with ' + inserted + ' articles queued. Generating story-apps now...',
       topic: topicDescription,
     }), { headers })
 
