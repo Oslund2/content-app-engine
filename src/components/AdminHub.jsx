@@ -273,11 +273,11 @@ function AutoBuildTopic({ onComplete }) {
           onKeyDown={e => e.key === 'Enter' && handleBuild()}
           placeholder="e.g. Cincinnati housing affordability crisis"
           className="flex-1 px-4 py-2.5 rounded-lg border-2 border-rule bg-white text-ink text-sm focus:border-wcpo-red focus:outline-none transition-all"
-          disabled={building || polling}
+          disabled={building}
         />
         <button
           onClick={handleBuild}
-          disabled={building || polling || topicInput.length < 5}
+          disabled={building || topicInput.length < 5}
           className="flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-lg bg-ink text-white hover:bg-ink-light transition-colors disabled:opacity-50 shrink-0"
         >
           {building ? <><Loader2 size={14} className="animate-spin" />Sending...</> : <><Sparkles size={14} />Build Topic</>}
@@ -285,7 +285,7 @@ function AutoBuildTopic({ onComplete }) {
       </div>
 
       {/* Progress tracker */}
-      {(polling || progress?.done) && progress && (
+      {progress && (
         <div className={`mt-4 p-4 rounded-lg bg-white border ${progress.done ? 'border-green-200' : 'border-blue-200'}`}>
           <div className="flex items-center gap-3 mb-3">
             {progress.done
@@ -301,17 +301,17 @@ function AutoBuildTopic({ onComplete }) {
             </div>
           </div>
 
-          {progress.stories > 0 && (
+          {(progress.queued > 0 || progress.stories > 0) && (
             <div className="space-y-2">
               {/* Progress bar */}
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${progress.done ? 'bg-green-500' : 'bg-blue-500'}`}
-                  style={{ width: `${Math.min((progress.stories / 6) * 100, 100)}%` }}
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${progress.done ? 'bg-green-500' : 'bg-blue-500'}`}
+                  style={{ width: `${Math.min((progress.stories / (progress.queued || 6)) * 100, 100)}%` }}
                 />
               </div>
               <div className="flex items-center justify-between text-xs text-ink-muted">
-                <span>{progress.stories} story-apps generated</span>
+                <span>{progress.stories || 0} of {progress.queued || '?'} story-apps generated</span>
                 <span>
                   {progress.published > 0 && <span className="text-green-600 font-medium">{progress.published} auto-published</span>}
                   {progress.published > 0 && progress.drafts > 0 && ' · '}
