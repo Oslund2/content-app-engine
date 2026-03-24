@@ -231,30 +231,10 @@ function AutoBuildTopic({ onComplete }) {
               <CheckCircle2 size={16} className="text-green-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-ink mb-1">{result.design?.title}</h4>
-              <p className="text-xs text-ink-muted mb-3">{result.design?.subtitle}</p>
-
-              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-2">
-                {result.selectedArticles?.length} Stories Being Generated
-              </p>
-              <div className="space-y-1.5">
-                {result.selectedArticles?.map((a, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs">
-                    <Zap size={10} className="text-wcpo-red shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-medium text-ink">{a.title}</span>
-                      <span className="text-ink-muted ml-2">[{a.source}]</span>
-                      {a.confidence >= 72 && <span className="text-green-600 ml-2 text-[10px] font-bold">AUTO-PUBLISH</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {result.insights && (
-                <p className="text-xs text-ink-muted italic mt-3">{result.insights}</p>
-              )}
-              <p className="text-xs text-green-600 font-medium mt-2">
-                Stories are generating now. Check back in 1-2 minutes.
+              <p className="text-sm font-bold text-green-700 mb-1">Topic build started!</p>
+              <p className="text-xs text-ink-muted mb-2">"{result.topic || topicInput}"</p>
+              <p className="text-xs text-green-600 font-medium">
+                {result.message || 'AI is designing the page, searching sources, and generating story-apps. Check the Topics list below in 2-3 minutes.'}
               </p>
             </div>
           </div>
