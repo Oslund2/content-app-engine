@@ -88,9 +88,12 @@ export default async (req) => {
   }
 
   var topicDescription = payload.topic
+  var topicSlug = payload.topicSlug
+  var design = payload.topicDesign
+
   if (!topicDescription) {
-    // Legacy format: already has topicSlug/selectedArticles (from old build-topic.mjs)
-    if (payload.topicSlug && payload.selectedArticles) {
+    // Legacy format: already has selectedArticles
+    if (topicSlug && payload.selectedArticles) {
       await processSelectedArticles(payload, apiKey, supabaseUrl, supabaseKey)
       return
     }
@@ -98,24 +101,45 @@ export default async (req) => {
     return
   }
 
-  console.log('=== BUILD TOPIC: "' + topicDescription + '" ===')
+  console.log('=== BUILD TOPIC BACKGROUND: "' + topicDescription + '" (slug: ' + topicSlug + ') ===')
 
   try {
-    // Stage 1: Topic Design
-    console.log('Stage 1: Designing topic...')
-    var designText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
-      TOPIC_DESIGN_SYSTEM,
-      'Design a Deep Dive topic page for WCPO Cincinnati on:\n\n' + topicDescription,
-      1500)
-    var design = parseJson(designText)
-    console.log('Topic: "' + design.title + '" — ' + design.story_angles.length + ' angles')
+    // If design wasn't passed, generate it
+    if (!design) {
+      console.log('Stage 1: Designing topic...')
+      var designText = await callAnthropic(apiKey, 'claude-sonnet-4-6',
+        TOPIC_DESIGN_SYSTEM,
+        'Design a Deep Dive topic page for WCPO Cincinnati on:\n\n' + topicDescription,
+        1500)
+      design = parseJson(designText)
+    }
+    console.log('Topic: "' + design.title + '" — ' + (design.story_angles || []).length + ' angles')
+
+    // If topicSlug wasn't passed, create the topic
+    if (!topicSlug) {
+      topicSlug = slugify(design.title)
+      var topicRow = {
+        slug: topicSlug,
+        title: design.title,
+        subtitle: design.subtitle,
+        accent_color: design.accent_color || '#dc2626',
+        hero_stats: design.hero_stats || [],
+        poll_question: design.poll_question || null,
+        timeline_events: design.timeline_events || [],
+        status: 'draft',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      await sbQuery(supabaseUrl, supabaseKey, 'topics', 'POST', topicRow)
+      console.log('Topic created: ' + topicSlug)
+    }
 
     // Stage 2: Source Discovery
     console.log('Stage 2: Discovering sources...')
     var allArticles = await discoverArticles(topicDescription, design.search_keywords || [])
 
     // Also search specific angles
-    var searchQueries = design.story_angles.map(function(a) { return a.search_query })
+    var searchQueries = (design.story_angles || []).map(function(a) { return a.search_query })
     var angleResults = await Promise.all(
       searchQueries.slice(0, 3).map(function(q) {
         return discoverArticles(q, [])
@@ -144,8 +168,8 @@ export default async (req) => {
     }).join('\n')
 
     var selPrompt = 'TOPIC: ' + design.title + '\n' +
-      'SUBTITLE: ' + design.subtitle + '\n' +
-      'DESIRED ANGLES:\n' + design.story_angles.map(function(a) { return '- ' + a.angle }).join('\n') + '\n\n' +
+      'SUBTITLE: ' + (design.subtitle || '') + '\n' +
+      'DESIRED ANGLES:\n' + (design.story_angles || []).map(function(a) { return '- ' + a.angle }).join('\n') + '\n\n' +
       'AVAILABLE ARTICLES (' + allArticles.length + '):\n' + articleList
 
     var selText = await callAnthropic(apiKey, 'claude-sonnet-4-6', SELECTION_SYSTEM, selPrompt, 1500)
@@ -164,23 +188,6 @@ export default async (req) => {
         source: sel.source || article.source,
       }
     }).filter(function(sel) { return sel.url })
-
-    // Create topic
-    var topicSlug = slugify(design.title)
-    var topicRow = {
-      slug: topicSlug,
-      title: design.title,
-      subtitle: design.subtitle,
-      accent_color: design.accent_color || '#dc2626',
-      hero_stats: design.hero_stats || [],
-      poll_question: design.poll_question || null,
-      timeline_events: design.timeline_events || [],
-      status: 'draft',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
-    await sbQuery(supabaseUrl, supabaseKey, 'topics', 'POST', topicRow)
-    console.log('Topic created: ' + topicSlug)
 
     // Stage 4: Process each selected article into a story-app
     await processSelectedArticles({
