@@ -192,10 +192,115 @@ function normalizeGrade(grade) {
   }
 }
 
+// Normalize inputs within a block's inputs array
+function normalizeBlockInputs(block) {
+  if (block.type === 'input' && Array.isArray(block.inputs)) {
+    return {
+      ...block,
+      inputs: block.inputs.map(normalizeInput).filter(Boolean),
+    }
+  }
+  // Chart blocks with charts array
+  if (block.type === 'chart' && Array.isArray(block.charts)) {
+    return {
+      ...block,
+      charts: block.charts.map(normalizeChart).filter(Boolean),
+    }
+  }
+  // Results blocks
+  if (block.type === 'results') {
+    const nb = { ...block }
+    if (nb.charts) nb.charts = nb.charts.map(normalizeChart).filter(Boolean)
+    if (nb.scoreCards) nb.scoreCards = nb.scoreCards.map(normalizeScoreCard).filter(Boolean)
+    if (nb.grade) nb.grade = normalizeGrade(nb.grade)
+    if (nb.actionItems) {
+      nb.actionItems = nb.actionItems.map(item => ({
+        title: item.title || item.label || '',
+        description: item.description || item.text || '',
+        cta: item.cta || item.ctaText || (item.ctaUrl || item.url ? 'Learn More' : null),
+        ctaUrl: item.ctaUrl || item.url || null,
+      }))
+    }
+    return nb
+  }
+  return block
+}
+
 export function normalizeConfig(config) {
   if (!config) return config
 
   const normalized = { ...config }
+
+  // ─── Block-based configs ─────────────────────────────────────────────
+  if (Array.isArray(config.blocks) && config.blocks.length > 0) {
+    normalized.blocks = config.blocks.map(normalizeBlockInputs)
+
+    // Extract all input IDs from input blocks for showAfterInputs
+    const allInputIds = normalized.blocks
+      .filter(b => b.type === 'input' && Array.isArray(b.inputs))
+      .flatMap(b => b.inputs.map(inp => inp.id))
+
+    // Also collect inputs from progressive-quiz blocks
+    normalized.blocks.forEach(b => {
+      if (b.type === 'progressive-quiz' && b.id) {
+        allInputIds.push(b.id)
+      }
+    })
+
+    // Build a flat inputs array for ConfigContext (it needs all inputs for state management)
+    const flatInputs = normalized.blocks
+      .filter(b => b.type === 'input' && Array.isArray(b.inputs))
+      .flatMap(b => b.inputs)
+    if (flatInputs.length > 0) {
+      normalized.inputs = flatInputs
+    }
+
+    // Ensure results.showAfterInputs
+    if (!normalized.results) normalized.results = {}
+    if (!normalized.results.showAfterInputs || normalized.results.showAfterInputs.length === 0) {
+      normalized.results.showAfterInputs = allInputIds
+    }
+
+    // Ensure calculations at top level
+    if (!normalized.calculations && config.results?.calculations) {
+      normalized.calculations = config.results.calculations
+    }
+
+    // Ensure hero from first hero block (for StoryShell)
+    if (!normalized.hero) {
+      const heroBlock = normalized.blocks.find(b => b.type === 'hero')
+      if (heroBlock) {
+        normalized.hero = {
+          headline: heroBlock.headline,
+          subhead: heroBlock.subhead,
+          leadParagraphs: heroBlock.leadParagraphs,
+          keyStats: heroBlock.keyStats,
+        }
+      } else {
+        normalized.hero = {
+          headline: config.headline || config.title || 'Interactive Story',
+          subhead: config.subhead || config.subtitle || '',
+        }
+      }
+    }
+
+    // Ensure theme
+    if (!normalized.theme) {
+      normalized.theme = {
+        accentColor: config.categoryColor || '#dc2626',
+        categoryLabel: config.category || 'NEWS',
+      }
+    }
+
+    // Normalize narrationScript
+    if (config.narrationScript && typeof config.narrationScript === 'object') {
+      normalized.narrationScript = config.narrationScript.intro || config.narrationScript.text || ''
+    }
+
+    return normalized
+  }
+
+  // ─── Legacy configs (backward compatible) ────────────────────────────
 
   // Normalize inputs
   if (config.inputs) {

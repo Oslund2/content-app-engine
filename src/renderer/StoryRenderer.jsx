@@ -9,12 +9,14 @@ import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
 import { HeroSection, InputSection, ResultSection, ChartSection } from './sections'
 import ArticleBody from './sections/ArticleBody'
+import BlockRenderer from './BlockRenderer'
 
 /**
  * Inner component that can access ConfigContext.
  */
 function StoryContent({ config, storyId, onBack, onOpenStory, sourceAttribution }) {
   const { allRequiredFilled, getProfileData } = useConfig()
+  const isBlockBased = Array.isArray(config.blocks) && config.blocks.length > 0
 
   const profileData = getProfileData()
   const hasInputs = Array.isArray(config.inputs) && config.inputs.length > 0
@@ -32,62 +34,76 @@ function StoryContent({ config, storyId, onBack, onOpenStory, sourceAttribution 
       timestamp={config.timestamp}
       readTime={config.readTime ?? '5 min'}
     >
-      {/* Hero */}
-      <HeroSection hero={config.hero} sourceAttribution={sourceAttribution} />
-
-      {/* Story body — the journalism, before any interactivity */}
-      <ArticleBody config={config} />
-
-      {/* Interactive inputs */}
-      <InputSection inputs={config.inputs} />
-
-      {/* Interstitial ad between inputs and results */}
-      {inputsComplete && !sensitivity.disableInterstitials && (
-        <AdSlot.Interstitial storyId={storyId} onComplete={() => {}} constraints={sensitivity} />
-      )}
-
-      {/* Results: score cards, grade, action items */}
-      <ResultSection results={config.results} storyId={storyId} />
-
-      {/* Charts */}
-      {inputsComplete && (
-        <ChartSection charts={config.results?.charts} />
-      )}
-
-      {/* AI-generated personalised narrative */}
-      {inputsComplete && (
-        <DynamicNarrative storyId={storyId} profileData={profileData} />
-      )}
-
-      {/* Community live poll */}
-      {inputsComplete && config.poll && !sensitivity.disablePolls && (
-        <LivePoll storyId={storyId} pollData={profileData} constraints={sensitivity} />
-      )}
-
-      {/* Sponsored result card */}
-      {inputsComplete && (
-        <AdSlot.ResultCard storyId={storyId} constraints={sensitivity} />
-      )}
-
-      {/* Save profile */}
-      {inputsComplete && (
-        <div className="mt-8">
-          <SaveButton
-            label={config.saveLabel ?? 'Save My Results'}
-            storyId={storyId}
-            profileData={profileData}
-          />
-        </div>
-      )}
-
-      {/* Cross-story connections */}
-      {inputsComplete && (
-        <StoryConnections
+      {isBlockBased ? (
+        /* New block-based rendering */
+        <BlockRenderer
+          config={config}
           storyId={storyId}
-          profileData={profileData}
+          onBack={onBack}
           onOpenStory={onOpenStory}
-          configConnections={config.connections}
+          sourceAttribution={sourceAttribution}
         />
+      ) : (
+        /* Legacy fixed-pipeline rendering (backward compatible) */
+        <>
+          {/* Hero */}
+          <HeroSection hero={config.hero} sourceAttribution={sourceAttribution} />
+
+          {/* Story body — the journalism, before any interactivity */}
+          <ArticleBody config={config} />
+
+          {/* Interactive inputs */}
+          <InputSection inputs={config.inputs} />
+
+          {/* Interstitial ad between inputs and results */}
+          {inputsComplete && !sensitivity.disableInterstitials && (
+            <AdSlot.Interstitial storyId={storyId} onComplete={() => {}} constraints={sensitivity} />
+          )}
+
+          {/* Results: score cards, grade, action items */}
+          <ResultSection results={config.results} storyId={storyId} />
+
+          {/* Charts */}
+          {inputsComplete && (
+            <ChartSection charts={config.results?.charts} />
+          )}
+
+          {/* AI-generated personalised narrative */}
+          {inputsComplete && (
+            <DynamicNarrative storyId={storyId} profileData={profileData} />
+          )}
+
+          {/* Community live poll */}
+          {inputsComplete && config.poll && !sensitivity.disablePolls && (
+            <LivePoll storyId={storyId} pollData={profileData} constraints={sensitivity} />
+          )}
+
+          {/* Sponsored result card */}
+          {inputsComplete && (
+            <AdSlot.ResultCard storyId={storyId} constraints={sensitivity} />
+          )}
+
+          {/* Save profile */}
+          {inputsComplete && (
+            <div className="mt-8">
+              <SaveButton
+                label={config.saveLabel ?? 'Save My Results'}
+                storyId={storyId}
+                profileData={profileData}
+              />
+            </div>
+          )}
+
+          {/* Cross-story connections */}
+          {inputsComplete && (
+            <StoryConnections
+              storyId={storyId}
+              profileData={profileData}
+              onOpenStory={onOpenStory}
+              configConnections={config.connections}
+            />
+          )}
+        </>
       )}
     </StoryShell>
   )

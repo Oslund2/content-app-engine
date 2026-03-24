@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Shield, Code2, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2 } from 'lucide-react'
+import { ArrowLeft, Shield, Code2, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap } from 'lucide-react'
 import SensitivityAdmin from './SensitivityAdmin'
 import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
@@ -155,6 +155,115 @@ export default function AdminHub({ onBack }) {
         {activeTab === 'topics' && <TopicAdmin />}
       </main>
     </>
+  )
+}
+
+// --- Auto-Build Topic ---
+function AutoBuildTopic({ onComplete }) {
+  const [topicInput, setTopicInput] = useState('')
+  const [building, setBuilding] = useState(false)
+  const [stage, setStage] = useState('')
+  const [result, setResult] = useState(null)
+
+  const handleBuild = async () => {
+    if (!topicInput.trim() || topicInput.length < 5) return
+    setBuilding(true)
+    setResult(null)
+    setStage('Designing topic...')
+
+    try {
+      const res = await fetch('/api/build-topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: topicInput.trim() }),
+      })
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response (status ' + res.status + ')' } }
+
+      if (data.error) {
+        setResult({ error: data.error })
+      } else {
+        setResult(data)
+        setStage('')
+        if (onComplete) onComplete()
+      }
+    } catch (err) {
+      setResult({ error: err.message })
+    }
+    setBuilding(false)
+  }
+
+  return (
+    <div className="mb-8 p-6 rounded-xl border-2 border-dashed border-rule bg-paper-warm">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles size={16} className="text-wcpo-red" />
+        <h3 className="text-sm font-bold text-ink">Auto-Build Topic Page</h3>
+      </div>
+      <p className="text-xs text-ink-muted mb-4">
+        Describe a topic and AI will design the page, search 30+ sources for articles, select 4-6 diverse angles, and generate interactive story-apps — all automatically.
+      </p>
+
+      <div className="flex gap-3 mb-4">
+        <input
+          type="text"
+          value={topicInput}
+          onChange={e => setTopicInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleBuild()}
+          placeholder="e.g. Cincinnati housing affordability crisis"
+          className="flex-1 px-4 py-2.5 rounded-lg border-2 border-rule bg-white text-ink text-sm focus:border-wcpo-red focus:outline-none transition-all"
+          disabled={building}
+        />
+        <button
+          onClick={handleBuild}
+          disabled={building || topicInput.length < 5}
+          className="flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-lg bg-ink text-white hover:bg-ink-light transition-colors disabled:opacity-50 shrink-0"
+        >
+          {building ? <><Loader2 size={14} className="animate-spin" />{stage || 'Building...'}</> : <><Sparkles size={14} />Build Topic</>}
+        </button>
+      </div>
+
+      {/* Result */}
+      {result && !result.error && (
+        <div className="mt-4 p-4 rounded-lg bg-white border border-green-200">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+              <CheckCircle2 size={16} className="text-green-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-ink mb-1">{result.design?.title}</h4>
+              <p className="text-xs text-ink-muted mb-3">{result.design?.subtitle}</p>
+
+              <p className="text-[10px] font-bold uppercase tracking-wider text-ink-muted mb-2">
+                {result.selectedArticles?.length} Stories Being Generated
+              </p>
+              <div className="space-y-1.5">
+                {result.selectedArticles?.map((a, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs">
+                    <Zap size={10} className="text-wcpo-red shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-ink">{a.title}</span>
+                      <span className="text-ink-muted ml-2">[{a.source}]</span>
+                      {a.confidence >= 72 && <span className="text-green-600 ml-2 text-[10px] font-bold">AUTO-PUBLISH</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {result.insights && (
+                <p className="text-xs text-ink-muted italic mt-3">{result.insights}</p>
+              )}
+              <p className="text-xs text-green-600 font-medium mt-2">
+                Stories are generating now. Check back in 1-2 minutes.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {result?.error && (
+        <p className="mt-3 text-xs text-red-600">Error: {result.error}</p>
+      )}
+    </div>
   )
 }
 
@@ -324,10 +433,13 @@ function TopicAdmin() {
 
   return (
     <div>
+      {/* Auto-Build Section */}
+      <AutoBuildTopic onComplete={load} />
+
       <div className="flex items-center justify-between mb-6">
-        <p className="text-sm text-ink-muted">Create and manage topic deep-dive pages with multiple Story-Apps.</p>
+        <p className="text-sm text-ink-muted">Or manually create and manage topic deep-dive pages.</p>
         <button onClick={newTopic} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-wcpo-red text-white hover:bg-red-700">
-          <Plus size={13} />New Topic
+          <Plus size={13} />New Topic (Manual)
         </button>
       </div>
 

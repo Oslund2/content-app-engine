@@ -91,6 +91,27 @@ function generatedToStory(row) {
   }
 }
 
+// Seeded PRNG for consistent-within-session randomization
+function seededShuffle(arr, seed) {
+  const shuffled = [...arr]
+  let s = seed
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    const j = ((s >>> 0) % (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
+function getSessionSeed() {
+  let seed = sessionStorage.getItem('story-shuffle-seed')
+  if (!seed) {
+    seed = String(Math.floor(Math.random() * 2147483647))
+    sessionStorage.setItem('story-shuffle-seed', seed)
+  }
+  return parseInt(seed, 10)
+}
+
 export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = [] }) {
   const { brand } = storyData
   const [allStories, setAllStories] = useState([])
@@ -100,6 +121,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const [showArchive, setShowArchive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLive, setShowLive] = useState(false)
+  const [sessionSeed] = useState(getSessionSeed)
 
   useEffect(() => {
     async function load() {
@@ -144,11 +166,15 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const communityStories = currentStories.filter(s => communityCategories.includes(s.category))
   const sponsoredStories = currentStories.filter(s => sponsoredCategories.includes(s.category))
 
-  const featured = currentStories.find(s => s.featured) || newsStories[0]
-  const newsRest = newsStories.filter(s => s !== featured)
-  const sportsRest = sportsStories.filter(s => s !== featured)
-  const weatherRest = weatherStories.filter(s => s !== featured)
-  const communityRest = communityStories.filter(s => s !== featured)
+  // Pick featured from eligible stories, rotating per session
+  const featuredCandidates = currentStories.filter(s => s.featured || newsStories.includes(s))
+  const featured = featuredCandidates.length > 0
+    ? featuredCandidates[((sessionSeed >>> 0) % featuredCandidates.length)]
+    : newsStories[0]
+  const newsRest = seededShuffle(newsStories.filter(s => s !== featured), sessionSeed)
+  const sportsRest = seededShuffle(sportsStories.filter(s => s !== featured), sessionSeed + 1)
+  const weatherRest = seededShuffle(weatherStories.filter(s => s !== featured), sessionSeed + 2)
+  const communityRest = seededShuffle(communityStories.filter(s => s !== featured), sessionSeed + 3)
   const rest = newsRest
 
   return (
