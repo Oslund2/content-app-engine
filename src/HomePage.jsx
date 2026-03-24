@@ -162,9 +162,21 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const communityStories = currentStories.filter(s => communityCategories.includes(s.category))
   const sponsoredStories = currentStories.filter(s => sponsoredCategories.includes(s.category))
 
-  // Pick featured from stories that have images — no imageless hero
-  const storyPhotos_keys = Object.keys(storyPhotos)
-  const featuredCandidates = currentStories.filter(s => s.photo || storyPhotos_keys.includes(s.id))
+  // Only stories with landscape (4x3-ish) photos can be hero.
+  // Portrait/tall images look bad in the side-by-side hero layout.
+  const heroEligiblePhotos = new Set([
+    'fire-crisis', 'opening-day', 'safety-survey', 'flood-risk',
+    'sharon-lake', 'bengals-draft', 'fc-cincinnati', 'football',
+    'neighborhood-pulse', 'community-response', 'sidewalk-repair',
+    'baseball', 'soccer',
+  ])
+  const featuredCandidates = currentStories.filter(s => {
+    // Legacy stories: must be in the landscape-approved list
+    if (storyPhotos[s.id]) return heroEligiblePhotos.has(s.id)
+    // Generated stories: must have a photo URL (external images are assumed landscape)
+    if (s.photo) return true
+    return false
+  })
   const featured = featuredCandidates.length > 0
     ? featuredCandidates[((pageSeed >>> 0) % featuredCandidates.length)]
     : currentStories.find(s => s.headline) || newsStories[0]
