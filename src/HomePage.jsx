@@ -328,8 +328,8 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
           </motion.article>
         )}
 
-        {/* Deep Dive Topics — prominent full-width banners */}
-        {topics.length > 0 && topics.map(topic => {
+        {/* Deep Dive Topic — show only the most recent published topic */}
+        {topics.length > 0 && topics.slice(0, 1).map(topic => {
           const accent = topic.accent_color || '#dc2626'
           const stats = topic.hero_stats || []
           return (
