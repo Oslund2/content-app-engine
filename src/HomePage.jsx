@@ -162,11 +162,12 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const communityStories = currentStories.filter(s => communityCategories.includes(s.category))
   const sponsoredStories = currentStories.filter(s => sponsoredCategories.includes(s.category))
 
-  // Pick featured from ALL current stories — rotates every page load
-  const featuredCandidates = currentStories.filter(s => s.headline && s.headline.length > 0)
+  // Pick featured from stories that have images — no imageless hero
+  const storyPhotos_keys = Object.keys(storyPhotos)
+  const featuredCandidates = currentStories.filter(s => s.photo || storyPhotos_keys.includes(s.id))
   const featured = featuredCandidates.length > 0
     ? featuredCandidates[((pageSeed >>> 0) % featuredCandidates.length)]
-    : newsStories[0]
+    : currentStories.find(s => s.headline) || newsStories[0]
   const newsRest = seededShuffle(newsStories.filter(s => s !== featured), pageSeed)
   const sportsRest = seededShuffle(sportsStories.filter(s => s !== featured), pageSeed + 1)
   const weatherRest = seededShuffle(weatherStories.filter(s => s !== featured), pageSeed + 2)
