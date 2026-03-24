@@ -251,6 +251,15 @@ function AutoBuildTopic({ onComplete }) {
         setResult({ error: data.error })
       } else {
         setResult(data)
+        // Show initial progress from sync response before polling takes over
+        if (data.articlesQueued > 0) {
+          setProgress({
+            stage: `${data.articlesQueued} articles queued. Pipeline is generating story-apps...`,
+            topicTitle: data.design?.title,
+            topicSlug: data.topicSlug,
+            stories: 0, published: 0, drafts: 0, total: 0,
+          })
+        }
         startPolling(topicInput.trim())
       }
     } catch (err) {

@@ -1,10 +1,19 @@
-// Netlify function — Automated Topic Page Builder (thin entry point)
+// Netlify function — Automated Topic Page Builder
 // POST /api/build-topic { topic: "Cincinnati housing affordability" }
 //
-// Returns immediately after validation. Triggers build-topic-background
-// which has a longer timeout for the heavy pipeline work.
+// Does stages 1-3 in this sync function (fast with Haiku):
+//   1. Topic design
+//   2. Source discovery (Google News + RSS)
+//   3. Article selection
+//   4. Insert selected articles as rss_items with topic_slug
+//   5. Trigger existing process-invoke-background to generate story-apps
+//
+// The proven RSS pipeline handles the slow story generation.
 
-import { sbQuery, slugify, callAnthropic, parseJson } from './lib/pipeline.mjs'
+import { callAnthropic, parseJson, sbQuery, slugify, stripHtml, extractArticleMeta } from './lib/pipeline.mjs'
+import { discoverArticles, fetchArticle } from './lib/web-search.mjs'
+
+// ─── Stage 1: Topic Design (Haiku — fast) ───────────────────────────────────
 
 var TOPIC_DESIGN_SYSTEM = `You are an editorial strategist at WCPO Cincinnati. You design Deep Dive topic pages — curated collections of interactive Story-Apps that explore a topic from every angle.
 
@@ -24,6 +33,33 @@ Respond with ONLY a JSON object:
   ],
   "poll_question": "Community poll question for readers"
 }`
+
+// ─── Stage 3: Article Selection (Haiku — fast) ─────────────────────────────
+
+var SELECTION_SYSTEM = `You are an editorial curator at WCPO Cincinnati. You select articles for a Deep Dive topic page.
+
+RULES:
+1. Pick 4-6 articles that cover DIFFERENT angles of the topic. No two should tell the same story.
+2. Prefer articles with data, numbers, or personal stories (best for interactive Story-Apps).
+3. Prefer articles with a Cincinnati/Ohio connection, but national stories are fine if locally relevant.
+4. Pick from DIFFERENT sources when possible.
+5. Every article must have strong interactive potential — calculators, quizzes, planners, or explorers.
+
+Respond with ONLY a JSON object:
+{
+  "selected": [
+    {
+      "index": 1,
+      "title": "article title",
+      "source": "source name",
+      "angle": "What unique angle does this bring?",
+      "app_type": "safety-assessment|impact-calculator|event-planner|data-explorer|eligibility-checker|tracker|investigation",
+      "confidence": 0-100
+    }
+  ]
+}`
+
+// ─── Main Handler ───────────────────────────────────────────────────────────
 
 export default async (req) => {
   var headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' }
@@ -45,19 +81,61 @@ export default async (req) => {
       return new Response(JSON.stringify({ error: 'Provide a topic description (at least 5 chars)' }), { status: 400, headers })
     }
 
-    console.log('BUILD TOPIC: "' + topicDescription + '"')
+    console.log('=== BUILD TOPIC: "' + topicDescription + '" ===')
 
-    // Stage 1 runs here (fits in 26s) — design the topic so we can create the DB row
+    // ── Stage 1: Topic Design (Haiku, ~2s) ──
+    console.log('Stage 1: Designing topic...')
     var designText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001',
       TOPIC_DESIGN_SYSTEM,
       'Design a Deep Dive topic page for WCPO Cincinnati on:\n\n' + topicDescription,
       1200)
     var design = parseJson(designText)
-    console.log('Designed: "' + design.title + '"')
+    console.log('Designed: "' + design.title + '" with ' + (design.story_angles || []).length + ' angles')
 
-    // Create topic in DB immediately
+    // ── Stage 2: Source Discovery (~3-5s) ──
+    console.log('Stage 2: Discovering sources...')
+    var allArticles = await discoverArticles(topicDescription, design.search_keywords || [])
+
+    // Search one extra angle query for breadth
+    if (design.story_angles && design.story_angles.length > 0) {
+      try {
+        var extraArticles = await discoverArticles(design.story_angles[0].search_query, [])
+        var seen = new Set(allArticles.map(function(a) { return a.url }))
+        extraArticles.forEach(function(a) {
+          if (!seen.has(a.url)) { seen.add(a.url); allArticles.push(a) }
+        })
+      } catch (e) { console.log('Extra search failed: ' + e.message) }
+    }
+
+    console.log('Found ' + allArticles.length + ' articles')
+
+    if (allArticles.length === 0) {
+      return new Response(JSON.stringify({
+        error: 'No scrapable articles found. Try a broader topic or different wording.',
+      }), { status: 404, headers })
+    }
+
+    // ── Stage 3: Article Selection (Haiku, ~2s) ──
+    console.log('Stage 3: Selecting articles...')
+    var articleList = allArticles.slice(0, 25).map(function(a, i) {
+      return (i + 1) + '. [' + a.source + '] ' + a.title +
+        (a.description ? ' — ' + a.description.slice(0, 80) : '')
+    }).join('\n')
+
+    var selPrompt = 'TOPIC: ' + design.title + '\nANGLES:\n' +
+      (design.story_angles || []).map(function(a) { return '- ' + a.angle }).join('\n') +
+      '\n\nARTICLES (' + Math.min(allArticles.length, 25) + '):\n' + articleList
+
+    var selText = await callAnthropic(apiKey, 'claude-haiku-4-5-20251001', SELECTION_SYSTEM, selPrompt, 1000)
+    var selection = parseJson(selText)
+    var selected = selection.selected || []
+    console.log('Selected ' + selected.length + ' articles')
+
+    // ── Stage 4: Create topic + insert rss_items ──
     var topicSlug = slugify(design.title)
-    var topicRow = {
+
+    // Create topic row
+    await sbQuery(supabaseUrl, supabaseKey, 'topics', 'POST', {
       slug: topicSlug,
       title: design.title,
       subtitle: design.subtitle,
@@ -68,35 +146,72 @@ export default async (req) => {
       status: 'draft',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }
-    await sbQuery(supabaseUrl, supabaseKey, 'topics', 'POST', topicRow)
+    })
     console.log('Topic created: ' + topicSlug)
 
-    // Fire background function — do NOT use AbortSignal (let Netlify handle the connection)
-    var origin = req.headers.get('origin') || req.headers.get('x-forwarded-host') || 'https://content-app-engine.netlify.app'
-    if (!origin.startsWith('http')) origin = 'https://' + origin
-    var bgUrl = origin + '/.netlify/functions/build-topic-background'
-    console.log('Triggering background: ' + bgUrl)
+    // Fetch each selected article and insert as rss_item
+    var inserted = 0
+    var errors = []
+    for (var i = 0; i < selected.length; i++) {
+      var sel = selected[i]
+      var idx = (sel.index || 1) - 1
+      if (idx < 0 || idx >= allArticles.length) idx = 0
+      var articleRef = allArticles[idx]
 
-    fetch(bgUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic: topicDescription,
-        topicSlug: topicSlug,
-        topicDesign: design,
-      }),
-    }).then(function(res) {
-      console.log('Background trigger response: ' + res.status)
-    }).catch(function(err) {
-      console.log('Background trigger fire-and-forget: ' + err.message)
-    })
+      try {
+        // Quick fetch of the article HTML
+        var article = await fetchArticle(articleRef.url)
+        if (!article || article.content.length < 100) {
+          console.log('Skip (too short): ' + articleRef.title.slice(0, 40))
+          errors.push(articleRef.title.slice(0, 40) + ': too short')
+          continue
+        }
+
+        // Insert as rss_item for the pipeline to process
+        await sbQuery(supabaseUrl, supabaseKey, 'rss_items', 'POST', {
+          guid: article.finalUrl || articleRef.url,
+          feed_name: 'topic-builder',
+          title: article.title || articleRef.title,
+          link: article.finalUrl || articleRef.url,
+          description: article.description || article.content.slice(0, 300),
+          content_encoded: article.rawHtml || article.content,
+          author: article.author || '',
+          pub_date: new Date().toISOString(),
+          source_type: 'external',
+          processed: false,
+          worthiness_score: sel.confidence || 75,
+          source_url: article.finalUrl || articleRef.url,
+          source_name: article.siteName || articleRef.source || '',
+          source_author: article.author || null,
+          topic_slug: topicSlug,
+        })
+        inserted++
+        console.log('Queued (' + inserted + '): ' + (article.title || '').slice(0, 50))
+      } catch (err) {
+        console.log('Insert error: ' + err.message)
+        errors.push((articleRef.title || '').slice(0, 40) + ': ' + err.message.slice(0, 50))
+      }
+    }
+
+    console.log('Inserted ' + inserted + ' rss_items for topic ' + topicSlug)
+
+    // ── Stage 5: Trigger the existing background processor ──
+    // Process each item one at a time via process-invoke
+    // Fire multiple triggers so the background processor picks up all items
+    var origin = 'https://content-app-engine.netlify.app'
+    for (var t = 0; t < Math.min(inserted, 6); t++) {
+      fetch(origin + '/.netlify/functions/process-invoke-background', {
+        method: 'POST',
+      }).catch(function() {})
+    }
 
     return new Response(JSON.stringify({
       success: true,
       topicSlug: topicSlug,
       design: design,
-      message: 'Topic "' + design.title + '" created. AI is now searching sources and generating 4-6 story-apps. Check back in 2-3 minutes.',
+      articlesQueued: inserted,
+      errors: errors,
+      message: 'Topic "' + design.title + '" created with ' + inserted + ' articles queued for story-app generation. The pipeline will process them over the next few minutes.',
       topic: topicDescription,
     }), { headers })
 

@@ -34,9 +34,9 @@ export default async (req, context) => {
       if (item.source_type === 'external' && item.link) {
         try {
           var hostname = new URL(item.link).hostname.replace('www.', '')
-          item.source_url = item.link
-          item.source_name = hostname
-          item.source_author = item.author || null
+          item.source_url = item.source_url || item.link
+          item.source_name = item.source_name || hostname
+          item.source_author = item.source_author || item.author || null
         } catch {}
       }
 
