@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Shield, Code2, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Shield, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw } from 'lucide-react'
 import SensitivityAdmin from './SensitivityAdmin'
 import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
@@ -7,99 +7,9 @@ import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTop
 
 const tabs = [
   { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
-  { id: 'embed', label: 'Embed Center', icon: Code2 },
   { id: 'pipeline', label: 'Story Pipeline', icon: Newspaper },
   { id: 'topics', label: 'Topic Pages', icon: Layers },
 ]
-
-function EmbedCenter() {
-  const [selected, setSelected] = useState(null)
-  const [copied, setCopied] = useState(false)
-  const [generatedStories, setGeneratedStories] = useState([])
-
-  useEffect(() => {
-    fetchAllGeneratedStories().then(data => setGeneratedStories(data || []))
-  }, [])
-
-  const legacyStories = storyData.stories.filter(s => s.id !== 'neighborhood-pulse')
-  const genStories = generatedStories.map(s => ({
-    id: s.story_id,
-    headline: s.headline,
-    category: s.category,
-    categoryColor: s.category_color || '#dc2626',
-    readTime: '5 min',
-    isGenerated: true,
-  }))
-  const stories = [...genStories, ...legacyStories]
-
-  const getEmbedCode = (storyId) => {
-    const story = stories.find(s => s.id === storyId)
-    return `<iframe
-  src="https://content-app-engine.netlify.app/?story=${storyId}&embed=true"
-  width="100%"
-  height="800"
-  frameborder="0"
-  style="border: 1px solid #e5e7eb; border-radius: 12px; max-width: 720px;"
-  title="WCPO Interactive: ${story?.headline || storyId}"
-  allow="clipboard-write"
-></iframe>`
-  }
-
-  const handleCopy = (code) => {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div>
-      <p className="text-sm text-ink-muted mb-6">
-        Generate embed codes to place interactive stories on partner sites, CMS pages, or newsletters.
-      </p>
-
-      <div className="space-y-2 mb-6">
-        {stories.map(story => (
-          <button
-            key={story.id}
-            onClick={() => setSelected(selected === story.id ? null : story.id)}
-            className={`w-full text-left px-4 py-3 rounded-lg border transition-all flex items-center gap-3
-              ${selected === story.id
-                ? 'border-slate-400 bg-slate-50 shadow-sm'
-                : 'border-rule bg-white hover:bg-slate-50'
-              }`}
-          >
-            <div
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ backgroundColor: story.categoryColor }}
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-ink truncate">{story.headline}</p>
-              <p className="text-xs text-ink-muted">{story.category} &middot; {story.readTime}</p>
-            </div>
-            <Code2 size={14} className={selected === story.id ? 'text-slate-600' : 'text-slate-300'} />
-          </button>
-        ))}
-      </div>
-
-      {selected && (
-        <div className="border border-rule rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-slate-50 border-b border-rule flex items-center justify-between">
-            <span className="text-xs font-medium text-ink-muted">Embed Code</span>
-            <button
-              onClick={() => handleCopy(getEmbedCode(selected))}
-              className="text-xs font-medium text-slate-600 hover:text-ink px-2 py-1 rounded bg-white border border-rule"
-            >
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-          <pre className="p-4 text-xs font-mono text-ink-light overflow-x-auto bg-white leading-relaxed">
-            {getEmbedCode(selected)}
-          </pre>
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function AdminHub({ onBack }) {
   const [activeTab, setActiveTab] = useState('sensitivity')
@@ -150,7 +60,6 @@ export default function AdminHub({ onBack }) {
 
         {/* Tab content */}
         {activeTab === 'sensitivity' && <SensitivityAdmin />}
-        {activeTab === 'embed' && <EmbedCenter />}
         {activeTab === 'pipeline' && <StoryPipeline />}
         {activeTab === 'topics' && <TopicAdmin />}
       </main>
