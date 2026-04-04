@@ -23,6 +23,66 @@ const NEIGHBORHOODS = [
   'Price Hill',
 ]
 
+// Map raw neighborhood values (from polls) to display names
+// Handles: lowercase slugs, hyphenated, partial matches, alternate names
+function normalizeNeighborhood(raw) {
+  if (!raw || typeof raw !== 'string') return null
+  const lower = raw.toLowerCase().replace(/-/g, ' ').trim()
+  const map = {
+    'west price hill': 'West Price Hill',
+    'price hill': 'Price Hill',
+    'east price hill': 'Price Hill',
+    'downtown': 'Downtown / OTR',
+    'downtown otr': 'Downtown / OTR',
+    'downtown / otr': 'Downtown / OTR',
+    'otr': 'Downtown / OTR',
+    'over the rhine': 'Downtown / OTR',
+    'hyde park': 'Hyde Park',
+    'westwood': 'Westwood',
+    'clifton': 'Clifton',
+    'clifton / cuf': 'Clifton',
+    'cuf': 'Clifton',
+    'northside': 'Northside',
+    'madisonville': 'Madisonville',
+    'mt. washington': 'Mt. Washington',
+    'mt washington': 'Mt. Washington',
+    'mount washington': 'Mt. Washington',
+    'covington': 'Covington (NKY)',
+    'covington (nky)': 'Covington (NKY)',
+    'newport': 'Newport (NKY)',
+    'newport (nky)': 'Newport (NKY)',
+    'anderson': 'Anderson Twp',
+    'anderson twp': 'Anderson Twp',
+    'anderson township': 'Anderson Twp',
+    // Additional Cincinnati neighborhoods → closest grid match
+    'spring grove': 'Northside',
+    'spring grove village': 'Northside',
+    'north fairmount': 'West Price Hill',
+    'south fairmount': 'West Price Hill',
+    'sedamsville': 'West Price Hill',
+    'westside': 'Westwood',
+    'west side': 'Westwood',
+    'winton place': 'Northside',
+    'avondale': 'Madisonville',
+    'evanston': 'Madisonville',
+    'walnut hills': 'Hyde Park',
+    'east walnut hills': 'Hyde Park',
+    'mt. auburn': 'Downtown / OTR',
+    'mt auburn': 'Downtown / OTR',
+    'camp washington': 'Clifton',
+    'corryville': 'Clifton',
+    'bond hill': 'Northside',
+    'roselawn': 'Northside',
+    'college hill': 'Northside',
+    'carthage': 'Northside',
+    'florence': 'Covington (NKY)',
+    'ft. thomas': 'Newport (NKY)',
+    'fort thomas': 'Newport (NKY)',
+    'bellevue': 'Newport (NKY)',
+  }
+  return map[lower] || null
+}
+
 const STORY_LABELS = {
   'fire-crisis': 'Fire Crisis',
   'safety-survey': 'Safety Survey',
@@ -122,7 +182,11 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
       stats[n] = { total: 0, stories: {}, scores: {} }
     })
     pollData.forEach(row => {
-      const hood = row.neighborhood
+      // Try the neighborhood column first, then fall back to poll_data fields
+      const rawHood = row.neighborhood
+        || (row.poll_data?.neighborhood && typeof row.poll_data.neighborhood === 'string' ? row.poll_data.neighborhood : null)
+        || (row.poll_data?.location && typeof row.poll_data.location === 'string' ? row.poll_data.location : null)
+      const hood = normalizeNeighborhood(rawHood)
       if (!hood || !stats[hood]) return
       stats[hood].total += 1
       // Count per story
