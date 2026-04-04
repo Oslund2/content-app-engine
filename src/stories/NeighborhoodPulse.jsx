@@ -161,6 +161,7 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
   const [pollData, setPollData] = useState([])
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expandedHood, setExpandedHood] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -315,10 +316,11 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
               const status = getStatusColor(stats)
               const colors = statusColors[status]
               const barWidth = maxEngagement > 0 ? (stats.total / maxEngagement) * 100 : 0
-              // Get the top 3 stories this neighborhood has data for
-              const topStories = Object.entries(stats.stories)
+              const isExpanded = expandedHood === name
+              // All stories for this neighborhood, sorted by count
+              const allStories = Object.entries(stats.stories)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 3)
+              const topStories = allStories.slice(0, 3)
 
               return (
                 <motion.div
@@ -326,33 +328,108 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: 0.04 * i }}
-                  className="bg-white rounded-lg border border-rule p-4 hover:shadow-sm transition-shadow"
+                  onClick={() => setExpandedHood(isExpanded ? null : name)}
+                  className={`bg-white rounded-lg border p-4 cursor-pointer transition-all duration-200
+                    ${isExpanded
+                      ? 'border-emerald-300 shadow-md ring-1 ring-emerald-200 sm:col-span-2 lg:col-span-3'
+                      : 'border-rule hover:shadow-sm hover:border-slate-300'
+                    }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />
                       <h3 className="font-serif text-sm font-bold text-ink">{name}</h3>
                     </div>
-                    <span className="text-xs text-ink-muted">{stats.total} {stats.total === 1 ? 'person' : 'people'}</span>
-                  </div>
-                  {topStories.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {topStories.map(([storyId, count]) => {
-                        const scores = stats.scores[storyId]
-                        const avg = scores && scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
-                        return (
-                          <span key={storyId} className="text-[10px] bg-paper-warm text-ink-muted px-2 py-0.5 rounded border border-rule">
-                            {STORY_SHORT[storyId] || storyId}
-                            {avg !== null && <span className="font-bold text-ink ml-1">{avg}%</span>}
-                            {avg === null && <span className="ml-1">({count})</span>}
-                          </span>
-                        )
-                      })}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-ink-muted">{stats.total} {stats.total === 1 ? 'person' : 'people'}</span>
+                      <ChevronRight size={12} className={`text-ink-muted transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
                     </div>
-                  ) : (
-                    <p className="text-[10px] text-ink-muted mb-3 italic">No interactions yet</p>
+                  </div>
+
+                  {/* Collapsed: show top 3 story tags */}
+                  {!isExpanded && (
+                    <>
+                      {topStories.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {topStories.map(([storyId, count]) => {
+                            const scores = stats.scores[storyId]
+                            const avg = scores && scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
+                            return (
+                              <span key={storyId} className="text-[10px] bg-paper-warm text-ink-muted px-2 py-0.5 rounded border border-rule">
+                                {STORY_SHORT[storyId] || storyId}
+                                {avg !== null && <span className="font-bold text-ink ml-1">{avg}%</span>}
+                                {avg === null && <span className="ml-1">({count})</span>}
+                              </span>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-[10px] text-ink-muted mb-3 italic">No interactions yet</p>
+                      )}
+                    </>
                   )}
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+
+                  {/* Expanded: full story-by-story breakdown */}
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      transition={{ duration: 0.25 }}
+                      className="mt-3"
+                    >
+                      {allStories.length > 0 ? (
+                        <div className="space-y-2.5 mb-4">
+                          {allStories.map(([storyId, count]) => {
+                            const scores = stats.scores[storyId]
+                            const avg = scores && scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null
+                            const storyBarWidth = stats.total > 0 ? (count / stats.total) * 100 : 0
+                            return (
+                              <div key={storyId}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); onOpenStory(storyId) }}
+                                    className="text-xs font-semibold text-ink hover:text-emerald-700 transition-colors text-left"
+                                  >
+                                    {STORY_LABELS[storyId] || STORY_SHORT[storyId] || storyId}
+                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    {avg !== null && (
+                                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                        avg >= 60 ? 'bg-emerald-100 text-emerald-700' :
+                                        avg >= 35 ? 'bg-amber-100 text-amber-700' :
+                                        'bg-red-100 text-red-700'
+                                      }`}>
+                                        Avg {avg}%
+                                      </span>
+                                    )}
+                                    <span className="text-[10px] text-ink-muted">{count} {count === 1 ? 'response' : 'responses'}</span>
+                                  </div>
+                                </div>
+                                <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${storyBarWidth}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-ink-muted italic mb-4">
+                          No one from {name} has completed a story yet. Be the first!
+                        </p>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onBack() }}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-900 transition-colors"
+                      >
+                        Explore stories for {name} <ArrowRight size={12} />
+                      </button>
+                    </motion.div>
+                  )}
+
+                  <div className={`w-full h-1.5 bg-gray-100 rounded-full overflow-hidden ${isExpanded ? 'mt-3' : ''}`}>
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${barWidth}%` }}
