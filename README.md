@@ -69,6 +69,24 @@ Hand-crafted story apps still exist in the system for flagship pieces that deser
 
 ---
 
+## Any Source, Original Work
+
+Story apps can be built from any news source -- local reporting, wire services, national outlets, press releases, public data. The engine is designed to ingest broadly while producing something fundamentally new.
+
+This is not republishing. A story app does not reproduce the original article's text, structure, or expression. The pipeline reads source material for **facts, data points, and public-interest context**, then generates an entirely original interactive application: new language, new structure, new functionality that did not exist in the source. An article about aging drivers becomes a personalized decision guide with scored assessments and conversation starters. A report on bridge closures becomes an impact calculator that returns your cumulative commute cost over 2.5 years. The source informed the *subject matter*. The story app is a new *work*.
+
+**How the engine avoids copyright concerns:**
+
+- **No text reproduction** -- The AI pipeline generates all copy, headlines, subheads, input labels, result narratives, and editorial framing from scratch. Source text is never quoted, excerpted, or paraphrased at length.
+- **Transformative function** -- The output is a software application, not an article. It accepts user input, performs calculations, renders personalized results, and provides interactive utility. This is a fundamentally different purpose and character than the source material.
+- **Facts are not copyrightable** -- The factual substrate of journalism (dates, statistics, public statements, event details) is not protected by copyright. The engine works with facts, not expression.
+- **Source attribution** -- Every generated story app includes a visible attribution link to the original reporting, crediting the journalist and publication. This drives traffic back to the source rather than diverting it.
+- **Editorial review gate** -- No story app publishes automatically. Human editors review every generated application before it goes live, ensuring originality and appropriate treatment of source material.
+
+The result is a system that can draw from the full breadth of public-interest reporting -- any beat, any outlet, any wire -- and produce original interactive journalism that adds value no article can provide.
+
+---
+
 ## Built-in Sensitivity and Editorial Judgment
 
 Not every story should be treated the same way. A story about Opening Day parking is not the same as a story about a teenager shot in Avondale. The engine knows the difference.
