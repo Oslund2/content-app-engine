@@ -15,7 +15,8 @@ export default function GradeDisplay({
   scale,
   color,
 }) {
-  const resolvedColor = color || defaultGradeColors[grade?.charAt(0)?.toUpperCase()] || '#6b7280'
+  const gradeStr = grade != null ? String(grade) : ''
+  const resolvedColor = color || defaultGradeColors[gradeStr.charAt(0)?.toUpperCase()] || '#6b7280'
 
   return (
     <motion.div
