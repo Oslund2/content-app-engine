@@ -325,8 +325,8 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
             className="group cursor-pointer mb-10"
           >
             <div className={`grid md:grid-cols-2 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
-              {/* Hero image — constrained to landscape aspect ratio */}
-              <div className="aspect-[4/3] md:aspect-auto md:min-h-full overflow-hidden">
+              {/* Hero image — always 16:9, never portrait */}
+              <div className="aspect-video overflow-hidden">
                 <img
                   src={featured.photo || storyPhotos[featured.id]}
                   alt={featured.headline}
