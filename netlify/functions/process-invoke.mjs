@@ -37,14 +37,18 @@ export default async (req, context) => {
 
   var item = items[0]
 
-  // Fire-and-forget: trigger worker function without awaiting its completion
-  // The worker will process the item and update the DB independently
+  // Trigger background worker — background functions return 202 immediately
+  // and run for up to 15 minutes
   var origin = url.origin || 'https://content-app-engine.netlify.app'
-  fetch(origin + '/api/process-item-worker', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemId: item.id }),
-  }).catch(function () {})
+  try {
+    await fetch(origin + '/.netlify/functions/process-item-worker-background', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId: item.id }),
+    })
+  } catch (err) {
+    console.error('Failed to trigger worker:', err.message)
+  }
 
   return new Response(JSON.stringify({
     message: 'Processing started',
