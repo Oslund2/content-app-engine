@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense, Component } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import HomePage from './HomePage'
@@ -40,6 +40,29 @@ const storyComponents = {
 
 // Read URL params once on load
 const TopicPage = lazy(() => import('./TopicPage'))
+
+class AppErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { error: null } }
+  static getDerivedStateFromError(error) { return { error } }
+  componentDidCatch(error, info) { console.error('Story crash:', error, info.componentStack) }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <h2 className="font-serif text-2xl font-bold text-ink mb-3">Something went wrong</h2>
+          <p className="text-ink-muted mb-4">This story app encountered an error.</p>
+          <pre className="text-xs text-left bg-slate-100 rounded-lg p-4 overflow-x-auto text-red-600 mb-4">
+            {this.state.error?.message}
+          </pre>
+          <button onClick={() => { window.history.back() }} className="text-sm font-semibold text-wcpo-red hover:underline">
+            Go Back
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 function getUrlParams() {
   const params = new URLSearchParams(window.location.search)
@@ -185,23 +208,25 @@ export default function StoryApp() {
             {LegacyComponent ? (
               <LegacyComponent onBack={storyBackFn} onOpenStory={openStory} />
             ) : generatedStory ? (
-              <Suspense fallback={
-                <div className="flex items-center justify-center min-h-screen gap-2 text-ink-muted">
-                  <Loader2 size={20} className="animate-spin" /> Loading story...
-                </div>
-              }>
-                <StoryRenderer
-                  config={generatedStory.config}
-                  storyId={generatedStory.story_id}
-                  onBack={storyBackFn}
-                  onOpenStory={openStory}
-                  sourceAttribution={generatedStory.source_url ? {
-                    url: generatedStory.source_url,
-                    name: generatedStory.source_name,
-                    author: generatedStory.source_author,
-                  } : null}
-                />
-              </Suspense>
+              <AppErrorBoundary>
+                <Suspense fallback={
+                  <div className="flex items-center justify-center min-h-screen gap-2 text-ink-muted">
+                    <Loader2 size={20} className="animate-spin" /> Loading story...
+                  </div>
+                }>
+                  <StoryRenderer
+                    config={generatedStory.config}
+                    storyId={generatedStory.story_id}
+                    onBack={storyBackFn}
+                    onOpenStory={openStory}
+                    sourceAttribution={generatedStory.source_url ? {
+                      url: generatedStory.source_url,
+                      name: generatedStory.source_name,
+                      author: generatedStory.source_author,
+                    } : null}
+                  />
+                </Suspense>
+              </AppErrorBoundary>
             ) : (
               <div className="flex items-center justify-center min-h-screen text-ink-muted">
                 <Loader2 size={16} className="animate-spin mr-2" /> Loading story...
