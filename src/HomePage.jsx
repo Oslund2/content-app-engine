@@ -175,11 +175,21 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
     'neighborhood-pulse', 'community-response', 'sidewalk-repair',
     'baseball', 'soccer',
   ])
+  // Reject tiny images (headshots/avatars) and known portrait sources from hero
+  const isHeroWorthyUrl = (url) => {
+    if (!url) return false
+    // Filter out tiny images (100px, 60px thumbnails) and square headshots
+    if (/[?&](w|s|size|resize)=(60|100|120|150)\b/.test(url)) return false
+    if (/\/resize\/\d{2,3}[x/]/.test(url)) return false
+    // Filter out obvious headshot/avatar paths
+    if (/avatar|headshot|_sq[-.]|profile/i.test(url)) return false
+    return true
+  }
   const featuredCandidates = currentStories.filter(s => {
     // Legacy stories: must be in the landscape-approved list
     if (storyPhotos[s.id]) return heroEligiblePhotos.has(s.id)
-    // Generated stories: must have a photo URL (external images are assumed landscape)
-    if (s.photo) return true
+    // Generated stories: must have a hero-worthy photo URL
+    if (s.photo && isHeroWorthyUrl(s.photo)) return true
     return false
   })
   const featured = featuredCandidates.length > 0
@@ -315,12 +325,14 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
             className="group cursor-pointer mb-10"
           >
             <div className={`grid md:grid-cols-2 bg-white rounded-xl border overflow-hidden hover:shadow-lg transition-shadow duration-300 ${featured.category === 'BREAKING' ? 'border-red-300' : 'border-rule'}`}>
-              {/* Hero image — plain img, no layering tricks */}
-              <img
-                src={featured.photo || storyPhotos[featured.id]}
-                alt={featured.headline}
-                className="w-full h-64 md:h-auto object-cover"
-              />
+              {/* Hero image — constrained to landscape aspect ratio */}
+              <div className="aspect-[4/3] md:aspect-auto md:min-h-full overflow-hidden">
+                <img
+                  src={featured.photo || storyPhotos[featured.id]}
+                  alt={featured.headline}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="p-6 sm:p-8 flex flex-col justify-center">
                 <div className="flex items-center gap-2 mb-3">
                   {featured.category === 'BREAKING' && (
