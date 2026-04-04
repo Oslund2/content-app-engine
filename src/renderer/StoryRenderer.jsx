@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, Component } from 'react'
 import { ConfigProvider, useConfig } from './ConfigContext'
 import { normalizeConfig } from './normalizeConfig'
 import StoryShell from '../components/StoryShell'
@@ -115,19 +115,53 @@ function StoryContent({ config, storyId, onBack, onOpenStory, sourceAttribution 
  * Usage:
  *   <StoryRenderer config={configObject} storyId="my-story" onBack={() => {}} onOpenStory={(id) => {}} />
  */
+class StoryErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+  componentDidCatch(error, info) {
+    console.error('StoryRenderer crash:', error, info.componentStack)
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-2xl mx-auto px-6 py-16 text-center">
+          <h2 className="font-serif text-2xl font-bold text-ink mb-3">Something went wrong</h2>
+          <p className="text-ink-muted mb-4">This story app encountered an error while rendering.</p>
+          <pre className="text-xs text-left bg-slate-100 rounded-lg p-4 overflow-x-auto text-red-600 mb-4">
+            {this.state.error?.message || 'Unknown error'}
+          </pre>
+          {this.props.onBack && (
+            <button onClick={this.props.onBack} className="text-sm font-semibold text-wcpo-red hover:underline">
+              Back to WCPO
+            </button>
+          )}
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function StoryRenderer({ config, storyId, onBack, onOpenStory, sourceAttribution }) {
   const normalized = useMemo(() => normalizeConfig(config), [config])
   if (!normalized) return null
 
   return (
-    <ConfigProvider config={normalized}>
-      <StoryContent
-        config={normalized}
-        storyId={storyId}
-        onBack={onBack}
-        onOpenStory={onOpenStory}
-        sourceAttribution={sourceAttribution}
-      />
-    </ConfigProvider>
+    <StoryErrorBoundary onBack={onBack}>
+      <ConfigProvider config={normalized}>
+        <StoryContent
+          config={normalized}
+          storyId={storyId}
+          onBack={onBack}
+          onOpenStory={onOpenStory}
+          sourceAttribution={sourceAttribution}
+        />
+      </ConfigProvider>
+    </StoryErrorBoundary>
   )
 }
