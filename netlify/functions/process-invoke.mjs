@@ -1,7 +1,7 @@
 // HTTP-callable trigger for AI story processing (manual/dashboard use)
 // GET /api/process-invoke → processes top unprocessed RSS item
 // GET /api/process-invoke?itemId=UUID → processes a specific RSS item
-// Delegates to process-item-worker (background) for actual processing
+// Returns 202 immediately, delegates heavy work to process-item-worker via fetch
 
 import { sbQuery } from './lib/pipeline.mjs'
 
@@ -37,18 +37,14 @@ export default async (req, context) => {
 
   var item = items[0]
 
-  // Trigger background worker — await to ensure the request is sent
-  // Background functions return 202 immediately, so this is still fast
+  // Fire-and-forget: trigger worker function without awaiting its completion
+  // The worker will process the item and update the DB independently
   var origin = url.origin || 'https://content-app-engine.netlify.app'
-  try {
-    await fetch(origin + '/.netlify/functions/process-item-worker-background', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ itemId: item.id }),
-    })
-  } catch (err) {
-    console.error('Failed to trigger worker:', err.message)
-  }
+  fetch(origin + '/api/process-item-worker', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemId: item.id }),
+  }).catch(function () {})
 
   return new Response(JSON.stringify({
     message: 'Processing started',

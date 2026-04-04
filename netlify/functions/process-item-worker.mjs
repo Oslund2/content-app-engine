@@ -1,53 +1,48 @@
-// Background function for processing a single RSS item into a story app
-// Netlify background functions get 15-minute timeout (vs 26s for regular)
+// Serverless function for processing a single RSS item into a story app
+// Uses Netlify v2 function format for consistent runtime (same as other functions)
 // Triggered by process-invoke.mjs via internal fetch
 
 import { sbQuery, processItem } from './lib/pipeline.mjs'
 
 export default async (req) => {
-  var apiKey = process.env.ANTHROPIC_API_KEY
-  var supabaseUrl = process.env.VITE_SUPABASE_URL
-  var supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  var apiKey = Netlify.env.get('ANTHROPIC_API_KEY')
+  var supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
+  var supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  var headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
 
   if (!apiKey || !supabaseUrl || !supabaseKey) {
-    console.error('Missing env vars')
-    return
+    return new Response(JSON.stringify({ error: 'Missing env vars' }), { status: 500, headers })
   }
 
   var body
   try {
     body = await req.json()
   } catch {
-    console.error('Invalid request body')
-    return
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400, headers })
   }
 
   var itemId = body.itemId
   if (!itemId) {
-    console.error('No itemId provided')
-    return
+    return new Response(JSON.stringify({ error: 'No itemId provided' }), { status: 400, headers })
   }
 
-  console.log('Background worker started for item: ' + itemId)
+  console.log('Worker started for item: ' + itemId)
 
   var items
   try {
     items = await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + itemId, 'GET')
   } catch (err) {
-    console.error('Failed to fetch item:', err.message)
-    return
+    return new Response(JSON.stringify({ error: 'Failed to fetch: ' + err.message }), { status: 500, headers })
   }
 
   if (!items || items.length === 0) {
-    console.error('Item not found: ' + itemId)
-    return
+    return new Response(JSON.stringify({ error: 'Item not found' }), { status: 404, headers })
   }
 
   var item = items[0]
   console.log('Processing: ' + item.title)
 
   try {
-    // Enrich external items with source attribution
     if (item.source_type === 'external' && item.link) {
       try {
         item.source_url = item.source_url || item.link
@@ -59,14 +54,19 @@ export default async (req) => {
     var result = await processItem(item, apiKey, supabaseUrl, supabaseKey, { skipSensitivity: true })
     console.log('Success: ' + item.title, JSON.stringify(result))
     await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true })
+
+    return new Response(JSON.stringify({ success: true, result }), { headers })
   } catch (err) {
-    console.error('FAILED: ' + item.title, err.message, err.stack)
-    // Mark as processed with error reason so we can debug
+    console.error('FAILED: ' + item.title, err.message)
     await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', {
       processed: true,
       skip_reason: 'Pipeline error: ' + (err.message || '').slice(0, 200),
     }).catch(function () {})
-  }
 
-  console.log('Background worker finished for: ' + item.title)
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers })
+  }
+}
+
+export const config = {
+  path: '/api/process-item-worker',
 }
