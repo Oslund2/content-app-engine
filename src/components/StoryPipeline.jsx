@@ -75,13 +75,16 @@ function EmptyState({ icon: Icon, message }) {
 // --- RSS Queue View ---
 function RssQueue({ items, loading, onRefresh }) {
   const [processing, setProcessing] = useState(false)
+  const [processingItemId, setProcessingItemId] = useState(null)
   const [processResult, setProcessResult] = useState(null)
 
-  const handleProcess = async () => {
+  const handleProcess = async (itemId = null) => {
     setProcessing(true)
+    setProcessingItemId(itemId)
     setProcessResult(null)
     try {
-      const res = await fetch('/api/process-invoke')
+      const url = itemId ? `/api/process-invoke?itemId=${itemId}` : '/api/process-invoke'
+      const res = await fetch(url)
       const text = await res.text()
       let data
       try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response (status ' + res.status + ')' } }
@@ -91,6 +94,7 @@ function RssQueue({ items, loading, onRefresh }) {
       setProcessResult({ error: err.message })
     }
     setProcessing(false)
+    setProcessingItemId(null)
   }
 
   if (loading) return <LoadingSpinner />
@@ -100,18 +104,18 @@ function RssQueue({ items, loading, onRefresh }) {
     <div>
       <div className="flex items-center gap-3 mb-4">
         <button
-          onClick={handleProcess}
+          onClick={() => handleProcess()}
           disabled={processing}
           className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded bg-wcpo-red text-white hover:bg-red-700 transition-colors disabled:opacity-50"
         >
-          {processing ? <><Loader2 size={13} className="animate-spin" />Processing...</> : <><Rss size={13} />Process Next Story</>}
+          {processing && !processingItemId ? <><Loader2 size={13} className="animate-spin" />Processing...</> : <><Rss size={13} />Process Next Story</>}
         </button>
         {processResult && (
           <span className={`text-xs ${processResult.error ? 'text-red-600' : 'text-green-600'}`}>
             {processResult.error
               ? `Error: ${processResult.error}`
-              : processResult.results?.length
-                ? processResult.results.map(r => r.storyId ? `Created: ${r.storyId}` : r.reason || r.error || 'Skipped').join(', ')
+              : processResult.item?.title
+                ? `Started: ${processResult.item.title}`
                 : processResult.message || 'Done'}
           </span>
         )}
@@ -123,7 +127,8 @@ function RssQueue({ items, loading, onRefresh }) {
             <th className="pb-2 pr-4">Title</th>
             <th className="pb-2 pr-4">Feed</th>
             <th className="pb-2 pr-4">Published</th>
-            <th className="pb-2">Worthiness</th>
+            <th className="pb-2 pr-4">Worthiness</th>
+            <th className="pb-2"></th>
           </tr>
         </thead>
         <tbody>
@@ -136,7 +141,18 @@ function RssQueue({ items, loading, onRefresh }) {
               </td>
               <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{item.feed_name || '-'}</td>
               <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{formatDate(item.pub_date)}</td>
-              <td className="py-3"><WorthinessBadge score={item.worthiness_score} /></td>
+              <td className="py-3 pr-4"><WorthinessBadge score={item.worthiness_score} /></td>
+              <td className="py-3">
+                <button
+                  onClick={() => handleProcess(item.id)}
+                  disabled={processing}
+                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-ink hover:bg-emerald-100 hover:text-emerald-700 border border-rule transition-all disabled:opacity-40"
+                >
+                  {processingItemId === item.id
+                    ? <><Loader2 size={11} className="animate-spin" /> Building...</>
+                    : <><Zap size={11} /> Build This</>}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>

@@ -1,5 +1,6 @@
 // HTTP-callable trigger for AI story processing (manual/dashboard use)
 // GET /api/process-invoke → queues 1 unprocessed RSS item for background processing
+// GET /api/process-invoke?itemId=UUID → processes a specific RSS item
 // Returns 202 immediately, processes via context.waitUntil()
 
 import { sbQuery, processItem } from './lib/pipeline.mjs'
@@ -14,16 +15,27 @@ export default async (req, context) => {
     return new Response(JSON.stringify({ error: 'Missing env vars' }), { status: 500, headers })
   }
 
+  // Check for a specific item ID in query params
+  var url = new URL(req.url)
+  var itemId = url.searchParams.get('itemId')
+
   var items
   try {
-    items = await sbQuery(supabaseUrl, supabaseKey,
-      'rss_items?processed=eq.false&order=worthiness_score.desc.nullslast&limit=1', 'GET')
+    if (itemId) {
+      // Fetch specific item by ID
+      items = await sbQuery(supabaseUrl, supabaseKey,
+        'rss_items?id=eq.' + encodeURIComponent(itemId), 'GET')
+    } else {
+      // Pick the top unprocessed item by worthiness score
+      items = await sbQuery(supabaseUrl, supabaseKey,
+        'rss_items?processed=eq.false&order=worthiness_score.desc.nullslast&limit=1', 'GET')
+    }
   } catch (err) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch queue: ' + err.message }), { status: 500, headers })
+    return new Response(JSON.stringify({ error: 'Failed to fetch item: ' + err.message }), { status: 500, headers })
   }
 
   if (!items || items.length === 0) {
-    return new Response(JSON.stringify({ message: 'No unprocessed items', processed: 0 }), { headers })
+    return new Response(JSON.stringify({ message: itemId ? 'Item not found' : 'No unprocessed items', processed: 0 }), { headers })
   }
 
   var item = items[0]
