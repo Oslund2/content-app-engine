@@ -6,13 +6,13 @@ import storyData from '../storyData.json'
 import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTopic, fetchAllStoriesByTopic, publishTopicAndStories } from '../lib/supabase'
 
 const tabs = [
-  { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
   { id: 'pipeline', label: 'Story Pipeline', icon: Newspaper },
   { id: 'topics', label: 'Topic Pages', icon: Layers },
+  { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
 ]
 
 export default function AdminHub({ onBack }) {
-  const [activeTab, setActiveTab] = useState('sensitivity')
+  const [activeTab, setActiveTab] = useState('pipeline')
 
   return (
     <>
