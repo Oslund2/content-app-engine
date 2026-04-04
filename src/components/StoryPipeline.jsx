@@ -89,7 +89,16 @@ function RssQueue({ items, loading, onRefresh }) {
       let data
       try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response (status ' + res.status + ')' } }
       setProcessResult(data)
-      if (onRefresh) onRefresh()
+
+      // Background processing takes ~30-60s. Wait then refresh to show the new draft.
+      if (res.status === 202 && data.item) {
+        setProcessResult({ ...data, message: `Building story app for "${data.item.title}"... (30-60 seconds)` })
+        await new Promise(r => setTimeout(r, 40000))
+        if (onRefresh) onRefresh()
+        setProcessResult({ message: `Done! Check the Drafts tab for the new story app.` })
+      } else {
+        if (onRefresh) onRefresh()
+      }
     } catch (err) {
       setProcessResult({ error: err.message })
     }
