@@ -60,9 +60,12 @@ export default async (req) => {
     console.log('Success: ' + item.title, JSON.stringify(result))
     await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true })
   } catch (err) {
-    console.error('FAILED: ' + item.title, err.message)
-    // Mark as processed to prevent infinite retries
-    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true }).catch(function () {})
+    console.error('FAILED: ' + item.title, err.message, err.stack)
+    // Mark as processed with error reason so we can debug
+    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', {
+      processed: true,
+      skip_reason: 'Pipeline error: ' + (err.message || '').slice(0, 200),
+    }).catch(function () {})
   }
 
   console.log('Background worker finished for: ' + item.title)
