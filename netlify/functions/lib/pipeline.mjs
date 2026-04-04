@@ -11,7 +11,9 @@ export function stripHtml(html) {
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'")
+    .replace(/&#x27;/g, "'").replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, function (m, code) { return String.fromCharCode(code) })
     .replace(/\s+/g, ' ').trim()
 }
 
@@ -552,7 +554,7 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
     app_type: config.appType || triage.suggested_app_type,
     status: 'draft',
     config: config,
-    headline: (config.hero && config.hero.headline) || item.title,
+    headline: stripHtml((config.hero && config.hero.headline) || item.title),
     subhead: (config.hero && config.hero.subhead) || '',
     category: (item.feed_name || 'news').toUpperCase().replace(/-/g, ' '),
     category_color: CATEGORY_COLORS[item.feed_name] || '#dc2626',
@@ -567,7 +569,7 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
     topic_slug: item.topic_slug || null,
   }
 
-  await sbQuery(supabaseUrl, supabaseKey, 'generated_stories', 'POST', storyRow)
+  await sbQuery(supabaseUrl, supabaseKey, 'generated_stories?on_conflict=story_id', 'POST', storyRow)
   console.log('SUCCESS: Inserted ' + storyId)
 
   return {
