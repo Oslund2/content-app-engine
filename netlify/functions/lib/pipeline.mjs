@@ -509,12 +509,17 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
   var config = await generateConfig(apiKey, item, articleText, triage)
   console.log('Config parsed, appType: ' + config.appType + ', inputs: ' + (config.inputs ? config.inputs.length : 0))
 
-  // Validate: must have inputs and results
-  if (!config.inputs || config.inputs.length === 0) {
+  // Validate: must have inputs (top-level or inside blocks)
+  var hasTopInputs = Array.isArray(config.inputs) && config.inputs.length > 0
+  var hasBlockInputs = Array.isArray(config.blocks) && config.blocks.some(function (b) {
+    return (b.type === 'input' && Array.isArray(b.inputs) && b.inputs.length > 0)
+      || b.type === 'progressive-quiz'
+  })
+  if (!hasTopInputs && !hasBlockInputs) {
     throw new Error('Config has no inputs — Sonnet failed to generate interactivity')
   }
   if (!config.results) config.results = {}
-  if (!config.results.showAfterInputs) {
+  if (!config.results.showAfterInputs && hasTopInputs) {
     config.results.showAfterInputs = config.inputs
       .filter(function (inp) { return inp.type !== 'quiz' })
       .map(function (inp) { return inp.id })
