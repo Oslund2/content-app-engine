@@ -37,15 +37,18 @@ export default async (req, context) => {
 
   var item = items[0]
 
-  // Trigger background worker (fire-and-forget)
+  // Trigger background worker — await to ensure the request is sent
+  // Background functions return 202 immediately, so this is still fast
   var origin = url.origin || 'https://content-app-engine.netlify.app'
-  fetch(origin + '/.netlify/functions/process-item-worker', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itemId: item.id }),
-  }).catch(function (err) {
+  try {
+    await fetch(origin + '/.netlify/functions/process-item-worker-background', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId: item.id }),
+    })
+  } catch (err) {
     console.error('Failed to trigger worker:', err.message)
-  })
+  }
 
   return new Response(JSON.stringify({
     message: 'Processing started',

@@ -5,9 +5,9 @@
 import { sbQuery, processItem } from './lib/pipeline.mjs'
 
 export default async (req) => {
-  var apiKey = Netlify.env.get('ANTHROPIC_API_KEY')
-  var supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
-  var supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  var apiKey = process.env.ANTHROPIC_API_KEY
+  var supabaseUrl = process.env.VITE_SUPABASE_URL
+  var supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!apiKey || !supabaseUrl || !supabaseKey) {
     console.error('Missing env vars')
