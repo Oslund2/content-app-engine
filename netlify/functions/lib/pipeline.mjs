@@ -28,12 +28,52 @@ export function extractFirstImage(html) {
   return null
 }
 
+function repairJson(text) {
+  // Remove trailing commas before ] or }
+  var fixed = text.replace(/,\s*([}\]])/g, '$1')
+  // Try to close unclosed arrays and objects
+  var opens = 0, arrs = 0
+  for (var i = 0; i < fixed.length; i++) {
+    if (fixed[i] === '{') opens++
+    else if (fixed[i] === '}') opens--
+    else if (fixed[i] === '[') arrs++
+    else if (fixed[i] === ']') arrs--
+  }
+  // Truncate at last complete property if deeply broken
+  if (opens > 0 || arrs > 0) {
+    // Find the last complete key-value pair ending with , or } or ]
+    var lastGood = fixed.lastIndexOf('",')
+    if (lastGood === -1) lastGood = fixed.lastIndexOf(']}')
+    if (lastGood === -1) lastGood = fixed.lastIndexOf('}')
+    if (lastGood > fixed.length * 0.5) {
+      fixed = fixed.slice(0, lastGood + 1)
+    }
+    // Recount and close
+    opens = 0; arrs = 0
+    for (var j = 0; j < fixed.length; j++) {
+      if (fixed[j] === '{') opens++
+      else if (fixed[j] === '}') opens--
+      else if (fixed[j] === '[') arrs++
+      else if (fixed[j] === ']') arrs--
+    }
+    while (arrs > 0) { fixed += ']'; arrs-- }
+    while (opens > 0) { fixed += '}'; opens-- }
+  }
+  return fixed
+}
+
 export function parseJson(text) {
   try { return JSON.parse(text) } catch (e) { /* continue */ }
   var match = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-  if (match) return JSON.parse(match[1].trim())
+  if (match) {
+    try { return JSON.parse(match[1].trim()) } catch (e) { /* continue */ }
+    try { return JSON.parse(repairJson(match[1].trim())) } catch (e) { /* continue */ }
+  }
   var objMatch = text.match(/\{[\s\S]*\}/)
-  if (objMatch) return JSON.parse(objMatch[0])
+  if (objMatch) {
+    try { return JSON.parse(objMatch[0]) } catch (e) { /* continue */ }
+    try { return JSON.parse(repairJson(objMatch[0])) } catch (e) { /* continue */ }
+  }
   throw new Error('Could not parse JSON from: ' + text.slice(0, 100))
 }
 
