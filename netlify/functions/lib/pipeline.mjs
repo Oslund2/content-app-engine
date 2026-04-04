@@ -445,7 +445,7 @@ export async function generateConfig(apiKey, item, articleText, triage) {
     + sourceNote
     + '\nFULL ARTICLE TEXT:\n' + articleText.slice(0, 5000)
 
-  var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6', CONFIG_SYSTEM, userMsg, 6000)
+  var configText = await callAnthropic(apiKey, 'claude-sonnet-4-6', CONFIG_SYSTEM, userMsg, 12000)
   return parseJson(configText)
 }
 
