@@ -145,6 +145,18 @@ An **interactive Opening Day Planner** that accepts the reader's neighborhood an
 
 ---
 
+## Monetization: Three Revenue Layers
+
+Story apps generate revenue through three reinforcing channels:
+
+1. **Addressable advertising** -- Every interaction is a declared signal. When a reader selects their neighborhood, indicates they commute by car, or reveals they rent rather than own, they are voluntarily disclosing targeting data that no cookie or tracking pixel can match. The platform supports **sensitivity-aware ad placements** -- interstitial ads between inputs and results, sponsored result cards, and inline sponsor integrations -- all gated by the editorial sensitivity system so ads never appear alongside tragedy. Advertisers can target by geography, interest, and situation with precision that programmatic display cannot approach.
+
+2. **Engagement depth** -- Interactive story apps keep readers on-page 4-8x longer than static articles. Every slider adjustment, every quiz answer, every neighborhood selection is active attention -- not passive scrolling. This engagement translates directly into higher CPMs, stronger sponsorship value, and deeper brand association for advertisers embedded in the experience.
+
+3. **First-party data collection** -- Every completed story app produces a rich, voluntary user profile: where the reader lives, what they care about, what their situation is. This zero-party data feeds back into **addressability** (more precise ad targeting) and **personalization** (better cross-story recommendations, smarter narrative generation, more relevant content). The cycle compounds: better personalization drives deeper engagement, which produces richer data, which enables more addressable inventory, which commands higher rates.
+
+---
+
 ## Live Stories
 
 Real Cincinnati news stories transformed into interactive applications:
