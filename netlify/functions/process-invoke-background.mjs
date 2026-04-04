@@ -51,3 +51,7 @@ export default async (req, context) => {
 
   console.log('Background processing complete')
 }
+
+export const config = {
+  path: '/api/process-invoke-background',
+}

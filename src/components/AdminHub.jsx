@@ -181,6 +181,11 @@ function AutoBuildTopic({ onComplete }) {
         let data
         try { data = JSON.parse(text) } catch { data = {} }
 
+        // Wait for background processing to complete before checking results
+        if (res.status === 202) {
+          await new Promise(r => setTimeout(r, 30000))
+        }
+
         // Check how many stories exist now
         const stories = await fetchAllStoriesByTopic(topicSlug)
         setProgress(p => ({
@@ -189,7 +194,7 @@ function AutoBuildTopic({ onComplete }) {
           published: stories.filter(s => s.status === 'published').length,
           drafts: stories.filter(s => s.status === 'draft').length,
           total: stories.length,
-          lastResult: data.results?.[0]?.storyId || data.results?.[0]?.reason || null,
+          lastResult: data.item?.title || data.results?.[0]?.storyId || data.results?.[0]?.reason || null,
         }))
       } catch (err) {
         console.error('Process error:', err)
