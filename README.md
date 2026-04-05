@@ -160,19 +160,32 @@ Story apps generate revenue through three reinforcing channels:
 
 ## Live Stories
 
-Real Cincinnati news stories transformed into interactive applications:
+Real Cincinnati news stories transformed into interactive applications with localized headlines and neighborhood-level maps:
 
-| Story | Application Type | Key Interaction |
-|-------|-----------------|-----------------|
-| **Reds Opening Day** | Day Planner | Neighborhood + transport + priorities = personalized itinerary |
-| **Safety Survey** | Data Explorer | Select neighborhood = radar chart vs. city and national benchmarks |
-| **Fourth Street Bridge** | Impact Calculator | Origin + frequency = cumulative cost/time over 2.5 years |
-| **Sidewalk Repair Pilot** | Eligibility Checker | 3-question quiz + neighborhood = eligibility with next steps |
-| **Sharon Lake Reopening** | Visit Planner | Multi-select interests + timing = tailored guide |
-| **Fire Crisis** | Safety Assessment | Home details = personalized risk score with resources |
-| **Keys Talk** | Decision Guide | Aging parent's driving signs = action plan with conversation starters |
+| Story | Application Type | Key Interaction | Map |
+|-------|-----------------|-----------------|-----|
+| **Reds Opening Day** | Day Planner | Neighborhood + transport + priorities = personalized itinerary | Parade route, road closures, venue pins |
+| **Safety Survey** | Data Explorer | Select neighborhood = radar chart vs. city and national benchmarks | Safety score choropleth (click to select) |
+| **Fourth Street Bridge** | Impact Calculator | Origin + frequency = cumulative cost/time over 2.5 years | Old route vs. detour overlay + TANK shuttle |
+| **Sidewalk Repair Pilot** | Eligibility Checker | 3-question quiz + neighborhood = eligibility with next steps | Pilot zone choropleth (pilot / expansion / ineligible) |
+| **Sharon Lake Reopening** | Visit Planner | Multi-select interests + timing = tailored guide | Trail map with 3 trails, lake polygon, 5 POIs |
+| **Fire Crisis** | Safety Assessment | Home details = personalized risk score with resources | Risk choropleth + 22 fire incident markers |
+| **Ohio River Flooding** | Flood Explorer | Neighborhood + river level slider = impact at each stage | Flood zone overlay that scales with simulator |
+| **Storm Readiness** | Readiness Check | 5-question assessment + area = personalized score | County-level SPC risk zone map |
+| **Neighborhood Pulse** | Community Dashboard | Live aggregation of all story engagement by neighborhood | Engagement heat map with top-5 markers |
 
-*Plus AI-generated story apps published daily from the RSS pipeline.*
+*Plus 20+ AI-generated story apps published daily from the RSS pipeline.*
+
+### Interactive Maps
+
+Every story with geographic data includes an interactive map powered by **MapLibre GL** (free, no API key). Maps are:
+
+- **Code-split** -- MapLibre loads in its own ~272KB chunk, only when a story with a map renders
+- **Mobile-responsive** -- Height caps at 85vw on small screens, cooperative gestures prevent scroll trapping
+- **Click-to-select** -- Clicking a neighborhood polygon selects it as input (replaces or supplements dropdowns)
+- **Config-driven** -- AI-generated stories can include maps via `type: "map"` blocks and `type: "map-select"` inputs in their JSON config
+
+Map components: `StoryMap` (base wrapper), `MapMarker`, `MapRoute`, `MapPolygon`, `ChoroplethLayer`, `FloodOverlay`, `MapLegendItem`. GeoJSON data includes 45+ Cincinnati neighborhood polygons/centroids, FEMA flood zones, Ohio River path, Sharon Woods trails, Opening Day landmarks, and bridge detour routes.
 
 ---
 
@@ -184,6 +197,7 @@ Real Cincinnati news stories transformed into interactive applications:
 | Styling | Tailwind CSS 4 |
 | Animation | Framer Motion |
 | Charts | Recharts |
+| Maps | react-map-gl + MapLibre GL (free, no API key) |
 | Icons | Lucide React |
 | Text-to-Speech | Edge TTS (no API key) |
 | Database | Supabase (PostgreSQL) |
@@ -213,12 +227,19 @@ src/
     FormulaEngine.js         #   Safe math parser (no eval())
     normalizeConfig.js       #   Bridges AI output -> renderer expectations
     sections/                #   Hero (with image), Input, Result, Chart, ArticleBody
-    inputs/                  #   Slider, Radio, Checkbox, Dropdown, Quiz, ButtonArray
+    inputs/                  #   Slider, Radio, Checkbox, Dropdown, Quiz, ButtonArray,
+                             #   MapSelectInput (click-to-select map regions)
     blocks/                  #   StatDashboard, Timeline, Collapsible, ComparisonTable,
-                             #   FactCheck, InfoCard, ProgressiveQuiz, StepGuide, etc.
+                             #   FactCheck, InfoCard, ProgressiveQuiz, StepGuide,
+                             #   MapBlock (choropleth, markers, routes, flood overlay)
     charts/                  #   Bar, Area, Radar, ScoreCard, GradeDisplay
 
   components/
+    map/                     # Interactive map system (MapLibre GL)
+      StoryMap.jsx           #   Shared map wrapper (responsive, mobile-friendly)
+      cincinnatiGeo.js       #   Neighborhood polygons, centroids, landmarks, trails
+      index.js               #   Barrel export (StoryMap, MapMarker, MapRoute,
+                             #     MapPolygon, ChoroplethLayer, FloodOverlay, etc.)
     StoryShell.jsx           # Shared chrome (header, nav, footer, embed)
     EmbedShareModal.jsx      # Share modal: Copy Link, Twitter/X, Facebook, LinkedIn,
                              #   Email, native mobile share, embed code export
