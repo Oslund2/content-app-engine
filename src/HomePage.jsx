@@ -117,11 +117,34 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const [showArchive, setShowArchive] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showLive, setShowLive] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [topicStories, setTopicStories] = useState([])
   const [pageSeed] = useState(getPageSeed)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [weather, setWeather] = useState(null)
   const searchRef = useRef(null)
+
+  // Live weather from Open-Meteo (free, no key)
+  useEffect(() => {
+    const WMO_LABELS = {
+      0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+      45: 'Foggy', 48: 'Foggy', 51: 'Light Drizzle', 53: 'Drizzle', 55: 'Drizzle',
+      61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+      71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow', 77: 'Snow Grains',
+      80: 'Showers', 81: 'Showers', 82: 'Heavy Showers',
+      85: 'Snow Showers', 86: 'Snow Showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm',
+    }
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=39.1&longitude=-84.51&current=temperature_2m,weather_code&temperature_unit=fahrenheit')
+      .then(r => r.json())
+      .then(d => {
+        const temp = Math.round(d.current.temperature_2m)
+        const label = WMO_LABELS[d.current.weather_code] || 'Partly Cloudy'
+        setWeather({ temp, label })
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     async function load() {
@@ -212,17 +235,22 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between text-xs">
             <div className="flex items-center gap-4 text-white/60">
               <span className="flex items-center gap-1"><MapPin size={11} /> Cincinnati, OH</span>
-              <span className="flex items-center gap-1"><Thermometer size={11} /> 58°F Partly Cloudy</span>
+              {weather && (
+                <span className="flex items-center gap-1"><Thermometer size={11} /> {weather.temp}°F {weather.label}</span>
+              )}
             </div>
             <div className="flex items-center gap-3 text-white/60">
-              <span>Friday, March 21, 2026</span>
+              <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
             </div>
           </div>
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Menu size={22} className="sm:hidden cursor-pointer" />
+            {showMenu
+              ? <X size={22} className="sm:hidden cursor-pointer" onClick={() => setShowMenu(false)} />
+              : <Menu size={22} className="sm:hidden cursor-pointer" onClick={() => setShowMenu(true)} />
+            }
             <div>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl sm:text-4xl font-extrabold tracking-tight">WCPO</span>
@@ -275,6 +303,79 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
           </div>
         </div>
       </header>
+
+      {/* === MOBILE MENU DRAWER === */}
+      <AnimatePresence>
+        {showMenu && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="sm:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setShowMenu(false)}
+            />
+            {/* Drawer */}
+            <motion.nav
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="sm:hidden fixed top-0 left-0 bottom-0 w-72 bg-wcpo-dark z-50 flex flex-col shadow-2xl"
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+                <span className="text-white text-xl font-extrabold tracking-tight">WCPO</span>
+                <X size={22} className="text-white/60 cursor-pointer" onClick={() => setShowMenu(false)} />
+              </div>
+              <div className="flex-1 overflow-y-auto py-2">
+                {[
+                  { label: 'News', icon: null },
+                  { label: 'Weather', icon: null },
+                  { label: 'Sports', icon: null },
+                  { label: 'Investigates', icon: null },
+                ].map(item => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => setShowMenu(false)}
+                    style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                    className="w-full text-left px-5 py-3.5 text-sm font-medium text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+                <div className="border-t border-white/10 my-2" />
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); onOpenStory('neighborhood-pulse') }}
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                  className="w-full text-left px-5 py-3.5 text-sm font-semibold text-emerald-400 hover:bg-white/5 active:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <Activity size={15} /> Live Pulse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); onOpenStory('admin-hub') }}
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                  className="w-full text-left px-5 py-3.5 text-sm font-medium text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <Settings size={15} /> Publisher Tools
+                </button>
+                <div className="border-t border-white/10 my-2" />
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); setShowLive(prev => !prev) }}
+                  style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                  className="w-full text-left px-5 py-3.5 text-sm font-semibold text-wcpo-red hover:bg-white/5 active:bg-white/10 transition-colors flex items-center gap-2"
+                >
+                  <Play size={15} fill="currentColor" /> {showLive ? 'Hide LIVE Stream' : 'Watch LIVE'}
+                </button>
+              </div>
+            </motion.nav>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* === ERROR BANNER === */}
       {fetchError && (
