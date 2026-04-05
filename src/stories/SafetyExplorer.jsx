@@ -8,6 +8,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, ChoroplethLayer, MapLegendItem } from '../components/map'
+import { neighborhoodPolygons, getNeighborhoodCenter } from '../components/map'
 
 const neighborhoods = {
   'downtown-otr': { name: 'Downtown / OTR', safety: 28, neighborhood: 42, crime: 20, services: 45, improvement: -8 },
@@ -103,7 +105,61 @@ export default function SafetyExplorer({ onBack, onOpenStory }) {
 
       {/* Neighborhood selector */}
       <h2 className="font-serif text-2xl font-bold text-ink mb-2">Your Neighborhood</h2>
-      <p className="text-ink-light text-sm mb-4">Select yours to see how local perceptions compare to the city and national benchmarks.</p>
+      <p className="text-ink-light text-sm mb-4">Click the map or buttons below to see how local perceptions compare to the city and national benchmarks.</p>
+
+      {/* Safety Score Map */}
+      <StoryMap
+        center={{ lat: 39.1280, lng: -84.5050 }}
+        zoom={11.5}
+        height={400}
+        accentColor="#0d7377"
+        legend={
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Safety Satisfaction</p>
+            <MapLegendItem color="#dc2626" label="Below 25%" />
+            <MapLegendItem color="#f59e0b" label="25–40%" />
+            <MapLegendItem color="#84cc16" label="40–55%" />
+            <MapLegendItem color="#22c55e" label="Above 55%" />
+          </div>
+        }
+      >
+        <ChoroplethLayer
+          geojson={{
+            ...neighborhoodPolygons,
+            features: neighborhoodPolygons.features
+              .filter(f => Object.values(neighborhoods).some(n =>
+                f.properties.name === n.name || f.properties.name.includes(n.name.split(' / ')[0])
+              ))
+              .map(f => {
+                const entry = Object.entries(neighborhoods).find(([, n]) =>
+                  f.properties.name === n.name || f.properties.name.includes(n.name.split(' / ')[0])
+                )
+                const score = entry ? entry[1].safety : 0
+                return {
+                  ...f,
+                  properties: {
+                    ...f.properties,
+                    _safetyColor: score >= 55 ? '#22c55e' : score >= 40 ? '#84cc16' : score >= 25 ? '#f59e0b' : '#dc2626',
+                    _id: entry ? entry[0] : f.properties.id,
+                  },
+                }
+              }),
+          }}
+          colorMap={{}}
+          dataField="_safetyColor"
+          defaultColor="#e5e5e5"
+          selectedId={selected ? neighborhoods[selected]?.name : ''}
+          selectedStrokeColor="#0d7377"
+          opacity={0.5}
+          id="safety-choropleth"
+        />
+
+        {/* Selected marker */}
+        {selected && hood && (() => {
+          const c = getNeighborhoodCenter(hood.name)
+          return c ? <MapMarker lat={c.lat} lng={c.lng} color="#0d7377" label={`${hood.name}: ${hood.safety}%`} pulse /> : null
+        })()}
+      </StoryMap>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-8">
         {Object.entries(neighborhoods).map(([id, n]) => (

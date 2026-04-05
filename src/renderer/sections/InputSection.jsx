@@ -7,6 +7,7 @@ import {
   QuizInput,
   CheckboxGroupInput,
   RadioGroupInput,
+  MapSelectInput,
 } from '../inputs'
 
 const inputComponents = {
@@ -22,6 +23,8 @@ const inputComponents = {
   'radio': RadioGroupInput,
   'radio-group': RadioGroupInput,
   'radioGroup': RadioGroupInput,
+  'map-select': MapSelectInput,
+  'mapSelect': MapSelectInput,
 }
 
 export default function InputSection({ inputs }) {

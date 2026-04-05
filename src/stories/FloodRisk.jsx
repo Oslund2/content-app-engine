@@ -8,6 +8,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, FloodOverlay, ChoroplethLayer, MapLegendItem } from '../components/map'
+import { neighborhoodPolygons, getNeighborhoodCenter } from '../components/map'
 
 const floodStages = {
   action: { level: 46, label: 'Action Stage', color: '#ca8a04', desc: 'Authorities monitor conditions. Low-lying roads may start flooding.' },
@@ -200,7 +202,75 @@ export default function FloodRisk({ onBack, onOpenStory }) {
 
       {/* Neighborhood selector */}
       <h2 className="font-serif text-2xl font-bold text-ink mb-2">What Does It Mean for Your Neighborhood?</h2>
-      <p className="text-ink-light text-sm mb-4">Select your area, then use the river level simulator to see the impact at each stage.</p>
+      <p className="text-ink-light text-sm mb-4">Select your area on the map or dropdown, then use the river level simulator to see the impact at each stage.</p>
+
+      {/* Flood Zone Map */}
+      <StoryMap
+        center={{ lat: 39.0950, lng: -84.5050 }}
+        zoom={11.2}
+        height={400}
+        accentColor="#0369a1"
+        onMapClick={(e) => {
+          // Check if click hits a neighborhood polygon
+          if (e.features?.length > 0) {
+            const name = e.features[0].properties?.name
+            if (name && neighborhoods[name]) {
+              setNeighborhood(name)
+              setShowInterstitial(true)
+              setShowSim(false)
+            }
+          }
+        }}
+        legend={
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Flood Zones</p>
+            <MapLegendItem color="rgba(3,105,161,0.4)" label="FEMA AE (100-yr)" />
+            <MapLegendItem color="rgba(3,105,161,0.15)" label="Zone X (moderate)" />
+            <MapLegendItem color="#dc2626" label="Selected area" type="dot" />
+            <MapLegendItem color="#0369a1" label={`Water at ${simLevel} ft`} type="fill" />
+          </div>
+        }
+      >
+        {/* Flood water overlay — scales with simulator */}
+        <FloodOverlay level={simLevel} />
+
+        {/* Neighborhood choropleth colored by flood zone */}
+        <ChoroplethLayer
+          geojson={{
+            ...neighborhoodPolygons,
+            features: neighborhoodPolygons.features.filter(f =>
+              Object.keys(neighborhoods).some(n =>
+                f.properties.name === n || n.includes(f.properties.name) || f.properties.name.includes(n.split(' / ')[0])
+              )
+            ),
+          }}
+          colorMap={{
+            'East End': '#0369a180',
+            'The Banks / Smale Park': '#0369a180',
+            'Covington': '#0369a160',
+            'Riverside / Sayler Park': '#0369a180',
+            'Anderson Twp': '#16a34a40',
+            'Clifton': '#16a34a40',
+          }}
+          dataField="name"
+          defaultColor="#0369a140"
+          selectedId={neighborhood ? (neighborhoodPolygons.features.find(f =>
+            f.properties.name === neighborhood || neighborhood.includes(f.properties.name)
+          )?.properties?.name || '') : ''}
+          selectedStrokeColor="#dc2626"
+          opacity={0.3}
+          id="flood-neighborhoods"
+        />
+
+        {/* Selected neighborhood marker */}
+        {neighborhood && (() => {
+          const c = getNeighborhoodCenter(neighborhood)
+          return c ? <MapMarker lat={c.lat} lng={c.lng} color="#dc2626" label={neighborhood} pulse /> : null
+        })()}
+
+        {/* River gauge marker */}
+        <MapMarker lat={39.0968} lng={-84.5101} color="#0369a1" size="sm" label="Public Landing Gauge" />
+      </StoryMap>
 
       <select
         value={neighborhood}

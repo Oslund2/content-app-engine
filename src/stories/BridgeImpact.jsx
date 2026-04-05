@@ -8,6 +8,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, MapRoute, MapLegendItem } from '../components/map'
+import { bridgeImpactLandmarks, getNeighborhoodCenter } from '../components/map'
 
 const origins = {
   'covington': { name: 'Covington', oldMin: 6, newMin: 18, oldMiles: 1.5, newMiles: 5.2, pedestrian: true },
@@ -162,6 +164,65 @@ export default function BridgeImpact({ onBack, onOpenStory }) {
               <ImpactCard icon={Car} label="Wear & Tear" value={`$${impact.totalWear.toLocaleString()}`} color="orange" />
               <ImpactCard icon={DollarSign} label="Total Cost" value={`$${impact.totalCost.toLocaleString()}`} color="red" highlight />
             </div>
+
+            {/* Detour Route Map */}
+            <StoryMap
+              center={{ lat: 39.0910, lng: -84.5005 }}
+              zoom={13.8}
+              height={360}
+              accentColor="#b8860b"
+              legend={
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Route Comparison</p>
+                  <MapLegendItem color="#22c55e" label="Old route (bridge)" type="line" />
+                  <MapLegendItem color="#dc2626" label="New detour" type="line" />
+                  <MapLegendItem color="#0369a1" label="TANK shuttle" type="line" />
+                </div>
+              }
+            >
+              {/* Bridge location marker */}
+              <MapMarker
+                lat={bridgeImpactLandmarks.bridgeLocation.lat}
+                lng={bridgeImpactLandmarks.bridgeLocation.lng}
+                color="#b8860b"
+                size="lg"
+                label="Former 4th St Bridge"
+              />
+
+              {/* Show routes for selected origin */}
+              {origin && bridgeImpactLandmarks.detourRoutes[origin] && (
+                <>
+                  <MapRoute
+                    coordinates={bridgeImpactLandmarks.detourRoutes[origin].old}
+                    color="#22c55e"
+                    width={3}
+                    dashed
+                    id="old-route"
+                  />
+                  <MapRoute
+                    coordinates={bridgeImpactLandmarks.detourRoutes[origin].new}
+                    color="#dc2626"
+                    width={4}
+                    id="new-route"
+                  />
+                </>
+              )}
+
+              {/* TANK shuttle route */}
+              <MapRoute
+                coordinates={bridgeImpactLandmarks.tankShuttleRoute}
+                color="#0369a1"
+                width={2}
+                dashed
+                id="tank-shuttle"
+              />
+
+              {/* Origin marker */}
+              {loc && (() => {
+                const c = getNeighborhoodCenter(loc.name)
+                return c ? <MapMarker lat={c.lat} lng={c.lng} color="#16a34a" label={loc.name} pulse /> : null
+              })()}
+            </StoryMap>
 
             {/* Cumulative chart */}
             <div className="bg-white border border-rule rounded-xl p-5 mb-8">

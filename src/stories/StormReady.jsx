@@ -7,6 +7,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, ChoroplethLayer, MapLegendItem } from '../components/map'
+import { neighborhoodPolygons, getNeighborhoodCenter } from '../components/map'
 
 const questions = [
   {
@@ -178,6 +180,60 @@ export default function StormReady({ onBack, onOpenStory }) {
           </p>
         </div>
       </div>
+
+      {/* Storm Risk Map */}
+      <StoryMap
+        center={{ lat: 39.2000, lng: -84.4500 }}
+        zoom={9}
+        height={360}
+        accentColor="#7c3aed"
+        legend={
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">SPC Risk Level</p>
+            <MapLegendItem color="#16a34a" label="1 - Marginal" />
+            <MapLegendItem color="#ca8a04" label="2 - Slight" />
+            <MapLegendItem color="#ea580c" label="3 - Enhanced" />
+          </div>
+        }
+      >
+        <ChoroplethLayer
+          geojson={{
+            ...neighborhoodPolygons,
+            features: neighborhoodPolygons.features
+              .filter(f => Object.keys(cincyNeighborhoodRisk).some(a =>
+                f.properties.name === a || f.properties.name.includes(a.split(' / ')[0])
+              ))
+              .map(f => {
+                const areaKey = Object.keys(cincyNeighborhoodRisk).find(a =>
+                  f.properties.name === a || f.properties.name.includes(a.split(' / ')[0]) || a.includes(f.properties.name)
+                )
+                const risk = areaKey ? cincyNeighborhoodRisk[areaKey] : 'marginal'
+                return {
+                  ...f,
+                  properties: { ...f.properties, riskLevel: risk },
+                }
+              }),
+          }}
+          colorMap={{
+            marginal: '#16a34a60',
+            slight: '#ca8a0470',
+            enhanced: '#ea580c70',
+            moderate: '#dc262680',
+            high: '#7f1d1d80',
+          }}
+          dataField="riskLevel"
+          defaultColor="#e5e5e530"
+          selectedId={area ? (neighborhoodPolygons.features.find(f =>
+            f.properties.name === area || f.properties.name.includes(area.split(' / ')[0]) || area.includes(f.properties.name)
+          )?.properties?.name || '') : ''}
+          selectedStrokeColor="#7c3aed"
+          id="storm-risk"
+        />
+        {area && (() => {
+          const c = getNeighborhoodCenter(area)
+          return c ? <MapMarker lat={c.lat} lng={c.lng} color="#7c3aed" label={area} pulse /> : null
+        })()}
+      </StoryMap>
 
       {/* Area selector */}
       <div className="mb-10">

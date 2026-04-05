@@ -18,6 +18,7 @@ import {
   StepGuide,
   FactCheck,
   Divider,
+  MapBlock,
 } from './blocks'
 
 /**
@@ -40,6 +41,7 @@ const blockComponents = {
   'step-guide': StepGuide,
   'fact-check': FactCheck,
   'divider': Divider,
+  'map': MapBlock,
 }
 
 function InputBlock({ inputs }) {

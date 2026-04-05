@@ -10,6 +10,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, MapRoute, MapLegendItem } from '../components/map'
+import { openingDayLandmarks, getNeighborhoodCenter } from '../components/map'
 
 const neighborhoods = [
   { id: 'downtown', name: 'Downtown / OTR', driveMin: 5, walkMin: 15, transitMin: 10, parkingCost: 35, tip: 'Walk to the Banks — skip parking entirely.' },
@@ -206,6 +208,64 @@ export default function OpeningDayPlanner({ onBack, onOpenStory }) {
                 <p className="text-sm text-amber-700">{plan.tip}</p>
               </div>
             </div>
+
+            {/* Route Map */}
+            <h3 className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-3">Your Route</h3>
+            <StoryMap
+              center={{ lat: 39.1050, lng: -84.5110 }}
+              zoom={13.5}
+              height={360}
+              accentColor="#c41230"
+              legend={
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Opening Day</p>
+                  <MapLegendItem color="#c41230" label="Parade route" type="line" />
+                  <MapLegendItem color="#dc2626" label="Road closed" type="line" />
+                  <MapLegendItem color="#16a34a" label="Your origin" type="dot" />
+                </div>
+              }
+            >
+              {/* Parade route */}
+              <MapRoute
+                coordinates={openingDayLandmarks.paradeRoute}
+                color="#c41230"
+                width={4}
+                id="parade-route"
+              />
+
+              {/* Closed road segments */}
+              {openingDayLandmarks.closedRoadSegments.map((seg, i) => (
+                <MapRoute
+                  key={i}
+                  coordinates={seg.path}
+                  color="#dc2626"
+                  width={3}
+                  dashed
+                  id={`closed-${i}`}
+                />
+              ))}
+
+              {/* Venue markers */}
+              <MapMarker
+                lat={openingDayLandmarks.gabp.lat}
+                lng={openingDayLandmarks.gabp.lng}
+                color="#c41230"
+                size="lg"
+                label="GABP"
+              />
+              <MapMarker
+                lat={openingDayLandmarks.findlayMarket.lat}
+                lng={openingDayLandmarks.findlayMarket.lng}
+                color="#ea580c"
+                label="Findlay Market"
+              />
+
+              {/* Origin marker */}
+              {hood && (() => {
+                const c = getNeighborhoodCenter(hood.name)
+                return c ? <MapMarker lat={c.lat} lng={c.lng} color="#16a34a" label={`From: ${hood.name}`} pulse /> : null
+              })()}
+            </StoryMap>
 
             <AdSlot.Insight storyId="opening-day" />
 

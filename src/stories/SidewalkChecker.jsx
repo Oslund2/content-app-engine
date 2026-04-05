@@ -10,6 +10,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, ChoroplethLayer, MapLegendItem } from '../components/map'
+import { neighborhoodPolygons, getNeighborhoodCenter } from '../components/map'
 
 const pilotNeighborhoods = [
   { name: 'South Fairmount', eligible: true, repairsCompleted: 12, income: 38200 },
@@ -136,6 +138,67 @@ export default function SidewalkChecker({ onBack, onOpenStory }) {
       {/* Pilot neighborhoods map */}
       <h2 className="font-serif text-2xl font-bold text-ink mb-2">The Pilot Neighborhoods</h2>
       <p className="text-sm text-ink-muted mb-4">All seven are on the West Side, chosen for income eligibility and geographic proximity.</p>
+
+      {/* Pilot Zone Map */}
+      <StoryMap
+        center={{ lat: 39.1250, lng: -84.5550 }}
+        zoom={12.5}
+        height={360}
+        accentColor="#6b21a8"
+        legend={
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Sidewalk Pilot</p>
+            <MapLegendItem color="#7c3aed" label="Pilot neighborhood" />
+            <MapLegendItem color="#f59e0b" label="Expansion candidate" />
+            <MapLegendItem color="#e5e5e5" label="Not eligible" />
+          </div>
+        }
+      >
+        <ChoroplethLayer
+          geojson={{
+            ...neighborhoodPolygons,
+            features: neighborhoodPolygons.features
+              .filter(f => allNeighborhoods.some(n =>
+                f.properties.name === n.name || f.properties.name.includes(n.name)
+              ))
+              .map(f => {
+                const n = allNeighborhoods.find(n =>
+                  f.properties.name === n.name || f.properties.name.includes(n.name)
+                )
+                return {
+                  ...f,
+                  properties: {
+                    ...f.properties,
+                    _status: n?.inPilot ? 'pilot' : n?.expansionLikely ? 'expansion' : 'ineligible',
+                  },
+                }
+              }),
+          }}
+          colorMap={{
+            pilot: '#7c3aed80',
+            expansion: '#f59e0b50',
+            ineligible: '#e5e5e530',
+          }}
+          dataField="_status"
+          defaultColor="#e5e5e520"
+          selectedId={neighborhood ? (neighborhoodPolygons.features.find(f =>
+            f.properties.name === neighborhood
+          )?.properties?.name || '') : ''}
+          selectedStrokeColor="#6b21a8"
+          id="sidewalk-zones"
+        />
+
+        {/* Pilot neighborhood markers with repair counts */}
+        {pilotNeighborhoods.map(n => {
+          const c = getNeighborhoodCenter(n.name)
+          if (!c) return null
+          return (
+            <MapMarker key={n.name} lat={c.lat} lng={c.lng} color="#7c3aed" size="sm"
+              label={`${n.name}: ${n.repairsCompleted} repairs`} />
+          )
+        })}
+      </StoryMap>
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-10">
         {pilotNeighborhoods.map(n => (
           <div key={n.name} className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">

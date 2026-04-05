@@ -7,6 +7,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import { fetchAllPollData, fetchMyProfiles, getSessionId } from '../lib/supabase'
+import { StoryMap, MapMarker, ChoroplethLayer, MapLegendItem } from '../components/map'
+import { neighborhoodPolygons, getNeighborhoodCenter } from '../components/map'
 
 const NEIGHBORHOODS = [
   // West Side
@@ -406,6 +408,75 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
           <p className="text-sm text-ink-muted mb-4">
             Aggregate data from every story, broken down by neighborhood.
           </p>
+
+          {/* Community Engagement Map */}
+          <StoryMap
+            center={{ lat: 39.1280, lng: -84.5050 }}
+            zoom={11.2}
+            height={420}
+            accentColor="#059669"
+            legend={
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Engagement</p>
+                <MapLegendItem color="#059669" label="High activity" />
+                <MapLegendItem color="#84cc16" label="Moderate" />
+                <MapLegendItem color="#fbbf24" label="Low" />
+                <MapLegendItem color="#e5e5e5" label="No data" />
+                {myHood && <MapLegendItem color="#dc2626" label="Your neighborhood" type="dot" />}
+              </div>
+            }
+          >
+            <ChoroplethLayer
+              geojson={{
+                ...neighborhoodPolygons,
+                features: neighborhoodPolygons.features.map(f => {
+                  const hoodName = NEIGHBORHOODS.find(n =>
+                    f.properties.name === n || f.properties.name.includes(n) || n.includes(f.properties.name)
+                  )
+                  const count = hoodName ? (neighborhoodStats[hoodName]?.total || 0) : 0
+                  const intensity = maxEngagement > 0 ? count / maxEngagement : 0
+                  return {
+                    ...f,
+                    properties: {
+                      ...f.properties,
+                      _engagementColor: count === 0 ? '#e5e5e5'
+                        : intensity > 0.5 ? '#059669'
+                        : intensity > 0.2 ? '#84cc16'
+                        : '#fbbf24',
+                    },
+                  }
+                }),
+              }}
+              colorMap={{}}
+              dataField="_engagementColor"
+              defaultColor="#e5e5e520"
+              selectedId={myHood ? (neighborhoodPolygons.features.find(f =>
+                f.properties.name === myHood || f.properties.name.includes(myHood) || myHood.includes(f.properties.name)
+              )?.properties?.name || '') : ''}
+              selectedStrokeColor="#dc2626"
+              opacity={0.5}
+              id="pulse-engagement"
+            />
+
+            {/* Top 5 markers */}
+            {leaderboard.filter(l => l.count > 0).map((l, i) => {
+              const c = getNeighborhoodCenter(l.name)
+              if (!c) return null
+              return (
+                <MapMarker key={l.name} lat={c.lat} lng={c.lng}
+                  color={i === 0 ? '#059669' : '#84cc16'}
+                  size={i === 0 ? 'lg' : 'md'}
+                  label={`#${i + 1} ${l.name} (${l.count})`}
+                />
+              )
+            })}
+
+            {/* My neighborhood marker */}
+            {myHood && (() => {
+              const c = getNeighborhoodCenter(myHood)
+              return c ? <MapMarker lat={c.lat} lng={c.lng} color="#dc2626" label={myHood} pulse /> : null
+            })()}
+          </StoryMap>
 
           {/* My Neighborhood selector */}
           <div className="flex items-center gap-2 mb-6 px-3 py-2.5 bg-paper-warm rounded-lg border border-rule">

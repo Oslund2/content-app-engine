@@ -10,6 +10,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, MapRoute, MapPolygon, MapLegendItem } from '../components/map'
+import { sharonLakeFeatures } from '../components/map'
 
 const interests = [
   { id: 'hiking', label: 'Hiking & Trails', icon: Footprints, color: 'emerald' },
@@ -223,6 +225,54 @@ export default function SharonLakeExplorer({ onBack, onOpenStory }) {
                 ? 'Good call on the weekday — the first few weeks will be packed on Saturdays. You\'ll have the boardwalk practically to yourself before 9 AM.'
                 : 'Weekends will be busy right after reopening, but the naturalist programs are worth the crowds. Arrive early to beat the parking crunch.'}
             </p>
+
+            {/* Park Trail Map */}
+            <StoryMap
+              center={sharonLakeFeatures.parkCenter}
+              zoom={15}
+              height={380}
+              mapStyle="voyager"
+              accentColor="#0e7490"
+              legend={
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Sharon Lake</p>
+                  <MapLegendItem color={sharonLakeFeatures.trails.lakeLoop.color} label="Lake Loop (2.1 mi)" type="line" />
+                  <MapLegendItem color={sharonLakeFeatures.trails.gorge.color} label="Gorge Trail (3.4 mi)" type="line" />
+                  <MapLegendItem color={sharonLakeFeatures.trails.boardwalk.color} label="Boardwalk (0.4 mi)" type="line" />
+                </div>
+              }
+            >
+              {/* Lake polygon */}
+              <MapPolygon
+                geojson={{
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Polygon',
+                    coordinates: [[...sharonLakeFeatures.lake, sharonLakeFeatures.lake[0]]],
+                  },
+                }}
+                fillColor="#0ea5e9"
+                fillOpacity={0.3}
+                strokeColor="#0369a1"
+                id="sharon-lake-water"
+              />
+
+              {/* Trail routes — highlight selected interests */}
+              {Object.values(sharonLakeFeatures.trails).map(trail => (
+                <MapRoute
+                  key={trail.name}
+                  coordinates={trail.path}
+                  color={trail.color}
+                  width={selectedInterests.includes('hiking') || selectedInterests.includes('family') ? 4 : 2.5}
+                  id={`trail-${trail.name.replace(/\s/g, '-')}`}
+                />
+              ))}
+
+              {/* Points of interest */}
+              {sharonLakeFeatures.points.map((pt, i) => (
+                <MapMarker key={i} lat={pt.lat} lng={pt.lng} color="#0e7490" size="sm" label={pt.label} />
+              ))}
+            </StoryMap>
 
             {plan.map(({ interest, data }, pi) => (
               <motion.div

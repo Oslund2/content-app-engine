@@ -48,6 +48,10 @@ function normalizeInputType(type) {
     'radio': 'radio',
     'radio-group': 'radio',
     'radioGroup': 'radio',
+    'map-select': 'map-select',
+    'mapSelect': 'map-select',
+    'map': 'map-select',
+    'location-map': 'map-select',
     'text': 'dropdown', // Fallback: text inputs become dropdowns
   }
   return map[type] || 'button-array'
@@ -73,6 +77,25 @@ function normalizeInput(input) {
 
   // Text inputs: skip them (we can't render free text in the config renderer)
   if (input.type === 'text' && (!input.options || input.options.length === 0)) return null
+
+  // Map-select inputs: preserve map-specific props
+  if (type === 'map-select') {
+    const options = (input.options || []).map(normalizeOption)
+    return {
+      ...input,
+      id: input.id || normalizeId(input.label || 'map-select'),
+      type: 'map-select',
+      label: input.label || input.question || '',
+      options,
+      center: input.center || null,
+      zoom: input.zoom || 11.5,
+      height: input.height || 350,
+      colorField: input.colorField || null,
+      colorScale: input.colorScale || null,
+      accentColor: input.accentColor || null,
+      helpText: input.helpText || input.description || '',
+    }
+  }
 
   // Quiz inputs have a special structure
   if (type === 'quiz') {
@@ -192,8 +215,48 @@ function normalizeGrade(grade) {
   }
 }
 
+// Normalize map block config
+function normalizeMapBlock(block) {
+  const normalized = { ...block }
+
+  // Normalize center: accept [lat, lng], { lat, lng }, or string "Cincinnati"
+  if (Array.isArray(normalized.center) && normalized.center.length === 2) {
+    // Already correct format
+  } else if (normalized.center?.lat && normalized.center?.lng) {
+    normalized.center = [normalized.center.lat, normalized.center.lng]
+  } else {
+    normalized.center = [39.1031, -84.5120] // Cincinnati default
+  }
+
+  // Normalize layers
+  if (Array.isArray(normalized.layers)) {
+    normalized.layers = normalized.layers.map((layer, i) => ({
+      ...layer,
+      id: layer.id || `${layer.type}-${i}`,
+    }))
+  } else {
+    normalized.layers = []
+  }
+
+  // Normalize legend
+  if (!Array.isArray(normalized.legend)) {
+    normalized.legend = []
+  }
+
+  // Accept alternate type names
+  if (block.type === 'location-map' || block.type === 'choropleth') {
+    normalized.type = 'map'
+  }
+
+  return normalized
+}
+
 // Normalize inputs within a block's inputs array
 function normalizeBlockInputs(block) {
+  // Map blocks
+  if (block.type === 'map' || block.type === 'location-map' || block.type === 'choropleth') {
+    return normalizeMapBlock(block)
+  }
   if (block.type === 'input' && Array.isArray(block.inputs)) {
     return {
       ...block,

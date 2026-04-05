@@ -11,6 +11,8 @@ import StoryConnections from '../components/StoryConnections'
 import AdSlot from '../components/AdSlot'
 import DynamicNarrative from '../components/DynamicNarrative'
 import LivePoll from '../components/LivePoll'
+import { StoryMap, MapMarker, ChoroplethLayer, MapLegendItem } from '../components/map'
+import { neighborhoodPolygons, getNeighborhoodCenter } from '../components/map'
 
 const fireTimeline = [
   { date: 'Jan 5', neighborhood: 'Winton Place', fatal: false, deaths: 0 },
@@ -282,6 +284,88 @@ export default function FireCrisis({ onBack, onOpenStory }) {
         Fires have clustered in neighborhoods with older housing stock — homes built before 1960 often lack
         hardwired smoke detectors and have electrical systems not built for modern loads.
       </p>
+
+      {/* Fire Incident Map */}
+      <StoryMap
+        center={{ lat: 39.1350, lng: -84.5200 }}
+        zoom={11.5}
+        height={420}
+        accentColor="#dc2626"
+        onMapClick={(e) => {
+          if (e.features?.length > 0) {
+            const name = e.features[0].properties?.name
+            if (name && neighborhoods[name]) setSelectedHood(name)
+          }
+        }}
+        legend={
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-ink uppercase tracking-wider mb-1">Fire Risk</p>
+            <MapLegendItem color="#dc2626" label="High risk" />
+            <MapLegendItem color="#f59e0b" label="Elevated" />
+            <MapLegendItem color="#fbbf24" label="Moderate" />
+            <MapLegendItem color="#22c55e" label="Low" />
+            <MapLegendItem color="#dc2626" label="Fatal fire" type="dot" />
+            <MapLegendItem color="#f59e0b" label="Non-fatal fire" type="dot" />
+          </div>
+        }
+      >
+        {/* Risk choropleth by neighborhood */}
+        <ChoroplethLayer
+          geojson={{
+            ...neighborhoodPolygons,
+            features: neighborhoodPolygons.features.filter(f =>
+              Object.keys(neighborhoods).some(n =>
+                f.properties.name === n || f.properties.name.includes(n.split(' ')[0])
+              )
+            ).map(f => {
+              const hoodName = Object.keys(neighborhoods).find(n =>
+                f.properties.name === n || f.properties.name.includes(n.split(' ')[0])
+              )
+              return {
+                ...f,
+                properties: {
+                  ...f.properties,
+                  risk: hoodName ? neighborhoods[hoodName].risk : 'low',
+                },
+              }
+            }),
+          }}
+          colorMap={{
+            high: '#dc262680',
+            elevated: '#f59e0b60',
+            moderate: '#fbbf2440',
+            low: '#22c55e30',
+          }}
+          dataField="risk"
+          defaultColor="#e5e5e5"
+          selectedId={selectedHood ? (neighborhoodPolygons.features.find(f =>
+            f.properties.name === selectedHood || selectedHood.includes(f.properties.name)
+          )?.properties?.name || '') : ''}
+          selectedStrokeColor="#dc2626"
+          id="fire-risk"
+        />
+
+        {/* Fire incident markers */}
+        {fireTimeline.map((f, i) => {
+          const c = getNeighborhoodCenter(f.neighborhood)
+          if (!c) return null
+          return (
+            <MapMarker
+              key={i}
+              lat={c.lat + (Math.random() - 0.5) * 0.004}
+              lng={c.lng + (Math.random() - 0.5) * 0.004}
+              color={f.fatal ? '#dc2626' : '#f59e0b'}
+              size="sm"
+            />
+          )
+        })}
+
+        {/* Selected neighborhood marker */}
+        {selectedHood && (() => {
+          const c = getNeighborhoodCenter(selectedHood)
+          return c ? <MapMarker lat={c.lat} lng={c.lng} color="#dc2626" label={selectedHood} pulse /> : null
+        })()}
+      </StoryMap>
 
       <select
         value={selectedHood}
