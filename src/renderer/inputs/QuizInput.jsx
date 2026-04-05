@@ -102,7 +102,7 @@ export default function QuizInput({
                     className={`w-full text-left px-4 py-4 sm:py-3 rounded-lg border-2 text-sm transition-all duration-200 cursor-pointer select-none
                       ${isSelected
                         ? 'border-accent bg-accent-bg'
-                        : 'border-rule bg-white hover:border-red-300 active:scale-[0.98]'
+                        : 'border-rule bg-white hover:border-red-300 active:scale-[0.98] active:bg-gray-50'
                       }`}
                   >
                     <div className="flex items-center gap-2">

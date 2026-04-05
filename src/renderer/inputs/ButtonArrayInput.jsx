@@ -50,30 +50,30 @@ export default function ButtonArrayInput({
           const Icon = opt.icon
 
           return (
-            <motion.button
-              key={opt.id}
-              variants={item}
-              type="button"
-              onClick={() => onChange?.(opt.id, opt)}
-              style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
-              className={`group relative px-4 py-4 sm:py-3 rounded-lg border-2 text-left transition-all duration-200 cursor-pointer select-none
-                ${isSelected
-                  ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                  : 'bg-white border-gray-200 hover:border-red-300 hover:shadow-sm active:scale-[0.98]'
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                {Icon && (
-                  <Icon
-                    size={16}
-                    className={isSelected ? 'text-white' : 'text-ink-muted'}
-                  />
-                )}
-                <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-ink'}`}>
-                  {opt.label}
-                </span>
-              </div>
-            </motion.button>
+            <motion.div key={opt.id} variants={item}>
+              <button
+                type="button"
+                onClick={() => onChange?.(opt.id, opt)}
+                style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+                className={`group relative w-full px-4 py-4 sm:py-3 rounded-lg border-2 text-left transition-all duration-200 cursor-pointer select-none
+                  ${isSelected
+                    ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                    : 'bg-white border-gray-200 hover:border-red-300 hover:shadow-sm active:scale-[0.98] active:bg-gray-50'
+                  }`}
+              >
+                <div className="flex items-center gap-2">
+                  {Icon && (
+                    <Icon
+                      size={16}
+                      className={isSelected ? 'text-white' : 'text-ink-muted'}
+                    />
+                  )}
+                  <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-ink'}`}>
+                    {opt.label}
+                  </span>
+                </div>
+              </button>
+            </motion.div>
           )
         })}
       </motion.div>
