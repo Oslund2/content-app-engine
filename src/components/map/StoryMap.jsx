@@ -1,9 +1,8 @@
-import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MapPin, Maximize2, Minimize2, Layers } from 'lucide-react'
-
-// Lazy-load maplibre to keep initial bundle small
-const MapGL = lazy(() => import('react-map-gl/maplibre'))
+import { MapPin, Maximize2, Minimize2 } from 'lucide-react'
+import MapGL, { Marker, Source, Layer } from 'react-map-gl/maplibre'
+import 'maplibre-gl/dist/maplibre-gl.css'
 
 // MapLibre style — clean, free, no API key
 const MAP_STYLES = {
@@ -18,20 +17,6 @@ const DEFAULT_ZOOM = 11.5
 
 /**
  * StoryMap — The shared map component for all story apps.
- *
- * Props:
- * - center: { lat, lng } — map center (defaults to Cincinnati)
- * - zoom: number — initial zoom (default 11.5)
- * - mapStyle: 'light' | 'dark' | 'voyager'
- * - height: number | string — map height (default 380)
- * - accentColor: string — theme color for highlights
- * - interactive: boolean — allow pan/zoom (default true)
- * - expandable: boolean — show expand/collapse toggle
- * - children: map overlay content (layers, markers, etc.)
- * - className: additional CSS classes
- * - legend: ReactNode — legend content to overlay
- * - onMapClick: (e) => void — click handler
- * - attribution: string — optional source attribution
  */
 export default function StoryMap({
   center,
@@ -59,13 +44,11 @@ export default function StoryMap({
 
   const [vs, setVs] = useState(viewState)
 
-  // Update view when center/zoom props change
   useEffect(() => {
     setVs(viewState)
   }, [viewState])
 
   const mapHeight = expanded ? '70vh' : (typeof height === 'number' ? `${height}px` : height)
-
   const styleUrl = MAP_STYLES[mapStyle] || MAP_STYLES.voyager
 
   const handleLoad = useCallback(() => {
@@ -92,35 +75,25 @@ export default function StoryMap({
         )}
       </AnimatePresence>
 
-      <Suspense fallback={
-        <div className="flex items-center justify-center bg-paper-warm" style={{ height: mapHeight }}>
-          <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-              style={{ borderColor: accentColor, borderTopColor: 'transparent' }} />
-            <span className="text-xs text-ink-muted">Loading map...</span>
-          </div>
-        </div>
-      }>
-        <div style={{ height: mapHeight }} className="transition-[height] duration-300">
-          <MapGL
-            ref={mapRef}
-            {...vs}
-            onMove={evt => setVs(evt.viewState)}
-            onClick={onMapClick}
-            onLoad={handleLoad}
-            mapStyle={styleUrl}
-            style={{ width: '100%', height: '100%' }}
-            scrollZoom={interactive}
-            dragPan={interactive}
-            dragRotate={false}
-            touchZoomRotate={interactive}
-            doubleClickZoom={interactive}
-            attributionControl={false}
-          >
-            {children}
-          </MapGL>
-        </div>
-      </Suspense>
+      <div style={{ height: mapHeight }} className="transition-[height] duration-300">
+        <MapGL
+          ref={mapRef}
+          {...vs}
+          onMove={evt => setVs(evt.viewState)}
+          onClick={onMapClick}
+          onLoad={handleLoad}
+          mapStyle={styleUrl}
+          style={{ width: '100%', height: '100%' }}
+          scrollZoom={interactive}
+          dragPan={interactive}
+          dragRotate={false}
+          touchZoomRotate={interactive}
+          doubleClickZoom={interactive}
+          attributionControl={false}
+        >
+          {children}
+        </MapGL>
+      </div>
 
       {/* Controls overlay */}
       <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
@@ -157,31 +130,28 @@ export default function StoryMap({
  * MapMarker — A styled pin marker for the map.
  */
 export function MapMarker({ lat, lng, color = '#dc2626', size = 'md', pulse = false, label, onClick, children }) {
-  const Marker = lazy(() => import('react-map-gl/maplibre').then(m => ({ default: m.Marker })))
   const sizes = { sm: 20, md: 28, lg: 36 }
   const s = sizes[size] || sizes.md
 
   return (
-    <Suspense fallback={null}>
-      <Marker latitude={lat} longitude={lng} anchor="bottom" onClick={onClick}>
-        <div className="relative flex flex-col items-center cursor-pointer group">
-          {pulse && (
-            <div className="absolute -inset-2 rounded-full animate-ping opacity-20" style={{ backgroundColor: color }} />
-          )}
-          <div
-            className="rounded-full shadow-lg border-2 border-white flex items-center justify-center transition-transform group-hover:scale-110"
-            style={{ width: s, height: s, backgroundColor: color }}
-          >
-            {children || <MapPin size={s * 0.5} className="text-white" />}
-          </div>
-          {label && (
-            <div className="mt-1 px-2 py-0.5 rounded bg-white/95 shadow-sm border border-rule text-[10px] font-semibold text-ink whitespace-nowrap">
-              {label}
-            </div>
-          )}
+    <Marker latitude={lat} longitude={lng} anchor="bottom" onClick={onClick}>
+      <div className="relative flex flex-col items-center cursor-pointer group">
+        {pulse && (
+          <div className="absolute -inset-2 rounded-full animate-ping opacity-20" style={{ backgroundColor: color }} />
+        )}
+        <div
+          className="rounded-full shadow-lg border-2 border-white flex items-center justify-center transition-transform group-hover:scale-110"
+          style={{ width: s, height: s, backgroundColor: color }}
+        >
+          {children || <MapPin size={s * 0.5} className="text-white" />}
         </div>
-      </Marker>
-    </Suspense>
+        {label && (
+          <div className="mt-1 px-2 py-0.5 rounded bg-white/95 shadow-sm border border-rule text-[10px] font-semibold text-ink whitespace-nowrap">
+            {label}
+          </div>
+        )}
+      </div>
+    </Marker>
   )
 }
 
@@ -189,14 +159,11 @@ export function MapMarker({ lat, lng, color = '#dc2626', size = 'md', pulse = fa
  * MapRoute — A polyline on the map.
  */
 export function MapRoute({ coordinates, color = '#dc2626', width = 3, dashed = false, id }) {
-  const { Source, Layer } = useLazyMapParts()
-  if (!Source) return null
-
   const geojson = useMemo(() => ({
     type: 'Feature',
     geometry: {
       type: 'LineString',
-      coordinates, // [[lng, lat], ...]
+      coordinates,
     },
   }), [coordinates])
 
@@ -222,10 +189,7 @@ export function MapRoute({ coordinates, color = '#dc2626', width = 3, dashed = f
 /**
  * MapPolygon — A filled polygon area on the map.
  */
-export function MapPolygon({ geojson, fillColor = '#dc2626', fillOpacity = 0.15, strokeColor, strokeWidth = 1.5, id, onClick }) {
-  const { Source, Layer } = useLazyMapParts()
-  if (!Source) return null
-
+export function MapPolygon({ geojson, fillColor = '#dc2626', fillOpacity = 0.15, strokeColor, strokeWidth = 1.5, id }) {
   const layerId = id || `polygon-${fillColor.replace('#', '')}`
 
   return (
@@ -265,12 +229,7 @@ export function ChoroplethLayer({
   opacity = 0.45,
   hoverOpacity = 0.65,
   id = 'choropleth',
-  onClick,
 }) {
-  const { Source, Layer } = useLazyMapParts()
-  const [hoveredId, setHoveredId] = useState(null)
-  if (!Source) return null
-
   // Inject colors into feature properties for data-driven styling
   const coloredGeo = useMemo(() => {
     if (!geojson?.features) return geojson
@@ -282,7 +241,7 @@ export function ChoroplethLayer({
         properties: {
           ...f.properties,
           _fillColor: colorMap[f.properties[dataField]] || colorMap[f.properties.name] || colorMap[f.properties.id] || defaultColor,
-          _id: f.properties.id || f.properties.name || i,
+          _id: f.properties.id || f.properties.name || String(i),
         },
       })),
     }
@@ -298,7 +257,6 @@ export function ChoroplethLayer({
           'fill-opacity': [
             'case',
             ['==', ['get', '_id'], selectedId || ''], 0.7,
-            ['==', ['get', '_id'], hoveredId || ''], hoverOpacity,
             opacity,
           ],
         }}
@@ -328,10 +286,6 @@ export function ChoroplethLayer({
  * FloodOverlay — Animated water level visualization for the FloodRisk story.
  */
 export function FloodOverlay({ level, maxLevel = 66, color = '#0369a1' }) {
-  const { Source, Layer } = useLazyMapParts()
-  if (!Source) return null
-
-  // Opacity and extent scale with flood level
   const intensity = Math.max(0, Math.min(1, (level - 38) / (maxLevel - 38)))
 
   const geojson = useMemo(() => ({
@@ -344,7 +298,6 @@ export function FloodOverlay({ level, maxLevel = 66, color = '#0369a1' }) {
         [-84.5600, 39.0800], [-84.5300, 39.0820], [-84.5100, 39.0860],
         [-84.4900, 39.0870], [-84.4700, 39.0850], [-84.4500, 39.0840],
         [-84.4200, 39.0820], [-84.3600, 39.0790],
-        // North extent scales with level
         [-84.3600, 39.0790 + intensity * 0.025],
         [-84.4200, 39.0820 + intensity * 0.025],
         [-84.4500, 39.0840 + intensity * 0.025],
@@ -382,17 +335,6 @@ export function FloodOverlay({ level, maxLevel = 66, color = '#0369a1' }) {
       />
     </Source>
   )
-}
-
-// ── Helper: lazy-load Source and Layer from react-map-gl ─────────────
-function useLazyMapParts() {
-  const [parts, setParts] = useState({ Source: null, Layer: null })
-  useEffect(() => {
-    import('react-map-gl/maplibre').then(mod => {
-      setParts({ Source: mod.Source, Layer: mod.Layer })
-    })
-  }, [])
-  return parts
 }
 
 // ── MapLegendItem helper ──────────────────────────────────────────────
