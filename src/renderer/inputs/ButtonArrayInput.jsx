@@ -55,10 +55,11 @@ export default function ButtonArrayInput({
               variants={item}
               type="button"
               onClick={() => onChange?.(opt.id, opt)}
-              className={`group relative px-4 py-3 rounded-lg border-2 text-left transition-all duration-200
+              style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+              className={`group relative px-4 py-4 sm:py-3 rounded-lg border-2 text-left transition-all duration-200 cursor-pointer select-none
                 ${isSelected
                   ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                  : 'bg-white border-gray-200 hover:border-red-300 hover:shadow-sm'
+                  : 'bg-white border-gray-200 hover:border-red-300 hover:shadow-sm active:scale-[0.98]'
                 }`}
             >
               <div className="flex items-center gap-2">

@@ -45,10 +45,11 @@ export default function RadioGroupInput({
               variants={item}
               type="button"
               onClick={() => onChange?.(opt.id, opt)}
-              className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all duration-200
+              style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+              className={`w-full text-left px-4 py-4 sm:py-3 rounded-xl border-2 transition-all duration-200 cursor-pointer select-none
                 ${isSelected
                   ? 'border-accent bg-accent-bg shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-red-300 hover:shadow-sm'
+                  : 'border-gray-200 bg-white hover:border-red-300 hover:shadow-sm active:scale-[0.98]'
                 }`}
             >
               <div className="flex items-start gap-3">

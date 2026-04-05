@@ -81,12 +81,13 @@ export default function CheckboxGroupInput({
               type="button"
               onClick={() => handleToggle(opt.id)}
               disabled={isDisabled}
-              className={`relative text-left px-4 py-3 rounded-xl border-2 transition-all duration-200
+              style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
+              className={`relative text-left px-4 py-4 sm:py-3 rounded-xl border-2 transition-all duration-200 select-none
                 ${isSelected
                   ? 'border-accent bg-accent-bg shadow-sm'
                   : isDisabled
                     ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                    : 'border-gray-200 bg-white hover:border-red-300 hover:shadow-sm'
+                    : 'border-gray-200 bg-white hover:border-red-300 hover:shadow-sm active:scale-[0.98]'
                 }`}
             >
               {/* Check indicator */}
