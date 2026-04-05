@@ -62,6 +62,7 @@ This engine changes that equation. An **automated pipeline** transforms any news
 2. **AI analysis** (Claude) evaluates each story for interactive potential and generates a complete application configuration -- inputs, calculations, result logic, chart specifications, narrative prompts
 3. **A config-driven renderer** turns that configuration into a working interactive application with no custom code required
 4. **Editorial review** provides human oversight before publication
+5. **Hero images** are automatically extracted from source articles and can be searched, replaced, or removed by editors before publishing
 
 The result: a local newsroom can deploy interactive story apps on virtually every story that warrants one, at a pace that was previously impossible. The limiting factor is no longer engineering capacity -- it's editorial judgment about which stories benefit most from the format.
 
@@ -179,15 +180,17 @@ Real Cincinnati news stories transformed into interactive applications:
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | React 19 (Vite) |
+| Framework | React 19 (Vite 8) |
 | Styling | Tailwind CSS 4 |
 | Animation | Framer Motion |
 | Charts | Recharts |
 | Icons | Lucide React |
 | Text-to-Speech | Edge TTS (no API key) |
 | Database | Supabase (PostgreSQL) |
-| AI Pipeline | Claude (Anthropic) |
-| Hosting | Netlify (Functions + CDN) |
+| AI Pipeline | Claude Sonnet + Haiku (Anthropic) |
+| Hosting | Netlify (Functions + Edge Functions + CDN) |
+| Social Previews | Netlify Function (dynamic OpenGraph) |
+| Image Search | Unsplash + NASA Images API (rights-free) |
 
 ---
 
@@ -196,7 +199,7 @@ Real Cincinnati news stories transformed into interactive applications:
 ```
 src/
   StoryApp.jsx               # Root router (home / story / topic / embed)
-  HomePage.jsx               # WCPO-branded news homepage with hero rotation
+  HomePage.jsx               # WCPO-branded news homepage with hero rotation + search
   TopicPage.jsx              # Themed story collections
   storyData.json             # Legacy story metadata
   connections.json           # 42 cross-story recommendation rules
@@ -204,51 +207,114 @@ src/
 
   stories/                   # Hand-crafted story components (13)
   renderer/                  # Config-driven rendering engine
-    StoryRenderer.jsx        #   Orchestrator (config → interactive app)
+    StoryRenderer.jsx        #   Orchestrator (config -> interactive app)
     BlockRenderer.jsx        #   Block-based composition system
     ConfigContext.jsx         #   React Context for formula evaluation
     FormulaEngine.js         #   Safe math parser (no eval())
-    sections/                #   Hero, Input, Result, Chart, ArticleBody
-    inputs/                  #   Slider, Radio, Checkbox, Dropdown, Quiz
-    blocks/                  #   StatDashboard, Timeline, Collapsible, etc.
+    normalizeConfig.js       #   Bridges AI output -> renderer expectations
+    sections/                #   Hero (with image), Input, Result, Chart, ArticleBody
+    inputs/                  #   Slider, Radio, Checkbox, Dropdown, Quiz, ButtonArray
+    blocks/                  #   StatDashboard, Timeline, Collapsible, ComparisonTable,
+                             #   FactCheck, InfoCard, ProgressiveQuiz, StepGuide, etc.
     charts/                  #   Bar, Area, Radar, ScoreCard, GradeDisplay
 
   components/
     StoryShell.jsx           # Shared chrome (header, nav, footer, embed)
-    EmbedShareModal.jsx      # Universal embed code export
+    EmbedShareModal.jsx      # Share modal: Copy Link, Twitter/X, Facebook, LinkedIn,
+                             #   Email, native mobile share, embed code export
     LivePoll.jsx             # Real-time community polling
-    DynamicNarrative.jsx     # AI-personalized narrative
+    DynamicNarrative.jsx     # AI-personalized narrative (Claude Haiku)
     StoryConnections.jsx     # Contextual cross-story recommendations
     SaveButton.jsx           # Persistent result profiles
     AdSlot.jsx               # Sensitivity-aware ad placement
-    AdminHub.jsx             # Editorial dashboard
-    SensitivityAdmin.jsx     # Sensitivity analysis review
-    StoryPipeline.jsx        # AI pipeline management
+    AdminHub.jsx             # Editorial dashboard (Pipeline, Topics, Sensitivity, Analytics)
+    SensitivityAdmin.jsx     # Sensitivity analysis review + override
+    StoryPipeline.jsx        # AI pipeline management (RSS Queue, Drafts with image
+                             #   rights gate, Published, Add URL, Rejected, Skipped)
 
   hooks/
     useStoryConstraints.js   # Sensitivity constraint loader
     useNarration.js          # Text-to-speech controller
 
   lib/
-    supabase.js              # Database client + all queries
+    supabase.js              # Database client + all queries + analytics
+    readTime.js              # Content-based read time estimation
 
 netlify/functions/           # Serverless backend
-  rss-ingest.mjs             # RSS feed polling (every 15 min)
-  process-stories.mjs        # AI story generation (every 30 min)
-  analyze-story.mjs          # Sensitivity classification
+  lib/
+    pipeline.mjs             # Core AI processing pipeline (triage -> config -> sensitivity)
+    web-search.mjs           # Google News + RSS source discovery
+    feeds.mjs                # Centralized RSS feed configuration (single source of truth)
+  rss-ingest.mjs             # RSS feed polling (scheduled)
+  rss-invoke.mjs             # Manual RSS ingestion trigger
+  process-invoke.mjs         # Story generation trigger (supports ?force=true override)
+  process-item-worker-background.mjs  # Background AI processing (15-min timeout)
+  process-stories.mjs        # Batch story processing (scheduled)
   build-topic.mjs            # Topic collection assembly
-  narrative.mjs              # Personalized narrative generation
-  tts.mjs                    # Text-to-speech API
-  lib/pipeline.mjs           # Core AI processing pipeline
+  build-topic-background.mjs # Background topic builder with auto-publish
+  analyze-story.mjs          # Sensitivity classification (Claude Sonnet)
+  narrative.mjs              # Personalized narrative generation (Claude Haiku)
+  tts.mjs                    # Text-to-speech API (Edge TTS)
+  ingest-url.mjs             # External URL ingestion (with SSRF protection)
+  find-story.mjs             # AI-powered story finder (scans national feeds)
+  image-search.mjs           # Rights-free image search (Unsplash, NASA, Pixabay)
+  og-meta.mjs                # Dynamic OpenGraph meta tags for social sharing
+  topic-refresh.mjs          # Topic story refresh + auto-publish
+
 ```
+
+---
+
+## Publisher Tools
+
+The admin dashboard (accessible via the gear icon on the homepage) provides a complete editorial workflow:
+
+### Story Pipeline
+- **RSS Queue** -- Incoming articles with AI worthiness scores; inline **Build Anyway** override when the AI skips a story
+- **Drafts** -- Preview, approve, or reject generated stories; manage hero images; rights-check gate before publishing
+- **Published** -- Manage published stories, unpublish
+- **Add URL** -- Paste any article URL or use AI Story Finder to scan national feeds
+- **Rejected / Skipped** -- Review rejection history and AI-skipped articles with skip reasons
+
+### Hero Images & Rights Protection
+Each story can have a hero image displayed at the top. The system enforces rights-free image usage:
+- **Auto-extracted** from source article OG tags during pipeline processing (flagged as unverified)
+- **Rights-free search** -- Image search returns results from **Unsplash** (free license) and **NASA Images** (public domain), with optional **Pixabay** support
+- **Publish gate** -- When approving a story with an unverified image, editors see a warning: *"No rights-free image found."* with options to search for a rights-free image, paste their own URL, or publish without an image
+- **Domain whitelist** -- Images from `unsplash.com`, `nasa.gov`, `pixabay.com`, and `wikimedia.org` are considered rights-cleared; all others trigger the warning
+- **Optional** -- stories can publish without an image
+
+### Topic Pages
+Group stories into themed collections with custom titles, accent colors, and hero stats.
+
+### Sensitivity Analysis
+Review AI sensitivity classifications, see detected flags, and override with editorial judgment.
+
+### Analytics
+View story engagement over 7/14/30 days: total views, views per story, daily trend chart, and top stories ranked by views.
+
+---
+
+## Social Sharing & SEO
+
+### Share Modal
+Every story has a Share button that opens a modal with:
+- **Copy Link** to clipboard
+- **Twitter/X**, **Facebook**, **LinkedIn** share buttons
+- **Email** sharing
+- **Native mobile share** (on supported devices)
+- **Embed code** export with configurable height
+
+### Dynamic OpenGraph Meta Tags
+A Netlify Function (`/api/og?story=slug`) serves server-rendered HTML with the story's headline, description, and hero image for social crawlers. This ensures rich previews when links are shared on any platform.
+
+Default OG tags are set in `index.html` for the homepage.
 
 ---
 
 ## Embed System
 
-Every story app can be embedded on any external website via a universal embed code. Readers viewing any story can click the **Share** icon in the header to get a copy-paste `<iframe>` snippet with configurable height. Stories render in a clean embed mode -- no navigation chrome, no back button, faster transitions.
-
-The admin Embed Center provides editors with embed codes for all stories in one place.
+Every story app can be embedded on any external website via a universal embed code. Stories render in a clean embed mode -- no navigation chrome, no back button, faster transitions.
 
 ---
 
@@ -256,14 +322,15 @@ The admin Embed Center provides editors with embed codes for all stories in one 
 
 | Table | Purpose |
 |-------|---------|
-| `generated_stories` | AI-generated story configs, status, metadata |
-| `rss_items` | Ingested RSS feed items with worthiness scores |
+| `generated_stories` | AI-generated story configs, status, metadata, hero images |
+| `rss_items` | Ingested RSS feed items with worthiness scores + skip reasons |
 | `stories` | Legacy story metadata |
 | `saved_profiles` | User-saved personalized results (session-based) |
 | `story_polls` | Live community poll responses |
 | `community_reflections` | Solidarity commitments and messages |
 | `story_analyses` | AI sensitivity classifications + editorial overrides |
 | `topics` | Themed story collections |
+| `page_views` | Anonymous story view analytics (session-based) |
 
 All user data is **session-based and anonymous** -- a random UUID in localStorage. No login, no PII, no tracking. Every interaction is voluntary, zero-party data.
 
@@ -277,7 +344,14 @@ cd content-app-engine
 npm install
 
 cp .env.example .env
-# Add Supabase URL, anon key, service role key, and Anthropic API key
+# Required environment variables:
+#   VITE_SUPABASE_URL        - Supabase project URL
+#   VITE_SUPABASE_ANON_KEY   - Supabase anon/public key
+#   SUPABASE_SERVICE_ROLE_KEY - Supabase service role key (for serverless functions)
+#   ANTHROPIC_API_KEY         - Claude API key (for AI pipeline)
+#
+# Optional:
+#   PIXABAY_API_KEY            - Pixabay image search (adds rights-free photos)
 
 npm run dev
 ```
@@ -289,7 +363,7 @@ npm run dev
 Deploys to Netlify with continuous deployment from `master`:
 
 ```bash
-npm run build    # Vite → dist/
+npm run build    # Vite -> dist/
 git push origin master
 ```
 
@@ -304,3 +378,115 @@ MIT
 ---
 
 *Built as a Content-as-an-Application proof of concept. Not affiliated with WCPO or Scripps. Story data is illustrative and based on publicly reported news.*
+
+---
+
+## Scaling Roadmap: Multi-City Deployment
+
+This engine is built for Cincinnati but designed to scale to any city. Here's the plan for rapid multi-market deployment.
+
+### The Problem
+
+The Cincinnati instance has ~500 city-specific references across 45+ files:
+
+| Category | References | Core Files |
+|----------|-----------|------------|
+| Brand/UI ("WCPO", "9 News") | 90+ | HomePage, StoryShell, TopicPage, AdminHub |
+| City name ("Cincinnati") | 80+ | Pipeline prompts, UI, metadata |
+| Neighborhoods | 200+ | NeighborhoodPulse, legacy stories, pipeline prompts |
+| AI prompts | 50+ | narrative.mjs, pipeline.mjs, build-topic.mjs |
+| RSS feeds (wcpo.com) | 5 | feeds.mjs |
+| CSS brand colors | 90+ | index.css |
+| Sports teams | 40+ | Legacy stories, adConfig |
+| Legal/regulatory | 15+ | CarSeatSafety, SidewalkChecker |
+
+### The Solution: Config-Driven Single Codebase
+
+One repo, one deploy per city. Each instance reads from a **city config file** (`src/config/site.js`) that defines everything city-specific. To launch a new city: copy repo, edit config, deploy.
+
+**Example `site.js` for Denver:**
+
+```js
+export default {
+  // Brand
+  station: 'KMGH',
+  stationNumber: '7',
+  stationTagline: 'Denver7',
+  stationUrl: 'https://www.denver7.com',
+  brandColor: '#0066cc',
+  brandDark: '#1a1a2e',
+
+  // Location
+  city: 'Denver',
+  state: 'Colorado',
+  stateAbbr: 'CO',
+  region: 'Front Range',
+  metro: 'Denver Metro',
+
+  // RSS Feeds
+  feeds: [
+    { name: 'news', url: 'https://www.denver7.com/news.rss' },
+    { name: 'local-news', url: 'https://www.denver7.com/news/local-news.rss' },
+    { name: 'sports', url: 'https://www.denver7.com/sports.rss' },
+  ],
+
+  // Neighborhoods
+  neighborhoods: [
+    'Capitol Hill', 'LoDo', 'RiNo', 'Five Points', 'Cherry Creek',
+    'Highlands', 'Baker', 'Wash Park', 'Park Hill', 'Aurora', ...
+  ],
+
+  // Sports teams (for headline exceptions)
+  sportsTeams: ['Broncos', 'Nuggets', 'Avalanche', 'Rockies', 'Rapids'],
+
+  // Local resources
+  areaCode: '303',
+  emergencyResources: { ... },
+}
+```
+
+### Refactor Phases
+
+| Phase | Effort | What |
+|-------|--------|------|
+| 1. Extract city config | 1 day | Create `site.js` + server-side mirror, update CSS variables |
+| 2. Brand context | 0.5 day | React context replacing all hardcoded "WCPO" / "Cincinnati" in UI |
+| 3. Parameterize AI prompts | 0.5 day | Template variables (`{CITY}`, `{STATION}`) in all pipeline prompts |
+| 4. Neighborhood extraction | 0.5 day | Move neighborhood arrays to config, update NeighborhoodPulse + pipeline |
+| 5. Feed extraction | Done | Already centralized in `feeds.mjs` |
+| 6. Legacy story cleanup | 0.5 day | Document what to delete per city (13 hand-built stories are Cincinnati-only) |
+| **Total one-time refactor** | **~3 days** | |
+| **Each new city after that** | **~2 hours** | Fill out config, set up Supabase + Netlify, deploy |
+
+### Launching a New City (Post-Refactor)
+
+```
+1.  Fork/copy the repo                          1 min
+2.  Edit src/config/site.js                     30 min
+3.  Delete src/stories/ (legacy Cincinnati)      1 min
+4.  Clean StoryApp.jsx legacy imports            5 min
+5.  Create new Supabase project                 10 min
+6.  Create new Netlify site                      5 min
+7.  Set env vars (Supabase + Anthropic keys)     5 min
+8.  Deploy                                       2 min
+9.  RSS feeds start ingesting automatically     15 min
+10. AI generates first local story apps         30 min
+```
+
+### What Doesn't Need to Change
+
+These components are already city-agnostic and work for any market:
+
+- **Block system** (17 block types) -- universal
+- **FormulaEngine** -- city-agnostic math
+- **Config renderer** (StoryRenderer, BlockRenderer, all blocks/inputs/charts) -- fully config-driven
+- **Sensitivity analysis framework** -- universal editorial principles
+- **Ad system** -- config-driven (adConfig.json), just swap content
+- **Analytics** -- page_views table works for any city
+- **Share modal** -- uses dynamic URLs
+- **Image search** -- rights-free sources (Unsplash, NASA) are universal
+- **Read time estimation** -- content-based, city-agnostic
+
+### Future: Multi-Tenant (Option B)
+
+If managing 10+ separate deploys becomes painful, migrate to a single multi-tenant deploy where URL routing determines the city (`app.com/denver`, `app.com/nashville`) and city config is loaded from Supabase. This adds complexity (row-level DB isolation, dynamic theming) but eliminates per-city infrastructure management.

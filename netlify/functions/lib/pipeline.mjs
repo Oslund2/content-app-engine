@@ -360,6 +360,13 @@ You compose story-apps from BLOCKS — reusable content components you can arran
 {"type": "hero", "headline": "...", "subhead": "...", "leadParagraphs": ["..."], "keyStats": [{"value": "7", "label": "Deaths", "sub": "2026"}]}
 \`\`\`
 
+**HEADLINE GUIDELINES:**
+- The hero headline should include a local reference when natural — "Cincinnati," "Ohio," a specific neighborhood (e.g., "Price Hill," "Over-the-Rhine"), or "Greater Cincinnati." One reference is enough.
+- This makes headlines feel like local journalism, not wire copy. Readers scan headlines — a local anchor tells them "this is about MY city" in the first few words.
+- Good: "Cincinnati Breaks Ground on First Public Skatepark" / "Price Hill Man Dies in City's 7th Fatal Fire of 2026" / "How Ohio's New Sports Betting Law Hits Cincinnati Wallets"
+- Avoid: Stacking multiple local references ("Cincinnati, Ohio, Greater Cincinnati Area..."). One is plenty.
+- Exception: Skip if the story is obviously local (Reds, Bengals, WCPO, City Council) — the context already signals locality.
+
 **16. narrative** — AI-generated personalized analysis (appears after inputs complete).
 \`\`\`json
 {"type": "narrative", "gated": true}
@@ -502,8 +509,11 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
     ).catch(err => console.error('Score update error:', err.message))
   }
 
-  if (triage.worthiness_score < 30) {
+  if (triage.worthiness_score < 30 && !opts.forceGenerate) {
     return { skipped: true, reason: triage.skip_reason || 'Score too low', score: triage.worthiness_score }
+  }
+  if (triage.worthiness_score < 30 && opts.forceGenerate) {
+    console.log('Force-generating despite low score: ' + triage.worthiness_score)
   }
 
   // Stage 2: Config Generation (Sonnet)
@@ -543,7 +553,19 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
 
   // Build story row
   var storyId = slugify(item.title)
-  var imageUrl = extractFirstImage(item.content_encoded)
+  var imageUrl = extractFirstImage(item.content_encoded) || item.og_image || null
+
+  // Inject image into config so it flows to the renderer
+  if (imageUrl) {
+    if (!config.hero) config.hero = {}
+    config.hero.image = imageUrl
+    // Also update hero block inside blocks array if present
+    if (Array.isArray(config.blocks)) {
+      var heroBlock = config.blocks.find(function (b) { return b.type === 'hero' })
+      if (heroBlock) heroBlock.image = imageUrl
+    }
+  }
+
   var narration = config.narrationScript
   if (narration && typeof narration === 'object') narration = narration.intro || narration.text || ''
   if (!narration && config.hero) narration = (config.hero.leadParagraphs || [])[0] || item.description || ''

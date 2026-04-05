@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Cloud, Search, Menu, Play, Clock, ChevronRight,
@@ -108,7 +108,7 @@ function getPageSeed() {
   return Math.floor(Math.random() * 2147483647)
 }
 
-export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = [] }) {
+export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = [], fetchError, onRetry }) {
   const { brand } = storyData
   const [allStories, setAllStories] = useState([])
   const [dates, setDates] = useState([])
@@ -119,6 +119,9 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const [showLive, setShowLive] = useState(false)
   const [topicStories, setTopicStories] = useState([])
   const [pageSeed] = useState(getPageSeed)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef(null)
 
   useEffect(() => {
     async function load() {
@@ -134,7 +137,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
       setTopics(pubTopics)
       // Fetch stories for the most recent topic (for teasers)
       if (pubTopics.length > 0) {
-        fetchStoriesByTopic(pubTopics[0].slug).then(setTopicStories).catch(() => {})
+        fetchStoriesByTopic(pubTopics[0].slug).then(setTopicStories).catch(err => console.error('Failed to load topic stories:', err))
       }
       setLoading(false)
     }
@@ -246,7 +249,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
             </span>
           </nav>
           <div className="flex items-center gap-3">
-            <Search size={18} className="text-white/60 cursor-pointer hover:text-white" />
+            <Search size={18} className="text-white/60 cursor-pointer hover:text-white" onClick={() => { setSearchOpen(o => !o); setTimeout(() => searchRef.current?.focus(), 100) }} />
             <Settings
               size={18}
               className="text-white/60 cursor-pointer hover:text-white transition-colors"
@@ -272,6 +275,82 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
           </div>
         </div>
       </header>
+
+      {/* === ERROR BANNER === */}
+      {fetchError && (
+        <div className="bg-red-50 border-b border-red-200">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <p className="text-sm text-red-700">{fetchError}</p>
+            {onRetry && (
+              <button onClick={onRetry} className="text-xs font-semibold text-red-700 bg-red-100 px-3 py-1 rounded hover:bg-red-200 transition-colors">
+                Retry
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* === SEARCH BAR === */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden bg-white border-b border-rule"
+          >
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+              <div className="flex items-center gap-3">
+                <Search size={16} className="text-ink-muted shrink-0" />
+                <input
+                  ref={searchRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search stories..."
+                  className="flex-1 text-sm text-ink bg-transparent outline-none placeholder:text-ink-muted"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="text-ink-muted hover:text-ink">
+                    <X size={14} />
+                  </button>
+                )}
+                <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="text-xs text-ink-muted hover:text-ink">
+                  Close
+                </button>
+              </div>
+              {searchQuery.trim().length >= 2 && (() => {
+                const q = searchQuery.toLowerCase()
+                const matches = currentStories.filter(s =>
+                  (s.headline && s.headline.toLowerCase().includes(q))
+                  || (s.subhead && s.subhead.toLowerCase().includes(q))
+                  || (s.category && s.category.toLowerCase().includes(q))
+                )
+                return matches.length > 0 ? (
+                  <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+                    {matches.slice(0, 8).map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => { onOpenStory(s.id); setSearchOpen(false); setSearchQuery('') }}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-3"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-ink line-clamp-1">{s.headline}</p>
+                          <p className="text-xs text-ink-muted">{s.category}</p>
+                        </div>
+                        <ChevronRight size={14} className="text-ink-muted shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-ink-muted">No stories match "{searchQuery}"</p>
+                )
+              })()}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* === LIVE PLAYER === */}
       <AnimatePresence>

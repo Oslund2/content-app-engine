@@ -120,7 +120,7 @@ export default async (req) => {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'API key not configured', fallback: true }), {
-      status: 200,
+      status: 503,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }
@@ -177,7 +177,7 @@ export default async (req) => {
       const err = await response.text()
       console.error('Anthropic API error:', err)
       return new Response(JSON.stringify({ error: 'API error', fallback: true }), {
-        status: 200,
+        status: 502,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
       })
     }
@@ -237,7 +237,7 @@ export default async (req) => {
   } catch (err) {
     console.error('Function error:', err)
     return new Response(JSON.stringify({ error: err.message, fallback: true }), {
-      status: 200,
+      status: 500,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     })
   }

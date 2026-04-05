@@ -3,13 +3,9 @@
 // GET /api/find-story?topic=housing (optional)
 
 import { callAnthropic, parseJson, stripHtml } from './lib/pipeline.mjs'
+import { NATIONAL_FEEDS } from './lib/feeds.mjs'
 
-// Feeds with DIRECT article URLs (no JS redirects, no paywalls, verified fast)
-var FEEDS = [
-  { name: 'NPR', url: 'https://feeds.npr.org/1001/rss.xml' },
-  { name: 'BBC', url: 'https://feeds.bbci.co.uk/news/rss.xml' },
-  { name: 'PBS', url: 'https://www.pbs.org/newshour/feeds/rss/headlines' },
-]
+var FEEDS = NATIONAL_FEEDS
 
 function getTagContent(xml, tagName) {
   var re = new RegExp('<' + tagName + '[^>]*>([\\s\\S]*?)</' + tagName + '>', 'i')

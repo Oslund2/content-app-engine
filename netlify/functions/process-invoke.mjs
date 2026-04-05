@@ -17,6 +17,7 @@ export default async (req, context) => {
 
   var url = new URL(req.url)
   var itemId = url.searchParams.get('itemId')
+  var force = url.searchParams.get('force') === 'true'
 
   var items
   try {
@@ -44,7 +45,7 @@ export default async (req, context) => {
     await fetch(origin + '/.netlify/functions/process-item-worker-background', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ itemId: item.id }),
+      body: JSON.stringify({ itemId: item.id, force: force }),
     })
   } catch (err) {
     console.error('Failed to trigger worker:', err.message)

@@ -118,7 +118,7 @@ export default function BlockRenderer({ config, storyId, onBack, onOpenStory, so
         // Legacy section types mapped to blocks
         switch (type) {
           case 'hero':
-            return <HeroBlock key={`block-${i}`} hero={props} sourceAttribution={sourceAttribution} />
+            return <HeroBlock key={`block-${i}`} hero={{ ...props, image: props.image || config.hero?.image }} sourceAttribution={sourceAttribution} />
 
           case 'article-body':
             return <ArticleBlock key={`block-${i}`} paragraphs={props.paragraphs} sections={props.sections} />

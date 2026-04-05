@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 
 export default function HeroSection({ hero, sourceAttribution }) {
   if (!hero) return null
 
-  const { headline, subhead, leadParagraphs = [], keyStats = [] } = hero
+  const { headline, subhead, leadParagraphs = [], keyStats = [], image } = hero
+  const [imgError, setImgError] = useState(false)
 
   return (
     <motion.section
@@ -13,6 +15,19 @@ export default function HeroSection({ hero, sourceAttribution }) {
       transition={{ duration: 0.6 }}
       className="mb-10"
     >
+      {/* Hero image */}
+      {image && !imgError && (
+        <div className="relative aspect-video rounded-xl overflow-hidden mb-6 bg-slate-100">
+          <img
+            src={image}
+            alt={headline || 'Story image'}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+        </div>
+      )}
+
       {/* Headline */}
       {headline && (
         <h1 className="text-3xl sm:text-4xl font-extrabold text-ink leading-tight mb-3">

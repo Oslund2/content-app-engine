@@ -1,14 +1,10 @@
 // HTTP-callable trigger for RSS ingestion (for manual/dashboard use)
 // The scheduled rss-ingest function can't be called via HTTP, so this wrapper exists
 
+import { WCPO_FEEDS } from './lib/feeds.mjs'
+
 function getFeeds() {
-  return [
-    { name: 'news', url: 'https://www.wcpo.com/news.rss' },
-    { name: 'local-news', url: 'https://www.wcpo.com/news/local-news.rss' },
-    { name: 'sports', url: 'https://www.wcpo.com/sports.rss' },
-    { name: 'entertainment', url: 'https://www.wcpo.com/entertainment.rss' },
-    { name: 'lifestyle', url: 'https://www.wcpo.com/lifestyle.rss' },
-  ]
+  return WCPO_FEEDS
 }
 
 function getTagContent(xml, tagName) {

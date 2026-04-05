@@ -2,6 +2,7 @@
 // Uses Google News RSS (no API key needed) + curated non-paywall feeds
 
 import { stripHtml } from './pipeline.mjs'
+import { EXTENDED_NATIONAL_FEEDS, WCPO_FEEDS as WCPO_INGEST_FEEDS } from './feeds.mjs'
 
 // ─── Curated sources known to be scrapable (no paywall, no JS-only rendering) ───
 
@@ -131,18 +132,9 @@ export async function searchGoogleNews(query, maxResults = 15) {
 
 // ─── Curated RSS Feeds ──────────────────────────────────────────────────────
 
-var CURATED_FEEDS = [
-  { name: 'NPR', url: 'https://feeds.npr.org/1001/rss.xml' },
-  { name: 'BBC', url: 'https://feeds.bbci.co.uk/news/rss.xml' },
-  { name: 'PBS', url: 'https://www.pbs.org/newshour/feeds/rss/headlines' },
-  { name: 'AP News', url: 'https://rsshub.app/apnews/topics/apf-topnews' },
-  { name: 'Reuters', url: 'https://www.reutersagency.com/feed/' },
-]
+var CURATED_FEEDS = EXTENDED_NATIONAL_FEEDS
 
-var WCPO_FEEDS = [
-  { name: 'WCPO News', url: 'https://www.wcpo.com/news.rss' },
-  { name: 'WCPO Local', url: 'https://www.wcpo.com/news/local-news.rss' },
-]
+var WCPO_FEEDS = WCPO_INGEST_FEEDS.slice(0, 2) // news + local-news only for source discovery
 
 function parseFeedItems(xml, feedName) {
   var results = []

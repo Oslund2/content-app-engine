@@ -1,6 +1,7 @@
 import { useMemo, Component } from 'react'
 import { ConfigProvider, useConfig } from './ConfigContext'
 import { normalizeConfig } from './normalizeConfig'
+import { estimateReadTime } from '../lib/readTime'
 import StoryShell from '../components/StoryShell'
 import SaveButton from '../components/SaveButton'
 import StoryConnections from '../components/StoryConnections'
@@ -32,7 +33,7 @@ function StoryContent({ config, storyId, onBack, onOpenStory, sourceAttribution 
       headline={config.hero?.headline}
       storyId={storyId}
       timestamp={config.timestamp}
-      readTime={config.readTime ?? '5 min'}
+      readTime={config.readTime ?? estimateReadTime(config)}
     >
       {isBlockBased ? (
         /* New block-based rendering */

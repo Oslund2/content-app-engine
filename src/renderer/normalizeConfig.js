@@ -275,13 +275,19 @@ export function normalizeConfig(config) {
           subhead: heroBlock.subhead,
           leadParagraphs: heroBlock.leadParagraphs,
           keyStats: heroBlock.keyStats,
+          image: heroBlock.image || config.image || null,
         }
       } else {
         normalized.hero = {
           headline: config.headline || config.title || 'Interactive Story',
           subhead: config.subhead || config.subtitle || '',
+          image: config.image || null,
         }
       }
+    }
+    // Ensure hero.image is preserved if set at top level
+    if (!normalized.hero.image && config.hero?.image) {
+      normalized.hero.image = config.hero.image
     }
 
     // Ensure theme
@@ -375,7 +381,12 @@ export function normalizeConfig(config) {
     normalized.hero = {
       headline: config.headline || config.title || 'Interactive Story',
       subhead: config.subhead || config.subtitle || '',
+      image: config.image || null,
     }
+  }
+  // Ensure hero.image is preserved if set at top level
+  if (!normalized.hero.image && config.hero?.image) {
+    normalized.hero.image = config.hero.image
   }
 
   // Ensure theme exists

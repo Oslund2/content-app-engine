@@ -2,24 +2,26 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import {
   Rss, FileEdit, CheckCircle2, XCircle, Eye, ThumbsUp, ThumbsDown,
   RefreshCw, Clock, AlertTriangle, Loader2, Undo2, Link, ExternalLink,
-  Sparkles, Zap
+  Sparkles, Zap, ImageIcon, Search, Trash2, X
 } from 'lucide-react'
 
 const NEWS_FEED_COUNT = 3
 import {
-  fetchRssItems, fetchAllGeneratedStories,
+  fetchRssItems, fetchSkippedRssItems, fetchAllGeneratedStories,
   updateGeneratedStoryStatus, updateGeneratedStoryConfig,
-  fetchAllTopics
+  updateGeneratedStoryImage, fetchAllTopics,
+  fetchRssItemById, fetchGeneratedStoryByRssItemId
 } from '../lib/supabase'
 
 const StoryRenderer = lazy(() => import('../renderer/StoryRenderer'))
 
 const subTabs = [
   { id: 'rss', label: 'RSS Queue', icon: Rss },
-  { id: 'external', label: 'Add URL', icon: Link },
   { id: 'drafts', label: 'Drafts', icon: FileEdit },
   { id: 'published', label: 'Published', icon: CheckCircle2 },
+  { id: 'external', label: 'Add URL', icon: Link },
   { id: 'rejected', label: 'Rejected', icon: XCircle },
+  { id: 'skipped', label: 'Skipped', icon: AlertTriangle },
 ]
 
 function WorthinessBadge({ score }) {
@@ -78,24 +80,55 @@ function RssQueue({ items, loading, onRefresh }) {
   const [processingItemId, setProcessingItemId] = useState(null)
   const [processResult, setProcessResult] = useState(null)
 
-  const handleProcess = async (itemId = null) => {
+  const handleProcess = async (itemId = null, force = false) => {
     setProcessing(true)
     setProcessingItemId(itemId)
     setProcessResult(null)
     try {
-      const url = itemId ? `/api/process-invoke?itemId=${itemId}` : '/api/process-invoke'
+      const url = itemId ? `/api/process-invoke?itemId=${itemId}${force ? '&force=true' : ''}` : '/api/process-invoke'
       const res = await fetch(url)
       const text = await res.text()
       let data
       try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response (status ' + res.status + ')' } }
       setProcessResult(data)
 
-      // Background processing takes ~30-60s. Wait then refresh to show the new draft.
+      // Background processing takes ~30-60s. Poll the specific RSS item + generated story.
       if (res.status === 202 && data.item) {
-        setProcessResult({ ...data, message: `Building story app for "${data.item.title}"... (30-60 seconds)` })
-        await new Promise(r => setTimeout(r, 40000))
+        const storyTitle = data.item.title
+        const rssItemId = data.item.id
+        setProcessResult({ building: true, title: storyTitle, message: `Building story app for "${storyTitle}"...` })
+
+        let foundStory = null
+        let skipped = false
+        let skipReason = ''
+        for (let attempt = 0; attempt < 9; attempt++) {
+          await new Promise(r => setTimeout(r, 10000))
+          setProcessResult({ building: true, title: storyTitle, message: `Building story app for "${storyTitle}"... (${(attempt + 1) * 10}s)` })
+
+          // Check if a generated story was created for this RSS item
+          const story = await fetchGeneratedStoryByRssItemId(rssItemId)
+          if (story) {
+            foundStory = story
+            break
+          }
+
+          // Check if the RSS item was processed and skipped
+          const rssItem = await fetchRssItemById(rssItemId)
+          if (rssItem && rssItem.processed && rssItem.skip_reason) {
+            skipped = true
+            skipReason = rssItem.skip_reason
+            break
+          }
+        }
         if (onRefresh) onRefresh()
-        setProcessResult({ message: `Done! Check the Drafts tab for the new story app.` })
+        if (foundStory) {
+          const draftHeadline = foundStory.headline || storyTitle
+          setProcessResult({ success: true, title: draftHeadline, message: `"${draftHeadline}" is ready! It's now in Drafts awaiting your approval before publishing.` })
+        } else if (skipped) {
+          setProcessResult({ error: `"${storyTitle}" was skipped by the AI: ${skipReason}`, skippedItemId: rssItemId, title: storyTitle })
+        } else {
+          setProcessResult({ building: false, title: storyTitle, message: `Still processing "${storyTitle}". It may take another minute — check the Drafts tab shortly.` })
+        }
       } else {
         if (onRefresh) onRefresh()
       }
@@ -119,16 +152,29 @@ function RssQueue({ items, loading, onRefresh }) {
         >
           {processing && !processingItemId ? <><Loader2 size={13} className="animate-spin" />Processing...</> : <><Rss size={13} />Process Next Story</>}
         </button>
-        {processResult && (
-          <span className={`text-xs ${processResult.error ? 'text-red-600' : 'text-green-600'}`}>
-            {processResult.error
-              ? `Error: ${processResult.error}`
-              : processResult.item?.title
-                ? `Started: ${processResult.item.title}`
-                : processResult.message || 'Done'}
-          </span>
-        )}
       </div>
+      {processResult && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-start gap-2 ${
+          processResult.error ? 'bg-red-50 border border-red-200 text-red-700'
+            : processResult.building ? 'bg-blue-50 border border-blue-200 text-blue-700'
+            : processResult.success ? 'bg-green-50 border border-green-200 text-green-700'
+            : 'bg-slate-50 border border-rule text-ink'
+        }`}>
+          {processResult.building && <Loader2 size={14} className="animate-spin shrink-0 mt-0.5" />}
+          {processResult.success && <CheckCircle2 size={14} className="shrink-0 mt-0.5" />}
+          <div className="flex-1">
+            <span>{processResult.error ? `${processResult.error}` : processResult.message || 'Done'}</span>
+            {processResult.skippedItemId && !processing && (
+              <button
+                onClick={() => handleProcess(processResult.skippedItemId, true)}
+                className="ml-3 inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition-colors"
+              >
+                <Zap size={11} /> Build Anyway
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
@@ -171,17 +217,341 @@ function RssQueue({ items, loading, onRefresh }) {
   )
 }
 
+// --- Skipped Items View ---
+function SkippedView({ items, loading, onRefresh }) {
+  const [processing, setProcessing] = useState(false)
+  const [processingItemId, setProcessingItemId] = useState(null)
+  const [processResult, setProcessResult] = useState(null)
+
+  const handleForceBuild = async (itemId) => {
+    setProcessing(true)
+    setProcessingItemId(itemId)
+    setProcessResult(null)
+    try {
+      const res = await fetch(`/api/process-invoke?itemId=${itemId}&force=true`)
+      const text = await res.text()
+      let data
+      try { data = JSON.parse(text) } catch { data = { error: 'Non-JSON response (status ' + res.status + ')' } }
+      setProcessResult(data)
+
+      if (res.status === 202 && data.item) {
+        const storyTitle = data.item.title
+        const rssItemId = data.item.id
+        setProcessResult({ building: true, title: storyTitle, message: `Force-building "${storyTitle}"...` })
+
+        let foundStory = null
+        for (let attempt = 0; attempt < 9; attempt++) {
+          await new Promise(r => setTimeout(r, 10000))
+          setProcessResult({ building: true, title: storyTitle, message: `Force-building "${storyTitle}"... (${(attempt + 1) * 10}s)` })
+
+          const story = await fetchGeneratedStoryByRssItemId(rssItemId)
+          if (story) {
+            foundStory = story
+            break
+          }
+        }
+        if (onRefresh) onRefresh()
+        if (foundStory) {
+          const draftHeadline = foundStory.headline || storyTitle
+          setProcessResult({ success: true, message: `"${draftHeadline}" is ready! It's now in Drafts awaiting your approval before publishing.` })
+        } else {
+          setProcessResult({ building: false, title: storyTitle, message: `Still processing "${storyTitle}". It may take another minute — check the Drafts tab shortly.` })
+        }
+      } else {
+        if (onRefresh) onRefresh()
+      }
+    } catch (err) {
+      setProcessResult({ error: err.message })
+    }
+    setProcessing(false)
+    setProcessingItemId(null)
+  }
+
+  if (loading) return <LoadingSpinner />
+  if (!items.length) return <EmptyState icon={AlertTriangle} message="No skipped stories." />
+
+  return (
+    <div>
+      <p className="text-xs text-ink-muted mb-4">
+        Stories the AI scored too low for automatic processing. You can force-build any of these into a Story-App.
+      </p>
+      {processResult && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-start gap-2 ${
+          processResult.error ? 'bg-red-50 border border-red-200 text-red-700'
+            : processResult.building ? 'bg-blue-50 border border-blue-200 text-blue-700'
+            : processResult.success ? 'bg-green-50 border border-green-200 text-green-700'
+            : 'bg-slate-50 border border-rule text-ink'
+        }`}>
+          {processResult.building && <Loader2 size={14} className="animate-spin shrink-0 mt-0.5" />}
+          {processResult.success && <CheckCircle2 size={14} className="shrink-0 mt-0.5" />}
+          <span>{processResult.error ? `Error: ${processResult.error}` : processResult.message || 'Done'}</span>
+        </div>
+      )}
+      <div className="space-y-3">
+        {items.map(item => (
+          <div key={item.id} className="border border-rule rounded-lg bg-white p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-ink hover:text-wcpo-red line-clamp-1">
+                    {item.title}
+                  </a>
+                  <WorthinessBadge score={item.worthiness_score} />
+                </div>
+                <div className="flex gap-2 items-center text-xs text-ink-muted mb-2">
+                  {item.feed_name && <span className="bg-slate-100 px-2 py-0.5 rounded">{item.feed_name}</span>}
+                  <span>{formatDate(item.pub_date)}</span>
+                </div>
+                {item.skip_reason && (
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2 leading-relaxed">
+                    <AlertTriangle size={11} className="inline mr-1 -mt-0.5" />
+                    {item.skip_reason}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => handleForceBuild(item.id)}
+                disabled={processing}
+                className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 transition-all disabled:opacity-40 shrink-0"
+              >
+                {processingItemId === item.id
+                  ? <><Loader2 size={11} className="animate-spin" /> Building...</>
+                  : <><Zap size={11} /> Build Anyway</>}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// --- Image Manager Panel ---
+function ImageManager({ story, onUpdate }) {
+  const [mode, setMode] = useState(null) // null | 'search' | 'url'
+  const [query, setQuery] = useState(story.headline || '')
+  const [urlInput, setUrlInput] = useState('')
+  const [results, setResults] = useState([])
+  const [searching, setSearching] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const currentImage = story.image_url || story.config?.hero?.image || null
+
+  const handleSearch = async () => {
+    if (!query.trim()) return
+    setSearching(true)
+    setResults([])
+    try {
+      const res = await fetch('/api/image-search?q=' + encodeURIComponent(query.trim()) + '&count=12')
+      const data = await res.json()
+      setResults(data.results || [])
+    } catch (err) {
+      console.error('Image search error:', err)
+    }
+    setSearching(false)
+  }
+
+  const selectImage = async (imageUrl) => {
+    setSaving(true)
+    const ok = await updateGeneratedStoryImage(story.id, imageUrl, story.config)
+    if (ok) {
+      setMode(null)
+      setResults([])
+      onUpdate()
+    }
+    setSaving(false)
+  }
+
+  const removeImage = async () => {
+    setSaving(true)
+    await updateGeneratedStoryImage(story.id, null, story.config)
+    setSaving(false)
+    onUpdate()
+  }
+
+  const handleUrlSubmit = () => {
+    if (urlInput.trim() && urlInput.startsWith('http')) {
+      selectImage(urlInput.trim())
+    }
+  }
+
+  return (
+    <div className="px-4 py-3 bg-slate-50 border-t border-rule">
+      {/* Current image preview */}
+      <div className="flex items-start gap-4 mb-3">
+        <div className="w-32 h-20 rounded-lg overflow-hidden bg-slate-200 shrink-0 flex items-center justify-center">
+          {currentImage ? (
+            <img src={currentImage} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
+          ) : (
+            <ImageIcon size={20} className="text-slate-400" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-ink mb-1">
+            {currentImage ? 'Hero Image' : 'No hero image'}
+          </p>
+          {currentImage && (
+            <p className="text-[10px] text-ink-muted truncate mb-2">{currentImage}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setMode(mode === 'search' ? null : 'search')}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded bg-white border border-rule hover:bg-slate-50 transition-colors"
+            >
+              <Search size={11} />Search Images
+            </button>
+            <button
+              onClick={() => setMode(mode === 'url' ? null : 'url')}
+              className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded bg-white border border-rule hover:bg-slate-50 transition-colors"
+            >
+              <Link size={11} />Paste URL
+            </button>
+            {currentImage && (
+              <button
+                onClick={removeImage}
+                disabled={saving}
+                className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={11} />Remove
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Search panel */}
+      {mode === 'search' && (
+        <div className="mt-3">
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search for images..."
+              className="flex-1 text-sm border border-rule rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+            />
+            <button
+              onClick={handleSearch}
+              disabled={searching || !query.trim()}
+              className="flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg bg-ink text-white hover:bg-ink-light transition-colors disabled:opacity-50"
+            >
+              {searching ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+              Search
+            </button>
+            <button onClick={() => { setMode(null); setResults([]) }} className="p-2 text-ink-muted hover:text-ink">
+              <X size={14} />
+            </button>
+          </div>
+          {results.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+              {results.map((img, i) => (
+                <button
+                  key={i}
+                  onClick={() => selectImage(img.url)}
+                  disabled={saving}
+                  className="group relative aspect-video rounded-lg overflow-hidden bg-slate-200 hover:ring-2 hover:ring-wcpo-red transition-all disabled:opacity-50"
+                >
+                  <img
+                    src={img.thumbnail || img.url}
+                    alt={img.title || ''}
+                    className="w-full h-full object-cover"
+                    onError={e => { e.target.parentElement.style.display = 'none' }}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <span className="text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
+                  </div>
+                  {img.source && (
+                    <span className="absolute bottom-0.5 right-0.5 text-[8px] text-white bg-black/50 px-1 rounded">{img.source}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          {searching && (
+            <div className="flex items-center justify-center py-8 text-ink-muted text-sm">
+              <Loader2 size={16} className="animate-spin mr-2" />Searching...
+            </div>
+          )}
+          {!searching && results.length === 0 && query && (
+            <p className="text-xs text-ink-muted text-center py-4">Click Search to find images</p>
+          )}
+        </div>
+      )}
+
+      {/* URL input panel */}
+      {mode === 'url' && (
+        <div className="mt-3 flex gap-2">
+          <input
+            type="url"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+            className="flex-1 text-sm border border-rule rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            onKeyDown={e => e.key === 'Enter' && handleUrlSubmit()}
+          />
+          <button
+            onClick={handleUrlSubmit}
+            disabled={saving || !urlInput.trim()}
+            className="text-xs font-medium px-3 py-2 rounded-lg bg-ink text-white hover:bg-ink-light transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : 'Use Image'}
+          </button>
+          <button onClick={() => setMode(null)} className="p-2 text-ink-muted hover:text-ink">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Rights-free image domain whitelist
+const RIGHTS_FREE_DOMAINS = ['unsplash.com', 'images.unsplash.com', 'images-assets.nasa.gov', 'pixabay.com', 'cdn.pixabay.com', 'upload.wikimedia.org']
+
+function isImageRightsFree(imageUrl) {
+  if (!imageUrl) return false
+  try {
+    const hostname = new URL(imageUrl).hostname.replace('www.', '')
+    return RIGHTS_FREE_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d))
+  } catch {
+    return false
+  }
+}
+
 // --- Drafts View ---
 function DraftsView({ stories, onRefresh }) {
   const [previewId, setPreviewId] = useState(null)
   const [rejectId, setRejectId] = useState(null)
   const [rejectNotes, setRejectNotes] = useState('')
   const [acting, setActing] = useState(null)
+  const [imageId, setImageId] = useState(null)
+  const [imageWarningId, setImageWarningId] = useState(null)
 
   const drafts = stories.filter(s => s.status === 'draft')
 
   const handleApprove = async (story) => {
+    const imageUrl = story.image_url || story.config?.hero?.image
+    // Check if image is rights-free or absent
+    if (imageUrl && !isImageRightsFree(imageUrl)) {
+      // Show warning — don't publish yet
+      setImageWarningId(story.id)
+      return
+    }
+    doPublish(story)
+  }
+
+  const doPublish = async (story) => {
+    setImageWarningId(null)
     setActing(story.id)
+    await updateGeneratedStoryStatus(story.id, 'published')
+    setActing(null)
+    onRefresh()
+  }
+
+  const publishWithoutImage = async (story) => {
+    setImageWarningId(null)
+    setActing(story.id)
+    await updateGeneratedStoryImage(story.id, null, story.config)
     await updateGeneratedStoryStatus(story.id, 'published')
     setActing(null)
     onRefresh()
@@ -206,11 +576,19 @@ function DraftsView({ stories, onRefresh }) {
         const sensitivity = config.sensitivity || {}
         const isPreview = previewId === story.id
         const isRejecting = rejectId === story.id
+        const isImageOpen = imageId === story.id
+        const isImageWarning = imageWarningId === story.id
+        const hasImage = !!(story.image_url || config.hero?.image)
 
         return (
           <div key={story.id} className="border border-rule rounded-lg overflow-hidden bg-white">
             {/* Card header */}
             <div className="px-4 py-3 flex items-start justify-between gap-4">
+              {hasImage && (
+                <div className="w-16 h-10 rounded overflow-hidden bg-slate-100 shrink-0 mt-0.5">
+                  <img src={story.image_url || config.hero?.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <h3 className="font-serif font-bold text-ink text-base leading-snug mb-1">
                   {story.headline || config.hero?.headline || 'Untitled'}
@@ -234,6 +612,16 @@ function DraftsView({ stories, onRefresh }) {
               </div>
               {/* Action buttons */}
               <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setImageId(isImageOpen ? null : story.id)}
+                  className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded border transition-colors ${
+                    hasImage
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      : 'border-rule hover:bg-slate-50'
+                  }`}
+                >
+                  <ImageIcon size={13} />{isImageOpen ? 'Close' : 'Image'}
+                </button>
                 <button
                   onClick={() => setPreviewId(isPreview ? null : story.id)}
                   className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded border border-rule hover:bg-slate-50 transition-colors"
@@ -275,6 +663,47 @@ function DraftsView({ stories, onRefresh }) {
                   Confirm
                 </button>
               </div>
+            )}
+
+            {/* Image rights warning */}
+            {isImageWarning && (
+              <div className="px-4 py-3 bg-amber-50 border-t border-amber-200">
+                <div className="flex items-start gap-2 mb-3">
+                  <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">No rights-free image found</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      The current image appears to be from a copyrighted source. Search for a rights-free image, paste your own URL, or publish without an image.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setImageWarningId(null); setImageId(story.id) }}
+                    className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700 transition-colors"
+                  >
+                    <Search size={11} /> Find Rights-Free Image
+                  </button>
+                  <button
+                    onClick={() => publishWithoutImage(story)}
+                    disabled={acting === story.id}
+                    className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded bg-white text-ink border border-rule hover:bg-slate-50 transition-colors disabled:opacity-50"
+                  >
+                    Publish Without Image
+                  </button>
+                  <button
+                    onClick={() => setImageWarningId(null)}
+                    className="text-xs text-amber-600 hover:text-amber-800 px-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Image manager panel */}
+            {isImageOpen && (
+              <ImageManager story={story} onUpdate={() => { setImageWarningId(null); onRefresh() }} />
             )}
 
             {/* Preview pane */}
@@ -584,8 +1013,10 @@ function LoadingSpinner() {
 export default function StoryPipeline() {
   const [activeTab, setActiveTab] = useState('rss')
   const [rssItems, setRssItems] = useState([])
+  const [skippedItems, setSkippedItems] = useState([])
   const [stories, setStories] = useState([])
   const [loadingRss, setLoadingRss] = useState(true)
+  const [loadingSkipped, setLoadingSkipped] = useState(true)
   const [loadingStories, setLoadingStories] = useState(true)
 
   const loadRss = async () => {
@@ -593,6 +1024,13 @@ export default function StoryPipeline() {
     const data = await fetchRssItems(false)
     setRssItems(data)
     setLoadingRss(false)
+  }
+
+  const loadSkipped = async () => {
+    setLoadingSkipped(true)
+    const data = await fetchSkippedRssItems()
+    setSkippedItems(data)
+    setLoadingSkipped(false)
   }
 
   const loadStories = async () => {
@@ -604,11 +1042,13 @@ export default function StoryPipeline() {
 
   useEffect(() => {
     loadRss()
+    loadSkipped()
     loadStories()
   }, [])
 
   const refresh = () => {
     loadRss()
+    loadSkipped()
     loadStories()
   }
 
@@ -633,6 +1073,7 @@ export default function StoryPipeline() {
           const active = activeTab === tab.id
           let count = 0
           if (tab.id === 'rss') count = rssItems.length
+          else if (tab.id === 'skipped') count = skippedItems.length
           else if (tab.id === 'drafts') count = stories.filter(s => s.status === 'draft').length
           else if (tab.id === 'published') count = stories.filter(s => s.status === 'published').length
           else if (tab.id === 'rejected') count = stories.filter(s => s.status === 'rejected').length
@@ -661,6 +1102,9 @@ export default function StoryPipeline() {
 
       {/* Tab content */}
       {activeTab === 'rss' && <RssQueue items={rssItems} loading={loadingRss} onRefresh={refresh} />}
+      {activeTab === 'skipped' && (
+        loadingSkipped ? <LoadingSpinner /> : <SkippedView items={skippedItems} loading={loadingSkipped} onRefresh={refresh} />
+      )}
       {activeTab === 'external' && <ExternalIngest onRefresh={refresh} />}
       {activeTab === 'drafts' && (
         loadingStories ? <LoadingSpinner /> : <DraftsView stories={stories} onRefresh={refresh} />

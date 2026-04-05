@@ -2,83 +2,170 @@ import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   Activity, Users, BarChart3, TrendingUp, ChevronRight,
-  Loader2, ArrowRight, CheckCircle2, MapPin
+  Loader2, ArrowRight, CheckCircle2, MapPin, X
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import StoryShell from '../components/StoryShell'
 import { fetchAllPollData, fetchMyProfiles, getSessionId } from '../lib/supabase'
 
 const NEIGHBORHOODS = [
+  // West Side
   'West Price Hill',
-  'Downtown / OTR',
-  'Hyde Park',
+  'East Price Hill',
   'Westwood',
+  'Sayler Park',
+  'Sedamsville',
+  'North Fairmount',
+  'South Fairmount',
+  // Central / Basin
+  'Downtown / OTR',
+  'Pendleton',
+  'Mt. Auburn',
+  'Camp Washington',
+  'West End',
+  // Uptown
   'Clifton',
+  'Corryville',
+  'CUF',
+  'Avondale',
+  // North
   'Northside',
+  'College Hill',
+  'Mt. Airy',
+  'Winton Place',
+  'Spring Grove Village',
+  'Carthage',
+  'Hartwell',
+  'Finneytown',
+  // Northeast
+  'Bond Hill',
+  'Roselawn',
+  'Pleasant Ridge',
+  'Kennedy Heights',
+  'Paddock Hills',
+  'Silverton',
+  'Deer Park',
+  'Norwood',
+  // East
+  'Walnut Hills',
+  'East Walnut Hills',
+  'Evanston',
+  'Hyde Park',
+  'Oakley',
   'Madisonville',
+  'Mt. Lookout',
+  // Southeast
   'Mt. Washington',
+  'Anderson Twp',
+  'Columbia Tusculum',
+  'Linwood',
+  'California',
+  // River
+  'East End',
+  'The Banks',
+  // Northern Kentucky
   'Covington (NKY)',
   'Newport (NKY)',
-  'Anderson Twp',
-  'Price Hill',
+  'Ft. Thomas (NKY)',
+  'Florence (NKY)',
+  // Outer suburbs
+  'Mason / West Chester',
+  'Delhi',
+  'Cheviot',
+  'Mariemont',
 ]
 
 // Map raw neighborhood values (from polls) to display names
-// Handles: lowercase slugs, hyphenated, partial matches, alternate names
 function normalizeNeighborhood(raw) {
   if (!raw || typeof raw !== 'string') return null
   const lower = raw.toLowerCase().replace(/-/g, ' ').trim()
   const map = {
+    // Direct matches
     'west price hill': 'West Price Hill',
-    'price hill': 'Price Hill',
-    'east price hill': 'Price Hill',
+    'east price hill': 'East Price Hill',
+    'price hill': 'West Price Hill',
+    'westwood': 'Westwood',
+    'sayler park': 'Sayler Park',
+    'riverside': 'Sayler Park',
+    'sedamsville': 'Sedamsville',
+    'north fairmount': 'North Fairmount',
+    'south fairmount': 'South Fairmount',
     'downtown': 'Downtown / OTR',
     'downtown otr': 'Downtown / OTR',
     'downtown / otr': 'Downtown / OTR',
     'otr': 'Downtown / OTR',
     'over the rhine': 'Downtown / OTR',
-    'hyde park': 'Hyde Park',
-    'westwood': 'Westwood',
+    'pendleton': 'Pendleton',
+    'mt. auburn': 'Mt. Auburn',
+    'mt auburn': 'Mt. Auburn',
+    'mount auburn': 'Mt. Auburn',
+    'camp washington': 'Camp Washington',
+    'west end': 'West End',
     'clifton': 'Clifton',
     'clifton / cuf': 'Clifton',
-    'cuf': 'Clifton',
+    'corryville': 'Corryville',
+    'cuf': 'CUF',
+    'avondale': 'Avondale',
     'northside': 'Northside',
+    'college hill': 'College Hill',
+    'mt. airy': 'Mt. Airy',
+    'mt airy': 'Mt. Airy',
+    'mount airy': 'Mt. Airy',
+    'winton place': 'Winton Place',
+    'spring grove': 'Spring Grove Village',
+    'spring grove village': 'Spring Grove Village',
+    'carthage': 'Carthage',
+    'hartwell': 'Hartwell',
+    'finneytown': 'Finneytown',
+    'bond hill': 'Bond Hill',
+    'roselawn': 'Roselawn',
+    'pleasant ridge': 'Pleasant Ridge',
+    'kennedy heights': 'Kennedy Heights',
+    'paddock hills': 'Paddock Hills',
+    'silverton': 'Silverton',
+    'deer park': 'Deer Park',
+    'norwood': 'Norwood',
+    'walnut hills': 'Walnut Hills',
+    'east walnut hills': 'East Walnut Hills',
+    'evanston': 'Evanston',
+    'hyde park': 'Hyde Park',
+    'oakley': 'Oakley',
     'madisonville': 'Madisonville',
+    'mt. lookout': 'Mt. Lookout',
+    'mt lookout': 'Mt. Lookout',
+    'mount lookout': 'Mt. Lookout',
     'mt. washington': 'Mt. Washington',
     'mt washington': 'Mt. Washington',
     'mount washington': 'Mt. Washington',
+    'anderson': 'Anderson Twp',
+    'anderson twp': 'Anderson Twp',
+    'anderson township': 'Anderson Twp',
+    'columbia tusculum': 'Columbia Tusculum',
+    'linwood': 'Linwood',
+    'california': 'California',
+    'east end': 'East End',
+    'the banks': 'The Banks',
     'covington': 'Covington (NKY)',
     'covington (nky)': 'Covington (NKY)',
     'newport': 'Newport (NKY)',
     'newport (nky)': 'Newport (NKY)',
-    'anderson': 'Anderson Twp',
-    'anderson twp': 'Anderson Twp',
-    'anderson township': 'Anderson Twp',
-    // Additional Cincinnati neighborhoods → closest grid match
-    'spring grove': 'Northside',
-    'spring grove village': 'Northside',
-    'north fairmount': 'West Price Hill',
-    'south fairmount': 'West Price Hill',
-    'sedamsville': 'West Price Hill',
+    'ft. thomas': 'Ft. Thomas (NKY)',
+    'fort thomas': 'Ft. Thomas (NKY)',
+    'ft thomas': 'Ft. Thomas (NKY)',
+    'florence': 'Florence (NKY)',
+    'florence (nky)': 'Florence (NKY)',
+    'bellevue': 'Newport (NKY)',
+    'mason': 'Mason / West Chester',
+    'west chester': 'Mason / West Chester',
+    'mason / west chester': 'Mason / West Chester',
+    'liberty twp': 'Mason / West Chester',
+    'liberty township': 'Mason / West Chester',
+    'delhi': 'Delhi',
+    'cheviot': 'Cheviot',
+    'mariemont': 'Mariemont',
+    // Common alternate forms
     'westside': 'Westwood',
     'west side': 'Westwood',
-    'winton place': 'Northside',
-    'avondale': 'Madisonville',
-    'evanston': 'Madisonville',
-    'walnut hills': 'Hyde Park',
-    'east walnut hills': 'Hyde Park',
-    'mt. auburn': 'Downtown / OTR',
-    'mt auburn': 'Downtown / OTR',
-    'camp washington': 'Clifton',
-    'corryville': 'Clifton',
-    'bond hill': 'Northside',
-    'roselawn': 'Northside',
-    'college hill': 'Northside',
-    'carthage': 'Northside',
-    'florence': 'Covington (NKY)',
-    'ft. thomas': 'Newport (NKY)',
-    'fort thomas': 'Newport (NKY)',
-    'bellevue': 'Newport (NKY)',
   }
   return map[lower] || null
 }
@@ -162,6 +249,16 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
   const [profiles, setProfiles] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedHood, setExpandedHood] = useState(null)
+  const [myHood, setMyHood] = useState(() => localStorage.getItem('wcpo_my_neighborhood') || '')
+
+  const handleSetMyHood = (value) => {
+    setMyHood(value)
+    if (value) {
+      localStorage.setItem('wcpo_my_neighborhood', value)
+    } else {
+      localStorage.removeItem('wcpo_my_neighborhood')
+    }
+  }
 
   useEffect(() => {
     async function load() {
@@ -306,17 +403,45 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
 
           {/* Neighborhood Grid */}
           <h2 className="font-serif text-2xl font-bold text-ink mb-2">Neighborhood Grid</h2>
-          <p className="text-sm text-ink-muted mb-6">
+          <p className="text-sm text-ink-muted mb-4">
             Aggregate data from every story, broken down by neighborhood.
           </p>
 
+          {/* My Neighborhood selector */}
+          <div className="flex items-center gap-2 mb-6 px-3 py-2.5 bg-paper-warm rounded-lg border border-rule">
+            <MapPin size={14} className="text-wcpo-red shrink-0" />
+            <span className="text-xs font-semibold text-ink whitespace-nowrap">My Neighborhood:</span>
+            <select
+              value={myHood}
+              onChange={e => handleSetMyHood(e.target.value)}
+              className="flex-1 text-xs text-ink bg-transparent border-none outline-none cursor-pointer"
+            >
+              <option value="">Select yours...</option>
+              {NEIGHBORHOODS.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            {myHood && (
+              <button onClick={() => handleSetMyHood('')} className="text-ink-muted hover:text-ink p-0.5">
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            {NEIGHBORHOODS.map((name, i) => {
+            {[...NEIGHBORHOODS].sort((a, b) => {
+              // Pinned neighborhood always first
+              if (a === myHood) return -1
+              if (b === myHood) return 1
+              // Then by engagement
+              return (neighborhoodStats[b]?.total || 0) - (neighborhoodStats[a]?.total || 0)
+            }).map((name, i) => {
               const stats = neighborhoodStats[name]
               const status = getStatusColor(stats)
               const colors = statusColors[status]
               const barWidth = maxEngagement > 0 ? (stats.total / maxEngagement) * 100 : 0
               const isExpanded = expandedHood === name
+              const isPinned = name === myHood
               // All stories for this neighborhood, sorted by count
               const allStories = Object.entries(stats.stories)
                 .sort((a, b) => b[1] - a[1])
@@ -327,14 +452,21 @@ export default function NeighborhoodPulse({ onBack, onOpenStory }) {
                   key={name}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: 0.04 * i }}
+                  transition={{ duration: 0.35, delay: Math.min(0.04 * i, 0.8) }}
                   onClick={() => setExpandedHood(isExpanded ? null : name)}
-                  className={`bg-white rounded-lg border p-4 cursor-pointer transition-all duration-200
+                  className={`rounded-lg border p-4 cursor-pointer transition-all duration-200
                     ${isExpanded
-                      ? 'border-emerald-300 shadow-md ring-1 ring-emerald-200 sm:col-span-2 lg:col-span-3'
-                      : 'border-rule hover:shadow-sm hover:border-slate-300'
+                      ? 'border-emerald-300 shadow-md ring-1 ring-emerald-200 sm:col-span-2 lg:col-span-3 bg-white'
+                      : isPinned
+                        ? 'border-wcpo-red/30 bg-red-50/40 ring-1 ring-wcpo-red/10 hover:shadow-sm'
+                        : 'border-rule bg-white hover:shadow-sm hover:border-slate-300'
                     }`}
                 >
+                  {isPinned && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-wcpo-red uppercase tracking-wider mb-2">
+                      <MapPin size={10} /> Your Neighborhood
+                    </div>
+                  )}
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className={`w-2.5 h-2.5 rounded-full ${colors.dot}`} />

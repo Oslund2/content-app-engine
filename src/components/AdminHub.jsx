@@ -1,15 +1,149 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Shield, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Shield, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw, BarChart3, TrendingUp, Eye } from 'lucide-react'
 import SensitivityAdmin from './SensitivityAdmin'
 import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
-import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTopic, fetchAllStoriesByTopic, publishTopicAndStories } from '../lib/supabase'
+import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTopic, fetchAllStoriesByTopic, publishTopicAndStories, fetchRecentViews } from '../lib/supabase'
 
 const tabs = [
   { id: 'pipeline', label: 'Story Pipeline', icon: Newspaper },
   { id: 'topics', label: 'Topic Pages', icon: Layers },
   { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
+
+function AnalyticsDashboard() {
+  const [views, setViews] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [days, setDays] = useState(7)
+
+  useEffect(() => {
+    setLoading(true)
+    fetchRecentViews(days).then(data => {
+      setViews(data)
+      setLoading(false)
+    })
+  }, [days])
+
+  // Aggregate by story
+  const storyMap = {}
+  views.forEach(v => {
+    if (!storyMap[v.story_id]) storyMap[v.story_id] = { views: 0, story_id: v.story_id }
+    if (v.event_type === 'view') storyMap[v.story_id].views++
+  })
+  const ranked = Object.values(storyMap).sort((a, b) => b.views - a.views)
+  const totalViews = views.filter(v => v.event_type === 'view').length
+  const uniqueStories = ranked.length
+
+  // Views per day
+  const dailyCounts = {}
+  views.filter(v => v.event_type === 'view').forEach(v => {
+    const day = v.created_at.split('T')[0]
+    dailyCounts[day] = (dailyCounts[day] || 0) + 1
+  })
+  const dailySorted = Object.entries(dailyCounts).sort((a, b) => a[0].localeCompare(b[0]))
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <p className="text-sm text-ink-muted">Story engagement over the last {days} days.</p>
+        <div className="flex gap-1">
+          {[7, 14, 30].map(d => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              className={`text-xs font-medium px-3 py-1.5 rounded transition-colors ${
+                days === d ? 'bg-slate-800 text-white' : 'bg-slate-100 text-ink-muted hover:bg-slate-200'
+              }`}
+            >
+              {d}d
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-ink-muted">
+          <Loader2 size={20} className="animate-spin mr-2" /> Loading analytics...
+        </div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="bg-white rounded-xl border border-rule p-4 text-center">
+              <p className="text-3xl font-bold font-mono text-ink">{totalViews}</p>
+              <p className="text-xs text-ink-muted mt-1">Total Views</p>
+            </div>
+            <div className="bg-white rounded-xl border border-rule p-4 text-center">
+              <p className="text-3xl font-bold font-mono text-ink">{uniqueStories}</p>
+              <p className="text-xs text-ink-muted mt-1">Stories Viewed</p>
+            </div>
+            <div className="bg-white rounded-xl border border-rule p-4 text-center">
+              <p className="text-3xl font-bold font-mono text-ink">{uniqueStories > 0 ? Math.round(totalViews / uniqueStories) : 0}</p>
+              <p className="text-xs text-ink-muted mt-1">Avg Views/Story</p>
+            </div>
+          </div>
+
+          {/* Daily trend */}
+          {dailySorted.length > 1 && (
+            <div className="mb-8">
+              <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3 flex items-center gap-1">
+                <TrendingUp size={12} /> Daily Views
+              </h3>
+              <div className="bg-white rounded-xl border border-rule p-4">
+                <div className="flex items-end gap-1 h-24">
+                  {dailySorted.map(([day, count]) => {
+                    const max = Math.max(...dailySorted.map(d => d[1]))
+                    const pct = max > 0 ? (count / max) * 100 : 0
+                    return (
+                      <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-[9px] text-ink-muted">{count}</span>
+                        <div
+                          className="w-full bg-wcpo-red/80 rounded-t"
+                          style={{ height: `${Math.max(pct, 4)}%` }}
+                        />
+                        <span className="text-[8px] text-ink-muted">{day.slice(5)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Top stories */}
+          <h3 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3 flex items-center gap-1">
+            <Eye size={12} /> Top Stories
+          </h3>
+          {ranked.length === 0 ? (
+            <p className="text-sm text-ink-muted py-8 text-center">No views recorded yet.</p>
+          ) : (
+            <div className="bg-white rounded-xl border border-rule overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-rule text-left text-xs text-ink-muted uppercase tracking-wider">
+                    <th className="px-4 py-2">#</th>
+                    <th className="px-4 py-2">Story</th>
+                    <th className="px-4 py-2 text-right">Views</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranked.slice(0, 20).map((s, i) => (
+                    <tr key={s.story_id} className="border-b border-rule/50 hover:bg-slate-50">
+                      <td className="px-4 py-2.5 text-ink-muted font-mono text-xs">{i + 1}</td>
+                      <td className="px-4 py-2.5 font-medium text-ink">{s.story_id}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-semibold text-ink">{s.views}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
 
 export default function AdminHub({ onBack }) {
   const [activeTab, setActiveTab] = useState('pipeline')
@@ -62,6 +196,7 @@ export default function AdminHub({ onBack }) {
         {activeTab === 'sensitivity' && <SensitivityAdmin />}
         {activeTab === 'pipeline' && <StoryPipeline />}
         {activeTab === 'topics' && <TopicAdmin />}
+        {activeTab === 'analytics' && <AnalyticsDashboard />}
       </main>
     </>
   )

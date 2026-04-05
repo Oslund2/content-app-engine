@@ -15,6 +15,48 @@ export function getSessionId() {
   return id
 }
 
+// --- Analytics ---
+
+export async function logPageView(storyId, eventType = 'view') {
+  const sessionId = getSessionId()
+  const referrer = document.referrer || null
+  const { error } = await supabase
+    .from('page_views')
+    .insert({ story_id: storyId, session_id: sessionId, referrer, event_type: eventType })
+  if (error) console.error('Analytics error:', error)
+}
+
+export async function fetchStoryViewCounts() {
+  const { data, error } = await supabase
+    .rpc('get_story_view_counts')
+    .catch(() => ({ data: null, error: { message: 'RPC not available' } }))
+
+  // Fallback: manual aggregation if RPC doesn't exist
+  if (error || !data) {
+    const { data: views, error: viewErr } = await supabase
+      .from('page_views')
+      .select('story_id')
+      .eq('event_type', 'view')
+    if (viewErr || !views) return {}
+    const counts = {}
+    views.forEach(v => { counts[v.story_id] = (counts[v.story_id] || 0) + 1 })
+    return counts
+  }
+  return data
+}
+
+export async function fetchRecentViews(days = 7) {
+  const since = new Date(Date.now() - days * 86400000).toISOString()
+  const { data, error } = await supabase
+    .from('page_views')
+    .select('story_id, event_type, created_at')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(500)
+  if (error) return []
+  return data
+}
+
 // --- Stories ---
 
 export async function fetchStories() {
@@ -282,7 +324,50 @@ export async function updateGeneratedStoryConfig(id, config) {
   return !error
 }
 
+export async function updateGeneratedStoryImage(id, imageUrl, config) {
+  // Update both image_url column and config.hero.image to keep them in sync
+  const updatedConfig = { ...config }
+  if (!updatedConfig.hero) updatedConfig.hero = {}
+  updatedConfig.hero.image = imageUrl || null
+  // Also update hero block inside blocks array if present
+  if (Array.isArray(updatedConfig.blocks)) {
+    const heroBlock = updatedConfig.blocks.find(b => b.type === 'hero')
+    if (heroBlock) heroBlock.image = imageUrl || null
+  }
+
+  const { error } = await supabase
+    .from('generated_stories')
+    .update({
+      image_url: imageUrl || null,
+      config: updatedConfig,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+  if (error) console.error('Error updating story image:', error)
+  return !error
+}
+
 // --- RSS Items (Pipeline Dashboard) ---
+
+export async function fetchRssItemById(id) {
+  const { data, error } = await supabase
+    .from('rss_items')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchGeneratedStoryByRssItemId(rssItemId) {
+  const { data, error } = await supabase
+    .from('generated_stories')
+    .select('*')
+    .eq('rss_item_id', rssItemId)
+    .single()
+  if (error) return null
+  return data
+}
 
 export async function fetchRssItems(processed = null) {
   let query = supabase
@@ -295,6 +380,18 @@ export async function fetchRssItems(processed = null) {
     query = query.eq('processed', processed)
   }
   const { data, error } = await query
+  if (error) return []
+  return data
+}
+
+export async function fetchSkippedRssItems() {
+  const { data, error } = await supabase
+    .from('rss_items')
+    .select('*')
+    .eq('processed', true)
+    .not('skip_reason', 'is', null)
+    .order('pub_date', { ascending: false })
+    .limit(50)
   if (error) return []
   return data
 }

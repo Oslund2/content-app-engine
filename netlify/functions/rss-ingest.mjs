@@ -1,14 +1,10 @@
 // Netlify scheduled function — RSS feed ingestion
 // Polls 5 WCPO RSS feeds every 15 minutes, deduplicates by guid, stores in rss_items table
 
+import { WCPO_FEEDS } from './lib/feeds.mjs'
+
 function getFeeds() {
-  return [
-    { name: 'news', url: 'https://www.wcpo.com/news.rss' },
-    { name: 'local-news', url: 'https://www.wcpo.com/news/local-news.rss' },
-    { name: 'sports', url: 'https://www.wcpo.com/sports.rss' },
-    { name: 'entertainment', url: 'https://www.wcpo.com/entertainment.rss' },
-    { name: 'lifestyle', url: 'https://www.wcpo.com/lifestyle.rss' },
-  ]
+  return WCPO_FEEDS
 }
 
 function getTagContent(xml, tagName) {

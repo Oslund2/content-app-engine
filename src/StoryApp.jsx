@@ -16,7 +16,7 @@ import CarSeatSafety from './stories/CarSeatSafety'
 import NeighborhoodPulse from './stories/NeighborhoodPulse'
 import CommunityResponse from './stories/CommunityResponse'
 import AdminHub from './components/AdminHub'
-import { fetchGeneratedStories, fetchGeneratedStoryBySlug } from './lib/supabase'
+import { fetchGeneratedStories, fetchGeneratedStoryBySlug, logPageView } from './lib/supabase'
 
 const StoryRenderer = lazy(() => import('./renderer/StoryRenderer'))
 
@@ -80,10 +80,16 @@ export default function StoryApp() {
   const [isEmbed] = useState(urlParams.isEmbed)
   const [generatedStories, setGeneratedStories] = useState([])
   const [embedStory, setEmbedStory] = useState(null)
+  const [fetchError, setFetchError] = useState(null)
 
   // Fetch published generated stories on mount
   useEffect(() => {
-    fetchGeneratedStories('published').then(setGeneratedStories).catch(() => {})
+    fetchGeneratedStories('published')
+      .then(setGeneratedStories)
+      .catch(err => {
+        console.error('Failed to load stories:', err)
+        setFetchError('Unable to load stories. Please try again.')
+      })
   }, [])
 
   // For embed/direct-link: if the story isn't in published list and isn't legacy, fetch it by slug
@@ -92,10 +98,15 @@ export default function StoryApp() {
     if (storyComponents[activeStory]) return // legacy
     if (generatedStories.find(s => s.story_id === activeStory)) return // already loaded
     // Try fetching by slug (covers published stories not yet in state)
-    fetchGeneratedStoryBySlug(activeStory).then(story => {
-      if (story) setEmbedStory(story)
-    }).catch(() => {})
+    fetchGeneratedStoryBySlug(activeStory)
+      .then(story => { if (story) setEmbedStory(story) })
+      .catch(err => console.error('Failed to load story:', err))
   }, [activeStory, generatedStories])
+
+  // Log page views
+  useEffect(() => {
+    if (activeStory) logPageView(activeStory, 'view')
+  }, [activeStory])
 
   const openStory = useCallback((id) => {
     setActiveStory(id)
@@ -174,7 +185,13 @@ export default function StoryApp() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <HomePage onOpenStory={openStory} onOpenTopic={openTopic} generatedStories={generatedStories} />
+            <HomePage onOpenStory={openStory} onOpenTopic={openTopic} generatedStories={generatedStories} fetchError={fetchError} onRetry={() => {
+              setFetchError(null)
+              fetchGeneratedStories('published').then(setGeneratedStories).catch(err => {
+                console.error('Retry failed:', err)
+                setFetchError('Still unable to load stories. Please check your connection.')
+              })
+            }} />
           </motion.div>
         ) : !activeStory && activeTopic ? (
           <motion.div
@@ -215,7 +232,13 @@ export default function StoryApp() {
                   </div>
                 }>
                   <StoryRenderer
-                    config={generatedStory.config}
+                    config={{
+                      ...generatedStory.config,
+                      hero: {
+                        ...generatedStory.config?.hero,
+                        image: generatedStory.config?.hero?.image || generatedStory.image_url || null,
+                      },
+                    }}
                     storyId={generatedStory.story_id}
                     onBack={storyBackFn}
                     onOpenStory={openStory}

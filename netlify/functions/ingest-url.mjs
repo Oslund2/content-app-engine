@@ -37,6 +37,24 @@ export default async (req) => {
       })
     }
 
+    // SSRF protection: block private/internal URLs
+    try {
+      var parsed = new URL(url)
+      var hostname = parsed.hostname.toLowerCase()
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname === '0.0.0.0'
+          || hostname.endsWith('.local') || hostname.endsWith('.internal')
+          || /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.)/.test(hostname)
+          || parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+        return new Response(JSON.stringify({ error: 'URL not allowed' }), {
+          status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        })
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid URL' }), {
+        status: 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      })
+    }
+
     console.log('Ingesting: ' + url)
 
     // 1. Fetch HTML (this is the only slow external call)

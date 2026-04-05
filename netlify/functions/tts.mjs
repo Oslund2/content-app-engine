@@ -96,7 +96,7 @@ export default async (req) => {
     })
   } catch (err) {
     console.error('TTS function error:', err)
-    return new Response(JSON.stringify({ error: err.message }), { status: 200 })
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
 }
 

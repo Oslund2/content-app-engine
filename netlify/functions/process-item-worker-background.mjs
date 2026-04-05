@@ -23,6 +23,7 @@ export async function handler(event) {
   }
 
   var itemId = body.itemId
+  var force = body.force === true
   if (!itemId) {
     console.error('No itemId provided')
     return { statusCode: 400 }
@@ -55,7 +56,7 @@ export async function handler(event) {
       } catch {}
     }
 
-    var result = await processItem(item, apiKey, supabaseUrl, supabaseKey, { skipSensitivity: true })
+    var result = await processItem(item, apiKey, supabaseUrl, supabaseKey, { skipSensitivity: true, forceGenerate: force })
     console.log('Success: ' + item.title, JSON.stringify(result))
     await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true })
     return { statusCode: 200 }
