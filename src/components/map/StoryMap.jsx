@@ -48,7 +48,9 @@ export default function StoryMap({
     setVs(viewState)
   }, [viewState])
 
-  const mapHeight = expanded ? '70vh' : (typeof height === 'number' ? `${height}px` : height)
+  // Responsive height — cap at 320px on mobile, use full height on desktop
+  const responsiveHeight = typeof height === 'number' ? `min(${height}px, calc(100vw * 0.85))` : height
+  const mapHeight = expanded ? '70vh' : responsiveHeight
   const styleUrl = MAP_STYLES[mapStyle] || MAP_STYLES.voyager
 
   const handleLoad = useCallback(() => {
@@ -89,6 +91,7 @@ export default function StoryMap({
           dragRotate={false}
           touchZoomRotate={interactive}
           doubleClickZoom={interactive}
+          cooperativeGestures={interactive}
           attributionControl={false}
         >
           {children}
@@ -109,9 +112,9 @@ export default function StoryMap({
         )}
       </div>
 
-      {/* Legend overlay */}
+      {/* Legend overlay — compact on mobile */}
       {legend && (
-        <div className="absolute bottom-3 left-3 z-20 bg-white/95 backdrop-blur rounded-lg border border-rule shadow-sm px-3 py-2 max-w-[220px]">
+        <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 z-20 bg-white/95 backdrop-blur rounded-lg border border-rule shadow-sm px-2 py-1.5 sm:px-3 sm:py-2 max-w-[180px] sm:max-w-[220px]">
           {legend}
         </div>
       )}
@@ -146,7 +149,7 @@ export function MapMarker({ lat, lng, color = '#dc2626', size = 'md', pulse = fa
           {children || <MapPin size={s * 0.5} className="text-white" />}
         </div>
         {label && (
-          <div className="mt-1 px-2 py-0.5 rounded bg-white/95 shadow-sm border border-rule text-[10px] font-semibold text-ink whitespace-nowrap">
+          <div className="mt-1 px-1.5 py-0.5 rounded bg-white/95 shadow-sm border border-rule text-[9px] sm:text-[10px] font-semibold text-ink max-w-[140px] sm:max-w-[200px] text-center leading-tight">
             {label}
           </div>
         )}
