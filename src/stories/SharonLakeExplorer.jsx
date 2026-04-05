@@ -117,7 +117,7 @@ export default function SharonLakeExplorer({ onBack, onOpenStory }) {
       storyId="sharon-lake"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        Sharon Lake Is Back
+        Sharon Woods' $17 Million Lake Reopens. Plan Your Visit.
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

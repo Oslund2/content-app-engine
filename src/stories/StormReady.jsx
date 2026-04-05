@@ -135,7 +135,7 @@ export default function StormReady({ onBack, onOpenStory }) {
       storyId="storm-ready"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        Are You Ready for What's Coming?
+        Tornadoes Hit Ohio Last Week. Is Your Cincinnati Home Ready?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

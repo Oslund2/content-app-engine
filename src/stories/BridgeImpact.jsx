@@ -86,7 +86,7 @@ export default function BridgeImpact({ onBack, onOpenStory }) {
       storyId="bridge-impact"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        The Bridge That Vanished
+        The Fourth Street Bridge Is Gone. What's Your NKY Detour Costing You?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

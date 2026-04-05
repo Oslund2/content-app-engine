@@ -98,7 +98,7 @@ export default function FCCincinnati({ onBack, onOpenStory }) {
       storyId="fc-cincinnati"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        Five Matches In. Where Is This Season Going?
+        FC Cincinnati Is 2-2-1. Where Is This TQL Stadium Season Going?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

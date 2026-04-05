@@ -115,7 +115,7 @@ export default function FloodRisk({ onBack, onOpenStory }) {
       storyId="flood-risk"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        The River Is Rising. What Does It Mean for You?
+        The Ohio River Is Rising. What Does It Mean for Your Neighborhood?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

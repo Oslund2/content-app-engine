@@ -215,7 +215,7 @@ export default function CarSeatSafety({ onBack }) {
       </div>
 
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        Is Your Child's Car Seat Installed Correctly?
+        73% of Cincinnati Car Seats Have Errors. Is Yours Installed Right?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

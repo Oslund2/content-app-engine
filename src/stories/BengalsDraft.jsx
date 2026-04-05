@@ -68,7 +68,7 @@ export default function BengalsDraft({ onBack, onOpenStory }) {
       storyId="bengals-draft"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        You Have the 10th Pick. Who Do You Take?
+        The Bengals Have the 10th Pick. Who Does Cincinnati Take?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

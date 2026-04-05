@@ -61,7 +61,7 @@ export default function SafetyExplorer({ onBack, onOpenStory }) {
       storyId="safety-survey"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        How Safe Does Cincinnati Feel?
+        How Safe Does Your Cincinnati Neighborhood Feel?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">

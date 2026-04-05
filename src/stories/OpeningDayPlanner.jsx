@@ -85,7 +85,7 @@ export default function OpeningDayPlanner({ onBack, onOpenStory }) {
     >
       {/* Headline */}
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        Plan Your Perfect Opening Day
+        80,000 Will Pack the Banks Thursday. Plan Your Cincinnati Opening Day.
       </h1>
       <p className="text-xl text-ink-light leading-relaxed mb-4">
         On Thursday, 80,000 people will descend on the Banks for the 150th Opening Day ceremony.

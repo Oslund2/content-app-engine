@@ -105,7 +105,7 @@ export default function SidewalkChecker({ onBack, onOpenStory }) {
       storyId="sidewalk-repair"
     >
       <h1 className="font-serif text-4xl sm:text-5xl font-bold text-ink leading-tight mb-4">
-        The City Fixed 55 Sidewalks for Free
+        Cincinnati Fixed 55 West Side Sidewalks for Free. Is Your Block Next?
       </h1>
 
       <p className="text-xl text-ink-light leading-relaxed mb-4">
