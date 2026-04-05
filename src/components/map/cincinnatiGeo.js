@@ -49,9 +49,23 @@ export const neighborhoodCentroids = {
   'Covington / Newport (NKY)': { lat: 39.0810, lng: -84.4950 },
   'Newport':                  { lat: 39.0910, lng: -84.4920 },
   'Bellevue':                 { lat: 39.1060, lng: -84.4780 },
+  'Dayton KY':                { lat: 39.1130, lng: -84.4730 },
   'Ft. Thomas':               { lat: 39.0750, lng: -84.4520 },
+  'Highland Heights':         { lat: 39.0340, lng: -84.4520 },
+  'Cold Spring':              { lat: 39.0200, lng: -84.4400 },
+  'Alexandria':               { lat: 38.9590, lng: -84.3880 },
+  'Wilder':                   { lat: 39.0560, lng: -84.4860 },
+  'Fort Wright':              { lat: 39.0570, lng: -84.5340 },
+  'Park Hills':               { lat: 39.0680, lng: -84.5320 },
+  'Ludlow':                   { lat: 39.0920, lng: -84.5470 },
+  'Erlanger':                 { lat: 39.0170, lng: -84.6000 },
+  'Independence':             { lat: 38.9430, lng: -84.5440 },
+  'Villa Hills':              { lat: 39.0640, lng: -84.5930 },
+  'Crescent Springs':         { lat: 39.0510, lng: -84.5820 },
   'Northern Kentucky':        { lat: 39.0700, lng: -84.5000 },
   'Florence':                 { lat: 38.9990, lng: -84.6270 },
+  'Burlington':               { lat: 39.0280, lng: -84.7240 },
+  'Hebron':                   { lat: 39.0660, lng: -84.7060 },
   'Downtown Cincy':           { lat: 39.1010, lng: -84.5120 },
 
   // Greater metro
@@ -201,8 +215,50 @@ export const neighborhoodPolygons = {
     makeFeature('Ft. Thomas', 'ft-thomas', [
       [-84.4650, 39.0620], [-84.4380, 39.0620], [-84.4380, 39.0850], [-84.4650, 39.0850]
     ]),
+    makeFeature('Dayton KY', 'dayton-ky', [
+      [-84.4850, 39.1030], [-84.4630, 39.1030], [-84.4630, 39.1210], [-84.4850, 39.1210]
+    ]),
+    makeFeature('Highland Heights', 'highland-heights', [
+      [-84.4660, 39.0230], [-84.4380, 39.0230], [-84.4380, 39.0450], [-84.4660, 39.0450]
+    ]),
+    makeFeature('Cold Spring', 'cold-spring', [
+      [-84.4540, 39.0090], [-84.4260, 39.0090], [-84.4260, 39.0310], [-84.4540, 39.0310]
+    ]),
+    makeFeature('Alexandria', 'alexandria', [
+      [-84.4060, 38.9430], [-84.3700, 38.9430], [-84.3700, 38.9740], [-84.4060, 38.9740]
+    ]),
+    makeFeature('Wilder', 'wilder', [
+      [-84.4990, 39.0440], [-84.4740, 39.0440], [-84.4740, 39.0660], [-84.4990, 39.0660]
+    ]),
+    makeFeature('Fort Wright', 'fort-wright', [
+      [-84.5480, 39.0450], [-84.5210, 39.0450], [-84.5210, 39.0670], [-84.5480, 39.0670]
+    ]),
+    makeFeature('Park Hills', 'park-hills', [
+      [-84.5440, 39.0580], [-84.5220, 39.0580], [-84.5220, 39.0780], [-84.5440, 39.0780]
+    ]),
+    makeFeature('Ludlow', 'ludlow', [
+      [-84.5590, 39.0830], [-84.5370, 39.0830], [-84.5370, 39.1010], [-84.5590, 39.1010]
+    ]),
+    makeFeature('Erlanger', 'erlanger', [
+      [-84.6200, 39.0040], [-84.5830, 39.0040], [-84.5830, 39.0300], [-84.6200, 39.0300]
+    ]),
+    makeFeature('Independence', 'independence', [
+      [-84.5650, 38.9280], [-84.5230, 38.9280], [-84.5230, 38.9590], [-84.5650, 38.9590]
+    ]),
+    makeFeature('Villa Hills', 'villa-hills', [
+      [-84.6080, 39.0510], [-84.5800, 39.0510], [-84.5800, 39.0730], [-84.6080, 39.0730]
+    ]),
+    makeFeature('Crescent Springs', 'crescent-springs', [
+      [-84.5970, 39.0390], [-84.5700, 39.0390], [-84.5700, 39.0610], [-84.5970, 39.0610]
+    ]),
     makeFeature('Florence', 'florence', [
       [-84.6500, 38.9800], [-84.6020, 38.9800], [-84.6020, 39.0180], [-84.6500, 39.0180]
+    ]),
+    makeFeature('Burlington', 'burlington', [
+      [-84.7440, 39.0140], [-84.7080, 39.0140], [-84.7080, 39.0420], [-84.7440, 39.0420]
+    ]),
+    makeFeature('Hebron', 'hebron', [
+      [-84.7240, 39.0530], [-84.6900, 39.0530], [-84.6900, 39.0790], [-84.7240, 39.0790]
     ]),
 
     // ── Regional counties (for StormReady) ─────────────────────

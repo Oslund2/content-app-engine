@@ -417,7 +417,7 @@ When working with third-party source articles:
 6. **At least one data visualization** — stat-dashboard, chart, comparison-table, or timeline.
 7. **At least one action block** — callout-box, step-guide, or actionItems in results.
 8. **Use gated: true** on blocks that should only appear after the reader interacts (results, charts, narrative, poll).
-9. Neighborhood pickers: use dropdown with ALL Cincinnati neighborhoods (Price Hill, Over-the-Rhine, Clifton, Hyde Park, Oakley, Avondale, Northside, Westwood, Madisonville, Mt. Washington, Anderson Twp, Norwood, Mt. Auburn, Walnut Hills, Evanston, Bond Hill, College Hill, Covington KY, Newport KY, Mason, West Chester, etc.)
+9. Neighborhood pickers: use dropdown with ALL Greater Cincinnati neighborhoods including Northern Kentucky (Price Hill, Over-the-Rhine, Clifton, Hyde Park, Oakley, Avondale, Northside, Westwood, Madisonville, Mt. Washington, Anderson Twp, Norwood, Mt. Auburn, Walnut Hills, Evanston, Bond Hill, College Hill, Covington KY, Newport KY, Bellevue KY, Dayton KY, Ft. Thomas KY, Highland Heights KY, Cold Spring KY, Alexandria KY, Erlanger KY, Independence KY, Florence KY, Burlington KY, Fort Wright KY, Park Hills KY, Ludlow KY, Mason, West Chester, etc.)
 10. Input slider format: {"id": "x", "type": "slider", "label": "...", "min": N, "max": N, "step": N, "unit": "...", "defaultValue": N}
 11. Formula syntax: "inputs.slider_id" (number), "inputs.id.data.field" (option data), "calculations.id" (other calc). Operators: + - * / ( ) only.
 

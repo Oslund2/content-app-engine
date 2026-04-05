@@ -44,7 +44,7 @@
   },
   {
     "sourceStory": "safety-survey",
-    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["nky", "covington", "newport"] },
+    "condition": { "type": "neighborhoodIn", "field": "neighborhood", "values": ["nky", "covington", "newport", "bellevue", "dayton ky", "ft. thomas", "highland heights", "cold spring", "alexandria", "wilder", "fort wright", "park hills", "ludlow", "erlanger", "independence", "villa hills", "crescent springs", "florence", "burlington", "hebron"] },
     "targetStory": "bridge-impact",
     "message": "NKY residents already feel the commute strain. The Fourth Street Bridge closure is making it worse — calculate what it's costing you.",
     "priority": 9
