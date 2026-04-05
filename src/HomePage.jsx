@@ -262,10 +262,10 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-white/80">
-            <span className="hover:text-white cursor-pointer transition-colors">News</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Weather</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Sports</span>
-            <span className="hover:text-white cursor-pointer transition-colors">Investigates</span>
+            <span onClick={() => document.getElementById('section-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hover:text-white cursor-pointer transition-colors">News</span>
+            <span onClick={() => document.getElementById('section-weather')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hover:text-white cursor-pointer transition-colors">Weather</span>
+            <span onClick={() => document.getElementById('section-sports')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hover:text-white cursor-pointer transition-colors">Sports</span>
+            <span onClick={() => document.getElementById('section-investigates')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="hover:text-white cursor-pointer transition-colors">Investigates</span>
             <span className="text-wcpo-red font-semibold flex items-center gap-1">
               <Zap size={13} /> Interactive
             </span>
@@ -330,15 +330,15 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
               </div>
               <div className="flex-1 overflow-y-auto py-2">
                 {[
-                  { label: 'News', icon: null },
-                  { label: 'Weather', icon: null },
-                  { label: 'Sports', icon: null },
-                  { label: 'Investigates', icon: null },
+                  { label: 'News', target: 'section-news' },
+                  { label: 'Weather', target: 'section-weather' },
+                  { label: 'Sports', target: 'section-sports' },
+                  { label: 'Investigates', target: 'section-investigates' },
                 ].map(item => (
                   <button
                     key={item.label}
                     type="button"
-                    onClick={() => setShowMenu(false)}
+                    onClick={() => { setShowMenu(false); setTimeout(() => document.getElementById(item.target)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300) }}
                     style={{ WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation' }}
                     className="w-full text-left px-5 py-3.5 text-sm font-medium text-white/80 hover:bg-white/5 active:bg-white/10 transition-colors"
                   >
@@ -539,6 +539,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
 
         {/* Deep Dive Topic — show only the most recent published topic */}
         {topics.length > 0 && topics.slice(0, 1).map(topic => {
+          /* id used by nav scroll for "Investigates" */
           const accent = topic.accent_color || '#dc2626'
           const stats = topic.hero_stats || []
           return (
@@ -547,6 +548,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
+              id="section-investigates"
               onClick={() => onOpenTopic?.(topic.slug)}
               className="group cursor-pointer mb-10 -mx-4 sm:-mx-6"
             >
@@ -624,7 +626,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
         })}
 
         {/* Section label */}
-        <div className="flex items-center gap-3 mb-6">
+        <div id="section-news" className="flex items-center gap-3 mb-6">
           <Zap size={14} className="text-wcpo-red" />
           <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">More Interactive Stories</h2>
           <div className="flex-1 h-px bg-rule" />
@@ -644,7 +646,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
 
         {/* === SPORTS SECTION === */}
         {sportsRest.length > 0 && (
-          <section className="mt-12">
+          <section id="section-sports" className="mt-12">
             <div className="flex items-center gap-3 mb-6">
               <Trophy size={14} className="text-orange-600" />
               <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Sports</h2>
@@ -665,7 +667,7 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
 
         {/* === WEATHER SECTION === */}
         {weatherRest.length > 0 && (
-          <section className="mt-12">
+          <section id="section-weather" className="mt-12">
             <div className="flex items-center gap-3 mb-6">
               <CloudLightning size={14} className="text-violet-600" />
               <h2 className="text-xs font-bold tracking-widest uppercase text-ink-muted">Weather</h2>
