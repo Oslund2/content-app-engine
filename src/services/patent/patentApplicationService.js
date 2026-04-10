@@ -52,43 +52,37 @@ export async function getPatentApplication(applicationId) {
   if (appError) throw appError
   if (!application) return null
 
-  const { data: claims } = await supabase
-    .from('patent_claims')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('claim_number', { ascending: true })
+  // Load related data — catch each independently so one failure doesn't block everything
+  let claims = []
+  let drawings = []
+  let priorArt = []
 
-  const { data: drawings } = await supabase
-    .from('patent_drawings')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('figure_number', { ascending: true })
+  try {
+    const { data } = await supabase.from('patent_claims').select('*').eq('application_id', applicationId).order('claim_number', { ascending: true })
+    if (data) claims = data
+  } catch (e) { console.warn('Claims load failed:', e) }
 
-  // Try both table names (IP Shield uses patent_prior_art_search_results, new schema uses patent_prior_art_results)
-  let priorArt = null
-  const { data: pa1 } = await supabase
-    .from('patent_prior_art_results')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('relevance_score', { ascending: false })
-  if (pa1 && pa1.length > 0) {
-    priorArt = pa1
-  } else {
-    const { data: pa2 } = await supabase
-      .from('patent_prior_art_search_results')
-      .select('*')
-      .eq('patent_application_id', applicationId)
-      .order('relevance_score', { ascending: false })
-    priorArt = pa2
-  }
+  try {
+    const { data } = await supabase.from('patent_drawings').select('*').eq('application_id', applicationId).order('figure_number', { ascending: true })
+    if (data) drawings = data
+  } catch (e) { console.warn('Drawings load failed:', e) }
+
+  try {
+    const { data } = await supabase.from('patent_prior_art_results').select('*').eq('application_id', applicationId)
+    if (data && data.length > 0) { priorArt = data }
+    else {
+      const { data: pa2 } = await supabase.from('patent_prior_art_search_results').select('*').eq('patent_application_id', applicationId)
+      if (pa2) priorArt = pa2
+    }
+  } catch (e) { console.warn('Prior art load failed:', e) }
 
   return {
     ...application,
     inventors: application.inventors || [],
     correspondence_address: application.correspondence_address || null,
-    claims: claims || [],
-    drawings: drawings || [],
-    priorArt: priorArt || [],
+    claims,
+    drawings,
+    priorArt,
   }
 }
 
