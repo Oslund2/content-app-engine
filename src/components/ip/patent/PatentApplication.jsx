@@ -36,6 +36,7 @@ export default function PatentApplication({ applicationId, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview')
   const [generating, setGenerating] = useState({})
   const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState(null)
 
   const loadApp = useCallback(async () => {
     try {
@@ -44,6 +45,7 @@ export default function PatentApplication({ applicationId, onUpdate }) {
       setApp(data)
     } catch (err) {
       console.error('Failed to load application:', err)
+      setLoadError(err?.message || JSON.stringify(err))
     } finally {
       setLoading(false)
     }
@@ -122,8 +124,9 @@ export default function PatentApplication({ applicationId, onUpdate }) {
 
   if (!app) {
     return (
-      <div className="flex items-center justify-center h-64 text-ink-muted">
-        Application not found
+      <div className="flex flex-col items-center justify-center h-64 text-ink-muted gap-2">
+        <p>{loadError ? `Error: ${loadError}` : 'Application not found'}</p>
+        {loadError && <button onClick={loadApp} className="text-xs text-blue-600 hover:underline">Retry</button>}
       </div>
     )
   }
