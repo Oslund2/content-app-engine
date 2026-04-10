@@ -201,7 +201,11 @@ function RssQueue({ items, loading, onRefresh }) {
                 <button
                   onClick={() => handleProcess(item.id)}
                   disabled={processing}
-                  className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-ink hover:bg-emerald-100 hover:text-emerald-700 border border-rule transition-all disabled:opacity-40"
+                  className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all disabled:opacity-40 ${
+                    processingItemId === item.id
+                      ? 'bg-blue-100 text-blue-700 border-blue-300 animate-pulse'
+                      : 'bg-slate-100 text-ink hover:bg-emerald-100 hover:text-emerald-700 border-rule'
+                  }`}
                 >
                   {processingItemId === item.id
                     ? <><Loader2 size={11} className="animate-spin" /> Building...</>
@@ -312,7 +316,11 @@ function SkippedView({ items, loading, onRefresh }) {
               <button
                 onClick={() => handleForceBuild(item.id)}
                 disabled={processing}
-                className="flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md bg-amber-100 text-amber-800 hover:bg-amber-200 border border-amber-300 transition-all disabled:opacity-40 shrink-0"
+                className={`flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-all disabled:opacity-40 shrink-0 ${
+                  processingItemId === item.id
+                    ? 'bg-blue-100 text-blue-700 border-blue-300 animate-pulse'
+                    : 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300'
+                }`}
               >
                 {processingItemId === item.id
                   ? <><Loader2 size={11} className="animate-spin" /> Building...</>
