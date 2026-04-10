@@ -4,4 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      external: ['canvg'],
+    },
+  },
+  optimizeDeps: {
+    exclude: ['canvg'],
+  },
 })

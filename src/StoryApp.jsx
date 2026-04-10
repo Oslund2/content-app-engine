@@ -19,6 +19,7 @@ import AdminHub from './components/AdminHub'
 import { fetchGeneratedStories, fetchGeneratedStoryBySlug, logPageView } from './lib/supabase'
 
 const StoryRenderer = lazy(() => import('./renderer/StoryRenderer'))
+const IPProtection = lazy(() => import('./components/ip/IPProtection'))
 
 // Legacy hand-built story components
 const storyComponents = {
@@ -36,6 +37,7 @@ const storyComponents = {
   'neighborhood-pulse': NeighborhoodPulse,
   'community-response': CommunityResponse,
   'admin-hub': AdminHub,
+  'ip-protection': IPProtection,
 }
 
 // Read URL params once on load
