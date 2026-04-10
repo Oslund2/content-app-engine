@@ -1,6 +1,6 @@
 // src/services/patent/patentApplicationService.js
 // Patent Application CRUD operations
-import { supabase, getSessionId } from '../../lib/supabase.js'
+import { supabase, getSessionId } from '../../lib/supabase'
 
 const VALID_PATENT_COLUMNS = new Set([
   'title', 'status', 'abstract', 'specification', 'field_of_invention',

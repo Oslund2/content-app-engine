@@ -1,5 +1,5 @@
 // src/services/patent/patentWorkflowOrchestrator.js
-import { supabase } from '../../lib/supabase.js'
+import { supabase } from '../../lib/supabase'
 
 export async function getPatentStrength(applicationId) {
   const { data: app } = await supabase.from('patent_applications').select('*').eq('id', applicationId).single()

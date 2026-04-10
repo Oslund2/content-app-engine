@@ -32,7 +32,7 @@ export default function IPProtection({ onBack }) {
       setApplications(apps)
     } catch (err) {
       console.error('Failed to load applications:', err)
-      setError('Failed to load applications')
+      setError(`Failed to load applications: ${err?.message || err?.code || JSON.stringify(err)}`)
     } finally {
       setLoading(false)
     }
