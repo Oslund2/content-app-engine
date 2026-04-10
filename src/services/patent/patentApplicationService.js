@@ -14,14 +14,33 @@ const VALID_PATENT_COLUMNS = new Set([
 ])
 
 export async function getPatentApplications() {
+  // Try session-based first, fall back to loading all if none found
   const sessionId = getSessionId()
-  const { data, error } = await supabase
+  const { data: sessionApps, error: sessionErr } = await supabase
     .from('patent_applications')
     .select('*')
     .eq('session_id', sessionId)
     .order('updated_at', { ascending: false })
-  if (error) throw error
-  return data || []
+
+  if (sessionErr) {
+    // session_id column may not exist yet — fall back to loading all
+    const { data, error } = await supabase
+      .from('patent_applications')
+      .select('*')
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  }
+
+  // If session has apps, return those; otherwise return all (for IP Shield compat)
+  if (sessionApps && sessionApps.length > 0) return sessionApps
+
+  const { data: allApps, error: allErr } = await supabase
+    .from('patent_applications')
+    .select('*')
+    .order('updated_at', { ascending: false })
+  if (allErr) throw allErr
+  return allApps || []
 }
 
 export async function getPatentApplication(applicationId) {
@@ -45,11 +64,23 @@ export async function getPatentApplication(applicationId) {
     .eq('application_id', applicationId)
     .order('figure_number', { ascending: true })
 
-  const { data: priorArt } = await supabase
+  // Try both table names (IP Shield uses patent_prior_art_search_results, new schema uses patent_prior_art_results)
+  let priorArt = null
+  const { data: pa1 } = await supabase
     .from('patent_prior_art_results')
     .select('*')
     .eq('application_id', applicationId)
     .order('relevance_score', { ascending: false })
+  if (pa1 && pa1.length > 0) {
+    priorArt = pa1
+  } else {
+    const { data: pa2 } = await supabase
+      .from('patent_prior_art_search_results')
+      .select('*')
+      .eq('patent_application_id', applicationId)
+      .order('relevance_score', { ascending: false })
+    priorArt = pa2
+  }
 
   return {
     ...application,
