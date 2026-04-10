@@ -93,11 +93,35 @@ function apiRequest(method, apiPath, data, contentType) {
   });
 }
 
+// Extract schedule config from function source files
+function extractSchedules() {
+  const schedules = {};
+  if (!fs.existsSync(functionsDir)) return schedules;
+  for (const entry of fs.readdirSync(functionsDir)) {
+    if (!entry.endsWith('.mjs')) continue;
+    const src = fs.readFileSync(path.join(functionsDir, entry), 'utf8');
+    const match = src.match(/schedule\s*:\s*['"`]([^'"`]+)['"`]/);
+    if (match) {
+      const fnName = entry.replace('.mjs', '');
+      schedules[fnName] = { schedule: match[1] };
+      console.log(`  Schedule: ${fnName} → ${match[1]}`);
+    }
+  }
+  return schedules;
+}
+
+console.log('Detecting scheduled functions...');
+const functionsConfig = extractSchedules();
+
 async function deploy() {
-  const body = JSON.stringify({
+  const payload = {
     files: fileHashes,
     functions: functionHashes,
-  });
+  };
+  if (Object.keys(functionsConfig).length > 0) {
+    payload.functions_config = functionsConfig;
+  }
+  const body = JSON.stringify(payload);
   const deploy = await apiRequest('POST', '/api/v1/sites/' + siteId + '/deploys', body);
   console.log('Deploy:', deploy.id, '| State:', deploy.state);
 

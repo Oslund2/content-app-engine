@@ -30,6 +30,74 @@ export function extractFirstImage(html) {
   return null
 }
 
+// ─── Rights-Free Image Search ───────────────────────────────────────────────
+
+var RIGHTS_FREE_DOMAINS = [
+  'unsplash.com', 'images.unsplash.com',
+  'nasa.gov', 'images-assets.nasa.gov',
+  'pixabay.com', 'cdn.pixabay.com',
+  'commons.wikimedia.org',
+  'pexels.com', 'images.pexels.com',
+]
+
+export function isRightsClearedUrl(url) {
+  if (!url) return false
+  try {
+    var hostname = new URL(url).hostname.replace('www.', '')
+    for (var i = 0; i < RIGHTS_FREE_DOMAINS.length; i++) {
+      if (hostname === RIGHTS_FREE_DOMAINS[i] || hostname.endsWith('.' + RIGHTS_FREE_DOMAINS[i])) return true
+    }
+  } catch (e) { /* ignore */ }
+  return false
+}
+
+function searchUnsplashPipeline(query, count) {
+  return fetch(
+    'https://unsplash.com/napi/search/photos?query=' + encodeURIComponent(query) + '&per_page=' + Math.min(count, 6),
+    { headers: { 'Accept': 'application/json', 'Accept-Language': 'en-US' }, signal: AbortSignal.timeout(5000) }
+  ).then(function (res) {
+    if (!res.ok) return []
+    return res.json().then(function (data) {
+      return (data.results || []).map(function (photo) {
+        return photo.urls && (photo.urls.regular || photo.urls.full) || ''
+      }).filter(Boolean)
+    })
+  }).catch(function () { return [] })
+}
+
+function searchNasaPipeline(query, count) {
+  return fetch(
+    'https://images-api.nasa.gov/search?q=' + encodeURIComponent(query) + '&media_type=image',
+    { signal: AbortSignal.timeout(5000) }
+  ).then(function (res) {
+    if (!res.ok) return []
+    return res.json().then(function (data) {
+      return (data.collection && data.collection.items || []).slice(0, count).map(function (item) {
+        var link = item.links && item.links[0] || {}
+        var thumb = link.href || ''
+        return thumb.replace('~thumb.', '~medium.').replace('~small.', '~medium.') || thumb
+      }).filter(Boolean)
+    })
+  }).catch(function () { return [] })
+}
+
+export function findRightsFreeImage(keywords) {
+  var query = keywords.replace(/['"]/g, '').slice(0, 80)
+  return Promise.all([
+    searchUnsplashPipeline(query, 4),
+    searchNasaPipeline(query, 3),
+  ]).then(function (results) {
+    // Interleave: prefer Unsplash (better general imagery), NASA as fallback
+    var combined = []
+    var maxLen = Math.max(results[0].length, results[1].length)
+    for (var i = 0; i < maxLen; i++) {
+      if (results[0][i]) combined.push(results[0][i])
+      if (results[1][i]) combined.push(results[1][i])
+    }
+    return combined[0] || null
+  })
+}
+
 function repairJson(text) {
   // Remove trailing commas before ] or }
   var fixed = text.replace(/,\s*([}\]])/g, '$1')
@@ -553,7 +621,27 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
 
   // Build story row
   var storyId = slugify(item.title)
-  var imageUrl = extractFirstImage(item.content_encoded) || item.og_image || null
+  var extractedImage = extractFirstImage(item.content_encoded) || item.og_image || null
+  var imageUrl = extractedImage
+
+  // Auto-search for rights-free image if extracted image isn't from a cleared source
+  if (!isRightsClearedUrl(extractedImage)) {
+    console.log('Image not rights-cleared, searching for rights-free alternative...')
+    var searchKeywords = stripHtml(item.title)
+    try {
+      var altImage = await findRightsFreeImage(searchKeywords)
+      if (altImage) {
+        console.log('Found rights-free image: ' + altImage.slice(0, 80))
+        imageUrl = altImage
+      } else {
+        console.log('No rights-free image found, using original')
+      }
+    } catch (err) {
+      console.error('Image search failed: ' + err.message)
+    }
+  } else if (extractedImage) {
+    console.log('Extracted image already rights-cleared')
+  }
 
   // Inject image into config so it flows to the renderer
   if (imageUrl) {

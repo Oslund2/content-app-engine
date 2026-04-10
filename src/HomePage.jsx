@@ -179,8 +179,8 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
   const weekAgo = new Date(now)
   weekAgo.setDate(now.getDate() - 7)
   const thisWeekCutoff = weekAgo.toISOString().split('T')[0]
-  const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff || s.isGenerated)
-  const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff && !s.isGenerated)
+  const currentStories = stories.filter(s => !s.publishDate || s.publishDate >= thisWeekCutoff)
+  const archiveStories = stories.filter(s => s.publishDate && s.publishDate < thisWeekCutoff)
   const archiveDates = dates.filter(d => d < thisWeekCutoff)
 
   const sportsCategories = ['SPORTS']
