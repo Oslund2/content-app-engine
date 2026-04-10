@@ -669,7 +669,7 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
     category: (item.feed_name || 'news').toUpperCase().replace(/-/g, ' '),
     category_color: CATEGORY_COLORS[item.feed_name] || '#dc2626',
     image_url: imageUrl,
-    publish_date: new Date().toISOString().split('T')[0],
+    publish_date: item.pub_date ? new Date(item.pub_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     model_used: 'claude-sonnet-4-6',
     narrative_prompt: config.narrative ? config.narrative.systemPrompt : null,
     narration_script: typeof narration === 'string' ? narration.slice(0, 500) : null,

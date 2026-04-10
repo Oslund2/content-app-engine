@@ -200,7 +200,7 @@ export default async () => {
           if (autoPublish) {
             await sbQuery(supabaseUrl, supabaseKey,
               'generated_stories?story_id=eq.' + result.storyId, 'PATCH',
-              { status: 'published', publish_date: new Date().toISOString().split('T')[0] }
+              { status: 'published' }
             ).catch(function() {})
             console.log('Published: ' + result.storyId)
           } else {

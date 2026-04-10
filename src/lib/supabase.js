@@ -303,7 +303,6 @@ export async function updateGeneratedStoryStatus(id, status, editorNotes) {
   if (status === 'published') {
     updates.approved_by = 'editor'
     updates.approved_at = new Date().toISOString()
-    updates.publish_date = new Date().toISOString().split('T')[0]
   }
   if (editorNotes) updates.editor_notes = editorNotes
 
@@ -483,7 +482,7 @@ export async function publishTopicAndStories(topicSlug) {
   await supabase.from('topics').update({ status: 'published', updated_at: now }).eq('slug', topicSlug)
   // Publish all its stories
   await supabase.from('generated_stories')
-    .update({ status: 'published', publish_date: today, updated_at: now })
+    .update({ status: 'published', updated_at: now })
     .eq('topic_slug', topicSlug)
     .neq('status', 'rejected')
 }

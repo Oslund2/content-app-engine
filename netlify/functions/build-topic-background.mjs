@@ -288,7 +288,7 @@ async function processSelectedArticles(payload, apiKey, supabaseUrl, supabaseKey
       if (confidence >= AUTO_PUBLISH_THRESHOLD) {
         await sbQuery(supabaseUrl, supabaseKey,
           'generated_stories?story_id=eq.' + result.storyId, 'PATCH',
-          { status: 'published', publish_date: new Date().toISOString().split('T')[0] }
+          { status: 'published' }
         ).catch(function(err) { console.error('Auto-publish failed:', err.message) })
         publishedCount++
         console.log('AUTO-PUBLISHED (confidence: ' + confidence + ')')

@@ -74,7 +74,7 @@ export default async (req) => {
     if (!result.skipped && result.worthiness >= AUTO_PUBLISH_THRESHOLD) {
       await sbQuery(supabaseUrl, supabaseKey,
         'generated_stories?story_id=eq.' + result.storyId, 'PATCH',
-        { status: 'published', publish_date: new Date().toISOString().split('T')[0] })
+        { status: 'published' })
       console.log('Auto-published: ' + result.storyId + ' (score ' + result.worthiness + ')')
     } else if (!result.skipped) {
       console.log('Draft: ' + result.storyId + ' (score ' + result.worthiness + ' < threshold ' + AUTO_PUBLISH_THRESHOLD + ')')
