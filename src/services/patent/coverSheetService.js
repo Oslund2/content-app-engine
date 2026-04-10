@@ -2,9 +2,10 @@
 // PTO/SB/16 Cover Sheet and PTO/SB/17 Fee Transmittal PDF generation
 import jsPDF from 'jspdf'
 
-const MARGIN = 50
+const MARGIN = 54
 const PAGE_WIDTH = 612  // Letter
 const PAGE_HEIGHT = 792
+const BOTTOM_MARGIN = 72
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 const LINE = 12
 const SMALL = 8
@@ -29,7 +30,7 @@ function checkbox(doc, x, y, checked) {
 }
 
 function needsNewPage(doc, y, needed) {
-  if (y + needed > PAGE_HEIGHT - MARGIN) {
+  if (y + needed > PAGE_HEIGHT - BOTTOM_MARGIN) {
     doc.addPage()
     return MARGIN + 10
   }

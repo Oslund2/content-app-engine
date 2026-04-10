@@ -30,8 +30,9 @@ export function extractADSDataFromApplication(app) {
   }
 }
 
-const MARGIN = 50
+const MARGIN = 54
 const PAGE_HEIGHT = 792 // Letter height in points
+const BOTTOM_MARGIN = 72
 const PAGE_WIDTH = 612
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 const LINE_HEIGHT = 13
@@ -80,7 +81,7 @@ function checkbox(doc, x, y, checked, label) {
 }
 
 function checkPageBreak(doc, y, needed = 60) {
-  if (y + needed > PAGE_HEIGHT - 50) {
+  if (y + needed > PAGE_HEIGHT - BOTTOM_MARGIN) {
     doc.addPage()
     return formHeader(doc, 40)
   }
