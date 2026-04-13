@@ -167,8 +167,12 @@ export default function HomePage({ onOpenStory, onOpenTopic, generatedStories = 
     load()
   }, [])
 
-  // Merge legacy stories with generated stories
-  const legacyStories = allStories.length > 0 ? allStories : storyData.stories
+  // Merge legacy stories with generated stories.
+  // While the DB fetch is in flight, suppress the storyData.json fallback so the
+  // hero card doesn't flash a hardcoded story before settling on the real pool.
+  const legacyStories = loading
+    ? []
+    : (allStories.length > 0 ? allStories : storyData.stories)
   const genStories = generatedStories.map(generatedToStory)
 
   // Combine: legacy stories first (preserving original order), then generated stories mixed in
