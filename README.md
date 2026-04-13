@@ -299,10 +299,10 @@ The admin dashboard (accessible via the gear icon on the homepage) provides a co
 
 ### Hero Images & Rights Protection
 Each story can have a hero image displayed at the top. The system enforces rights-free image usage:
-- **Auto-extracted** from source article OG tags during pipeline processing (flagged as unverified)
-- **Rights-free search** -- Image search returns results from **Unsplash** (free license) and **NASA Images** (public domain), with optional **Pixabay** support
+- **Feed-extracted (preferred)** -- Images included in the RSS feed (`<media:content>`, `<media:thumbnail>`, `<enclosure>`, or inline `<img>` in `content:encoded`/`description`) are treated as rights-cleared by the publisher and used directly
+- **Rights-free fallback** -- When the feed has no image, the pipeline searches **Unsplash** (free license) and **NASA Images** (public domain), with optional **Pixabay** support
 - **Publish gate** -- When approving a story with an unverified image, editors see a warning: *"No rights-free image found."* with options to search for a rights-free image, paste their own URL, or publish without an image
-- **Domain whitelist** -- Images from `unsplash.com`, `nasa.gov`, `pixabay.com`, and `wikimedia.org` are considered rights-cleared; all others trigger the warning
+- **Domain whitelist** -- Images from `unsplash.com`, `nasa.gov`, `pixabay.com`, `wikimedia.org`, and `brightspotcdn.com` (Scripps CDN) are considered rights-cleared; all others trigger the warning
 - **Optional** -- stories can publish without an image
 
 ### Topic Pages

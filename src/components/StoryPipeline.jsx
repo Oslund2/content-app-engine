@@ -112,9 +112,11 @@ function RssQueue({ items, loading, onRefresh }) {
             break
           }
 
-          // Check if the RSS item was processed and skipped
+          // Treat the item as skipped only when the worker itself reports a
+          // failure. A bare triage skip_reason can linger on the row from an
+          // earlier run and would otherwise race with in-flight builds.
           const rssItem = await fetchRssItemById(rssItemId)
-          if (rssItem && rssItem.processed && rssItem.skip_reason) {
+          if (rssItem && rssItem.processed && rssItem.skip_reason && rssItem.skip_reason.startsWith('Pipeline error:')) {
             skipped = true
             skipReason = rssItem.skip_reason
             break

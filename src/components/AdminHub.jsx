@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Shield, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw, BarChart3, TrendingUp, Eye } from 'lucide-react'
-import SensitivityAdmin from './SensitivityAdmin'
+import { ArrowLeft, Newspaper, Layers, Plus, Trash2, GripVertical, Save, Loader2, Sparkles, ExternalLink, CheckCircle2, Zap, Rocket, RefreshCw, BarChart3, TrendingUp, Eye } from 'lucide-react'
 import StoryPipeline from './StoryPipeline'
 import storyData from '../storyData.json'
 import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTopic, fetchAllStoriesByTopic, publishTopicAndStories, fetchRecentViews } from '../lib/supabase'
@@ -8,7 +7,6 @@ import { fetchAllGeneratedStories, fetchAllTopics, upsertTopic, assignStoryToTop
 const tabs = [
   { id: 'pipeline', label: 'Story Pipeline', icon: Newspaper },
   { id: 'topics', label: 'Topic Pages', icon: Layers },
-  { id: 'sensitivity', label: 'Sensitivity Analysis', icon: Shield },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
@@ -193,7 +191,6 @@ export default function AdminHub({ onBack }) {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'sensitivity' && <SensitivityAdmin />}
         {activeTab === 'pipeline' && <StoryPipeline />}
         {activeTab === 'topics' && <TopicAdmin />}
         {activeTab === 'analytics' && <AnalyticsDashboard />}

@@ -47,6 +47,16 @@ export async function handler(event) {
   var item = items[0]
   console.log('Processing: ' + item.title)
 
+  // On a force-rebuild, clear the stale skip_reason up front so the dashboard
+  // poller can't read a leftover value from an earlier triage and mistake the
+  // in-progress build for a fresh skip.
+  if (force) {
+    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', {
+      skip_reason: null,
+    }).catch(function (err) { console.error('Pre-clear skip_reason failed: ' + err.message) })
+    item.skip_reason = null
+  }
+
   try {
     if (item.source_type === 'external' && item.link) {
       try {
@@ -58,7 +68,12 @@ export async function handler(event) {
 
     var result = await processItem(item, apiKey, supabaseUrl, supabaseKey, { skipSensitivity: true, forceGenerate: force })
     console.log('Success: ' + item.title, JSON.stringify(result))
-    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', { processed: true })
+    // Clear skip_reason on success too — a successful build invalidates any
+    // prior triage skip note.
+    await sbQuery(supabaseUrl, supabaseKey, 'rss_items?id=eq.' + item.id, 'PATCH', {
+      processed: true,
+      skip_reason: null,
+    })
     return { statusCode: 200 }
   } catch (err) {
     console.error('FAILED: ' + item.title, err.message)
