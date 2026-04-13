@@ -38,6 +38,8 @@ var RIGHTS_FREE_DOMAINS = [
   'pixabay.com', 'cdn.pixabay.com',
   'commons.wikimedia.org',
   'pexels.com', 'images.pexels.com',
+  // Scripps/Brightspot CDN — licensed Scripps content
+  'brightspotcdn.com', 'ewscripps.brightspotcdn.com',
 ]
 
 export function isRightsClearedUrl(url) {
@@ -621,12 +623,23 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
 
   // Build story row
   var storyId = slugify(item.title)
-  var extractedImage = extractFirstImage(item.content_encoded) || item.og_image || null
-  var imageUrl = extractedImage
+  // Image priority:
+  //   1. image_url stored on the rss_item by the ingest parser (media:content,
+  //      media:thumbnail, enclosure, or first <img>). Anything provided in an
+  //      RSS feed is treated as rights-cleared by the publisher.
+  //   2. First <img> inside content:encoded (re-parse fallback).
+  //   3. og:image scraped from the article URL.
+  //   4. Rights-free search (Unsplash/NASA) only when the feed gave us nothing.
+  var feedImage = item.image_url
+    || extractFirstImage(item.content_encoded)
+    || item.og_image
+    || null
+  var imageUrl = feedImage
 
-  // Auto-search for rights-free image if extracted image isn't from a cleared source
-  if (!isRightsClearedUrl(extractedImage)) {
-    console.log('Image not rights-cleared, searching for rights-free alternative...')
+  if (feedImage) {
+    console.log('Using feed-provided image: ' + feedImage.slice(0, 80))
+  } else {
+    console.log('No feed image found, searching for rights-free alternative...')
     var searchKeywords = stripHtml(item.title)
     try {
       var altImage = await findRightsFreeImage(searchKeywords)
@@ -634,13 +647,11 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
         console.log('Found rights-free image: ' + altImage.slice(0, 80))
         imageUrl = altImage
       } else {
-        console.log('No rights-free image found, using original')
+        console.log('No rights-free image found')
       }
     } catch (err) {
       console.error('Image search failed: ' + err.message)
     }
-  } else if (extractedImage) {
-    console.log('Extracted image already rights-cleared')
   }
 
   // Inject image into config so it flows to the renderer

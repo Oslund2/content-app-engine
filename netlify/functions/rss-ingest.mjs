@@ -24,6 +24,37 @@ function getTagContent(xml, tagName) {
   return raw.trim()
 }
 
+// Pull a url="…" attribute out of a self-closing or paired tag like <media:content … />
+function getAttrUrl(block, tagName) {
+  var re = new RegExp('<' + tagName + '\\b[^>]*\\burl=["\']([^"\']+)["\']', 'i')
+  var m = block.match(re)
+  return m ? m[1] : ''
+}
+
+// Find the first <img src="…"> in a chunk of HTML/CDATA
+function getFirstImgSrc(html) {
+  if (!html) return ''
+  var m = html.match(/<img[^>]+src=["']([^"']+)["']/i)
+  return m ? m[1] : ''
+}
+
+// Extract an image URL from an RSS item using the common feed conventions.
+// Order: media:content > media:thumbnail > enclosure (image/*) >
+//        <img> in content:encoded > <img> in description.
+// Anything found is considered rights-cleared by the publisher.
+function extractItemImage(block, contentEncoded, description) {
+  var url = getAttrUrl(block, 'media:content')
+    || getAttrUrl(block, 'media:thumbnail')
+  if (url) return url
+
+  // <enclosure url="…" type="image/jpeg" />
+  var encMatch = block.match(/<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*\btype=["']image\/[^"']+["']/i)
+    || block.match(/<enclosure\b[^>]*\btype=["']image\/[^"']+["'][^>]*\burl=["']([^"']+)["']/i)
+  if (encMatch) return encMatch[1]
+
+  return getFirstImgSrc(contentEncoded) || getFirstImgSrc(description) || ''
+}
+
 function parseItems(xml) {
   var results = []
   var searchFrom = 0
@@ -33,14 +64,17 @@ function parseItems(xml) {
     var itemEnd = xml.indexOf('</item>', itemStart)
     if (itemEnd === -1) break
     var block = xml.substring(itemStart + 6, itemEnd)
+    var description = getTagContent(block, 'description')
+    var contentEncoded = getTagContent(block, 'content:encoded')
     results.push({
       title: getTagContent(block, 'title'),
       link: getTagContent(block, 'link'),
-      description: getTagContent(block, 'description'),
-      contentEncoded: getTagContent(block, 'content:encoded'),
+      description: description,
+      contentEncoded: contentEncoded,
       author: getTagContent(block, 'author') || getTagContent(block, 'dc:creator'),
       pubDate: getTagContent(block, 'pubDate'),
       guid: getTagContent(block, 'guid'),
+      imageUrl: extractItemImage(block, contentEncoded, description),
     })
     searchFrom = itemEnd + 7
   }
@@ -77,6 +111,7 @@ async function fetchFeed(feed) {
         content_encoded: item.contentEncoded,
         author: clean(item.author),
         pub_date: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+        image_url: item.imageUrl || null,
       }
     })
   } catch (err) {
