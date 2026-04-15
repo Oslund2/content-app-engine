@@ -21,13 +21,24 @@ export function slugify(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60)
 }
 
+export function extractAllImages(html) {
+  if (!html) return []
+  var seen = new Set()
+  var results = []
+  var re = /<img[^>]+src=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)[^"']*)["']/gi
+  var m
+  while ((m = re.exec(html)) !== null && results.length < 5) {
+    var url = m[1].split('?')[0] // strip query params for dedup
+    if (!seen.has(url) && !/1x1|pixel|beacon|tracking|icon|logo|spacer/i.test(url)) {
+      seen.add(url)
+      results.push(m[1]) // keep original with query params for actual use
+    }
+  }
+  return results
+}
+
 export function extractFirstImage(html) {
-  if (!html) return null
-  var match = html.match(/src="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i)
-  if (match) return match[1]
-  match = html.match(/<img[^>]+src="(https?:\/\/[^"]+)"/i)
-  if (match) return match[1]
-  return null
+  return extractAllImages(html)[0] || null
 }
 
 // ─── Rights-Free Image Search ───────────────────────────────────────────────
@@ -98,6 +109,13 @@ export function findRightsFreeImage(keywords) {
     }
     return combined[0] || null
   })
+}
+
+export function findRightsFreeImages(queries) {
+  var limited = queries.slice(0, 3)
+  return Promise.all(limited.map(function (q) {
+    return findRightsFreeImage(q)
+  }))
 }
 
 function repairJson(text) {
@@ -447,19 +465,35 @@ You compose story-apps from BLOCKS — reusable content components you can arran
 {"type": "poll", "gated": true, "question": "Do you feel safe in your neighborhood?"}
 \`\`\`
 
+**18. inline-image** — Standalone editorial image between blocks. Use 1-2 per story for visual rhythm. Place after article-body paragraphs that describe a visual scene, location, or person. NEVER stack two inline-image blocks consecutively.
+Provide EITHER \`imageIndex\` (integer referencing the ARTICLE IMAGES list) OR \`imageQuery\` (1-10 word search phrase for a rights-free image). Do NOT provide a raw URL.
+\`\`\`json
+{"type": "inline-image", "imageIndex": 0, "caption": "Optional caption text", "alt": "Description for screen readers"}
+{"type": "inline-image", "imageQuery": "Cincinnati fire department response", "caption": "Optional caption"}
+\`\`\`
+
+### Optional image fields on other blocks
+These blocks accept an optional \`imageIndex\` (integer) to show a photo alongside their content. The pipeline resolves the index to a URL. Use sparingly — only when the image directly relates to the block content.
+- **article-body**: \`"imageIndex": N\` shows a photo above the text paragraphs. Good for scene-setting paragraphs.
+- **callout-box**: \`"imageIndex": N\` shows a location/venue photo above the header. Good for resource boxes tied to a specific place.
+- **collapsible**: \`"imageIndex": N\` shows a contextual photo inside the expanded section. Good for background/historical sections.
+
+## IMAGE RHYTHM
+When ARTICLE IMAGES are available, place 1-2 inline-image blocks at natural visual breaks — after scene-setting paragraphs, before major data sections, or around the midpoint. Prefer \`imageIndex\` (free, publisher-provided) over \`imageQuery\` (triggers an API search). Use \`imageQuery\` only when no article images exist AND the story has a strong visual angle (events, places, infrastructure). NEVER use inline-image blocks in crisis/breaking stories about deaths or injuries.
+
 ## EXPERIENCE DESIGN PATTERNS
 
 **CRISIS/BREAKING story:**
 hero → stat-dashboard (crisis) → article-body (2 paras) → timeline → divider → comparison-table → article-body (1 para context) → input (neighborhood dropdown) → info-card → divider → progressive-quiz → callout-box → narrative → fact-check → collapsible (background)
 
 **INFRASTRUCTURE/COST story:**
-hero → article-body (scene-setting) → stat-dashboard (neutral) → comparison-table → divider → input (sliders + button-array for personal situation) → results (gated: cost cards) → chart (gated: projection) → step-guide → callout-box → narrative
+hero → article-body (scene-setting) → inline-image (if available) → stat-dashboard (neutral) → comparison-table → divider → input (sliders + button-array for personal situation) → results (gated: cost cards) → chart (gated: projection) → step-guide → callout-box → narrative
 
 **HEALTH/SAFETY story:**
-hero → stat-dashboard (warning) → article-body (2 paras) → fact-check → divider → progressive-quiz → info-card → callout-box (resources) → collapsible (technical details) → narrative
+hero → stat-dashboard (warning) → article-body (2 paras) → inline-image (if available) → fact-check → divider → progressive-quiz → info-card → callout-box (resources) → collapsible (technical details) → narrative
 
 **EVENT/PLANNING story:**
-hero → article-body (excitement) → timeline (event schedule) → input (preferences) → step-guide (gated: personalized itinerary) → comparison-table (gated: options) → callout-box (logistics) → narrative
+hero → article-body (excitement) → inline-image (if available) → timeline (event schedule) → input (preferences) → step-guide (gated: personalized itinerary) → comparison-table (gated: options) → callout-box (logistics) → narrative
 
 **SPORTS story:**
 hero → stat-dashboard → comparison-table (player/team stats) → article-body → input (predictions) → chart (gated: projections) → results (gated) → fact-check (common takes) → narrative → poll
@@ -490,6 +524,7 @@ When working with third-party source articles:
 9. Neighborhood pickers: use dropdown with ALL Greater Cincinnati neighborhoods including Northern Kentucky (Price Hill, Over-the-Rhine, Clifton, Hyde Park, Oakley, Avondale, Northside, Westwood, Madisonville, Mt. Washington, Anderson Twp, Norwood, Mt. Auburn, Walnut Hills, Evanston, Bond Hill, College Hill, Covington KY, Newport KY, Bellevue KY, Dayton KY, Ft. Thomas KY, Highland Heights KY, Cold Spring KY, Alexandria KY, Erlanger KY, Independence KY, Florence KY, Burlington KY, Fort Wright KY, Park Hills KY, Ludlow KY, Mason, West Chester, etc.)
 10. Input slider format: {"id": "x", "type": "slider", "label": "...", "min": N, "max": N, "step": N, "unit": "...", "defaultValue": N}
 11. Formula syntax: "inputs.slider_id" (number), "inputs.id.data.field" (option data), "calculations.id" (other calc). Operators: + - * / ( ) only.
+12. **inline-image usage:** Maximum 2 inline-image blocks per story. Use \`imageIndex\` when article images are available. Use \`imageQuery\` only when no article images exist AND the story has a strong visual angle. Skip entirely for sensitive/crisis stories about deaths or injuries.
 
 ## CONFIG STRUCTURE
 
@@ -513,6 +548,12 @@ export async function generateConfig(apiKey, item, articleText, triage) {
     ? '\n\nIMPORTANT: This is THIRD-PARTY source material from ' + (item.source_name || 'an external outlet') + '. Create an ORIGINAL interactive experience inspired by this reporting. Rewrite all content in WCPO\'s voice for Cincinnati readers. Do NOT copy sentences from the source. The interactive elements (quizzes, calculators, comparisons) are your original contribution.\n'
     : ''
 
+  var articleImages = extractAllImages(item.content_encoded || '')
+  var articleImagesNote = articleImages.length > 0
+    ? '\nARTICLE IMAGES (publisher-provided, rights-cleared — reference by index 0-' + (articleImages.length - 1) + '):\n'
+      + articleImages.map(function (url, i) { return i + ': ' + url }).join('\n') + '\n'
+    : '\nARTICLE IMAGES: none available\n'
+
   var userMsg = 'Convert this article into a unique interactive Story-App config:\n\n'
     + 'HEADLINE: ' + item.title + '\n'
     + 'AUTHOR: ' + (item.author || 'WCPO Staff') + '\n'
@@ -521,6 +562,7 @@ export async function generateConfig(apiKey, item, articleText, triage) {
     + 'SUGGESTED TYPE: ' + (triage.suggested_app_type || 'data-explorer') + '\n'
     + 'INTERACTIVE ANGLES: ' + (triage.interactive_angles || '') + '\n'
     + 'KEY DATA: ' + JSON.stringify(triage.key_data_points || []) + '\n'
+    + articleImagesNote
     + sourceNote
     + '\nFULL ARTICLE TEXT:\n' + articleText.slice(0, 5000)
 
@@ -663,6 +705,61 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
       var heroBlock = config.blocks.find(function (b) { return b.type === 'hero' })
       if (heroBlock) heroBlock.image = imageUrl
     }
+  }
+
+  // Stage 4: Block image resolution — resolve imageIndex/imageQuery hints to real URLs
+  if (Array.isArray(config.blocks)) {
+    var articleImages = extractAllImages(item.content_encoded || '')
+    var blockImageCount = 0
+
+    // Pass 1: resolve imageIndex references to actual URLs (any block type)
+    config.blocks.forEach(function (block) {
+      if (typeof block.imageIndex === 'number') {
+        var resolved = articleImages[block.imageIndex] || null
+        if (resolved) {
+          block.image = resolved
+          blockImageCount++
+        }
+        delete block.imageIndex // clean up hint field
+      }
+    })
+
+    // Pass 2: collect all unresolved imageQuery blocks
+    var queryBlocks = config.blocks.filter(function (b) {
+      return b.type === 'inline-image' && !b.image && b.imageQuery
+    })
+
+    // Pass 3: resolve imageQuery blocks via rights-free search (parallel, max 3)
+    if (queryBlocks.length > 0) {
+      var queries = queryBlocks.slice(0, 3).map(function (b) { return b.imageQuery })
+      try {
+        var resolvedImages = await findRightsFreeImages(queries)
+        queryBlocks.forEach(function (block, i) {
+          if (resolvedImages[i]) {
+            block.image = resolvedImages[i]
+            blockImageCount++
+          }
+        })
+      } catch (err) {
+        console.error('Block image resolution failed: ' + err.message)
+      }
+    }
+
+    // Pass 4: sanitize — strip any AI-hallucinated direct URLs that aren't rights-cleared
+    config.blocks.forEach(function (block) {
+      if (block.type === 'inline-image' && block.image && !isRightsClearedUrl(block.image)) {
+        // Check if it came from publisher content (article images are treated as rights-cleared)
+        var isArticleImage = articleImages.indexOf(block.image) !== -1
+        if (!isArticleImage) {
+          console.warn('Removed non-rights-cleared inline image URL')
+          delete block.image
+        }
+      }
+      // Clean up hint fields from final config
+      delete block.imageQuery
+    })
+
+    console.log('Resolved ' + blockImageCount + ' block images (' + articleImages.length + ' article images available)')
   }
 
   var narration = config.narrationScript

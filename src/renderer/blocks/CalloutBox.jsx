@@ -30,7 +30,7 @@ const variants = {
   warning: { header: 'bg-amber-600', headerText: 'text-white', body: 'bg-white', border: 'border-amber-600' },
 }
 
-export default function CalloutBox({ title, items = [], variant = 'dark' }) {
+export default function CalloutBox({ title, items = [], variant = 'dark', image, imageAlt }) {
   if (!items.length) return null
   const style = variants[variant] || variants.dark
 
@@ -41,6 +41,17 @@ export default function CalloutBox({ title, items = [], variant = 'dark' }) {
       viewport={{ once: true }}
       className={`rounded-xl overflow-hidden mb-8 border-2 ${style.border}`}
     >
+      {image && (
+        <div className="relative aspect-video bg-slate-100">
+          <img
+            src={image}
+            alt={imageAlt || title || 'Callout image'}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => { e.target.parentElement.style.display = 'none' }}
+          />
+        </div>
+      )}
       <div className={`${style.header} px-6 py-4`}>
         <h3 className={`${style.headerText} font-serif text-lg font-bold`}>{title}</h3>
       </div>

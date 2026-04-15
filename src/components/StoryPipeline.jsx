@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react'
 import {
   Rss, FileEdit, CheckCircle2, XCircle, Eye, ThumbsUp, ThumbsDown,
   RefreshCw, Clock, AlertTriangle, Loader2, Undo2, Link, ExternalLink,
-  Sparkles, Zap, ImageIcon, Search, Trash2, X
+  Sparkles, Zap, ImageIcon, Search, Trash2, X, Plus
 } from 'lucide-react'
 
 const NEWS_FEED_COUNT = 3
@@ -336,15 +336,80 @@ function SkippedView({ items, loading, onRefresh }) {
   )
 }
 
+// --- Extract images from HTML (mirrors pipeline.mjs extractAllImages) ---
+function extractArticleImages(html) {
+  if (!html) return []
+  const seen = new Set()
+  const results = []
+  const re = /<img[^>]+src=["'](https?:\/\/[^"']+\.(?:jpg|jpeg|png|webp)[^"']*)["']/gi
+  let m
+  while ((m = re.exec(html)) !== null && results.length < 10) {
+    const url = m[1].split('?')[0]
+    if (!seen.has(url) && !/1x1|pixel|beacon|tracking|icon|logo|spacer/i.test(url)) {
+      seen.add(url)
+      results.push(m[1])
+    }
+  }
+  return results
+}
+
+// Collect all image slots from a story config (hero + blocks with images)
+function getImageSlots(config) {
+  const slots = []
+  // Hero image
+  const heroImage = config?.hero?.image || null
+  slots.push({ key: 'hero', label: 'Hero Image', image: heroImage, blockType: 'hero' })
+  // Block images
+  if (Array.isArray(config?.blocks)) {
+    config.blocks.forEach((block, i) => {
+      if (block.type === 'inline-image') {
+        slots.push({ key: `block-${i}`, label: block.caption || `Inline Image ${i + 1}`, image: block.image || null, blockIndex: i, blockType: 'inline-image' })
+      } else if (block.type === 'article-body' && block.image) {
+        slots.push({ key: `block-${i}`, label: `Article Body Image`, image: block.image, blockIndex: i, blockType: 'article-body' })
+      } else if ((block.type === 'callout-box' || block.type === 'collapsible') && block.image) {
+        slots.push({ key: `block-${i}`, label: `${block.type === 'callout-box' ? 'Callout' : 'Collapsible'} Image`, image: block.image, blockIndex: i, blockType: block.type })
+      }
+    })
+  }
+  return slots
+}
+
 // --- Image Manager Panel ---
 function ImageManager({ story, onUpdate }) {
-  const [mode, setMode] = useState(null) // null | 'search' | 'url'
+  const [activeSlot, setActiveSlot] = useState('hero') // which slot is being edited
+  const [mode, setMode] = useState(null) // null | 'search' | 'url' | 'article'
   const [query, setQuery] = useState(story.headline || '')
   const [urlInput, setUrlInput] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [saving, setSaving] = useState(false)
-  const currentImage = story.image_url || story.config?.hero?.image || null
+  const [articleImages, setArticleImages] = useState([])
+  const [loadingArticleImages, setLoadingArticleImages] = useState(false)
+  const [articleImagesLoaded, setArticleImagesLoaded] = useState(false)
+
+  const slots = getImageSlots(story.config)
+  const currentSlot = slots.find(s => s.key === activeSlot) || slots[0]
+
+  // Load article images from the source RSS item
+  const loadArticleImages = async () => {
+    if (articleImagesLoaded) return
+    setLoadingArticleImages(true)
+    try {
+      const rssItem = await fetchRssItemById(story.rss_item_id)
+      if (rssItem) {
+        const imgs = extractArticleImages(rssItem.content_encoded)
+        // Also include og_image and image_url if they exist
+        const extra = [rssItem.image_url, rssItem.og_image].filter(Boolean)
+        const seen = new Set(imgs)
+        extra.forEach(url => { if (!seen.has(url)) { imgs.unshift(url); seen.add(url) } })
+        setArticleImages(imgs)
+      }
+    } catch (err) {
+      console.error('Failed to load article images:', err)
+    }
+    setLoadingArticleImages(false)
+    setArticleImagesLoaded(true)
+  }
 
   const handleSearch = async () => {
     if (!query.trim()) return
@@ -360,49 +425,119 @@ function ImageManager({ story, onUpdate }) {
     setSearching(false)
   }
 
-  const selectImage = async (imageUrl) => {
+  // Assign an image to the active slot
+  const assignImage = async (imageUrl) => {
     setSaving(true)
-    const ok = await updateGeneratedStoryImage(story.id, imageUrl, story.config)
-    if (ok) {
-      setMode(null)
-      setResults([])
-      onUpdate()
+    if (currentSlot.key === 'hero') {
+      await updateGeneratedStoryImage(story.id, imageUrl, story.config)
+    } else {
+      const updatedConfig = JSON.parse(JSON.stringify(story.config))
+      const idx = currentSlot.blockIndex
+      if (idx != null && Array.isArray(updatedConfig.blocks) && updatedConfig.blocks[idx]) {
+        updatedConfig.blocks[idx].image = imageUrl || null
+      }
+      await updateGeneratedStoryConfig(story.id, updatedConfig)
     }
+    setMode(null)
+    setResults([])
     setSaving(false)
+    onUpdate()
   }
 
-  const removeImage = async () => {
+  const removeSlotImage = async () => {
     setSaving(true)
-    await updateGeneratedStoryImage(story.id, null, story.config)
+    if (currentSlot.key === 'hero') {
+      await updateGeneratedStoryImage(story.id, null, story.config)
+    } else {
+      const updatedConfig = JSON.parse(JSON.stringify(story.config))
+      const idx = currentSlot.blockIndex
+      if (idx != null && Array.isArray(updatedConfig.blocks) && updatedConfig.blocks[idx]) {
+        delete updatedConfig.blocks[idx].image
+      }
+      await updateGeneratedStoryConfig(story.id, updatedConfig)
+    }
     setSaving(false)
     onUpdate()
   }
 
   const handleUrlSubmit = () => {
     if (urlInput.trim() && urlInput.startsWith('http')) {
-      selectImage(urlInput.trim())
+      assignImage(urlInput.trim())
     }
+  }
+
+  // Add a new inline-image block to the story
+  const addInlineImageBlock = async (imageUrl) => {
+    setSaving(true)
+    const updatedConfig = JSON.parse(JSON.stringify(story.config))
+    if (!Array.isArray(updatedConfig.blocks)) updatedConfig.blocks = []
+    // Insert before the last few blocks (before narrative/poll/save)
+    const tailTypes = new Set(['narrative', 'poll', 'save', 'connections', 'ad-result'])
+    let insertIdx = updatedConfig.blocks.length
+    for (let i = updatedConfig.blocks.length - 1; i >= 0; i--) {
+      if (tailTypes.has(updatedConfig.blocks[i].type)) insertIdx = i
+      else break
+    }
+    updatedConfig.blocks.splice(insertIdx, 0, {
+      type: 'inline-image',
+      image: imageUrl,
+      caption: '',
+      alt: '',
+    })
+    await updateGeneratedStoryConfig(story.id, updatedConfig)
+    setSaving(false)
+    onUpdate()
   }
 
   return (
     <div className="px-4 py-3 bg-slate-50 border-t border-rule">
-      {/* Current image preview */}
+      {/* Image slot tabs */}
+      {slots.length > 1 && (
+        <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
+          {slots.map(slot => (
+            <button
+              key={slot.key}
+              onClick={() => { setActiveSlot(slot.key); setMode(null); setResults([]) }}
+              className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg border whitespace-nowrap transition-colors ${
+                activeSlot === slot.key
+                  ? 'bg-ink text-white border-ink'
+                  : slot.image
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                    : 'bg-white text-ink-muted border-rule hover:bg-slate-100'
+              }`}
+            >
+              <ImageIcon size={10} />
+              {slot.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Active slot preview */}
       <div className="flex items-start gap-4 mb-3">
         <div className="w-32 h-20 rounded-lg overflow-hidden bg-slate-200 shrink-0 flex items-center justify-center">
-          {currentImage ? (
-            <img src={currentImage} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
+          {currentSlot.image ? (
+            <img src={currentSlot.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
           ) : (
             <ImageIcon size={20} className="text-slate-400" />
           )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-ink mb-1">
-            {currentImage ? 'Hero Image' : 'No hero image'}
+            {currentSlot.image ? currentSlot.label : `No ${currentSlot.label.toLowerCase()}`}
           </p>
-          {currentImage && (
-            <p className="text-[10px] text-ink-muted truncate mb-2">{currentImage}</p>
+          {currentSlot.image && (
+            <p className="text-[10px] text-ink-muted truncate mb-2">{currentSlot.image}</p>
           )}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { loadArticleImages(); setMode(mode === 'article' ? null : 'article') }}
+              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded border transition-colors ${
+                mode === 'article' ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white border-rule hover:bg-slate-50'
+              }`}
+            >
+              <Rss size={11} />Article Images
+            </button>
             <button
               onClick={() => setMode(mode === 'search' ? null : 'search')}
               className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded bg-white border border-rule hover:bg-slate-50 transition-colors"
@@ -415,9 +550,9 @@ function ImageManager({ story, onUpdate }) {
             >
               <Link size={11} />Paste URL
             </button>
-            {currentImage && (
+            {currentSlot.image && (
               <button
-                onClick={removeImage}
+                onClick={removeSlotImage}
                 disabled={saving}
                 className="flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-colors disabled:opacity-50"
               >
@@ -427,6 +562,73 @@ function ImageManager({ story, onUpdate }) {
           </div>
         </div>
       </div>
+
+      {/* Article Images panel */}
+      {mode === 'article' && (
+        <div className="mt-3">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-ink">Source Article Images</p>
+            <button onClick={() => setMode(null)} className="p-1 text-ink-muted hover:text-ink"><X size={14} /></button>
+          </div>
+          {loadingArticleImages ? (
+            <div className="flex items-center justify-center py-6 text-ink-muted text-sm">
+              <Loader2 size={16} className="animate-spin mr-2" />Loading article images...
+            </div>
+          ) : articleImages.length > 0 ? (
+            <>
+              <p className="text-[10px] text-ink-muted mb-2">
+                {articleImages.length} image{articleImages.length !== 1 ? 's' : ''} from the source article. Click to assign to "{currentSlot.label}".
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-64 overflow-y-auto">
+                {articleImages.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => assignImage(url)}
+                    disabled={saving}
+                    className={`group relative aspect-video rounded-lg overflow-hidden bg-slate-200 transition-all disabled:opacity-50 ${
+                      currentSlot.image === url ? 'ring-2 ring-green-500' : 'hover:ring-2 hover:ring-wcpo-red'
+                    }`}
+                  >
+                    <img
+                      src={url}
+                      alt={`Article image ${i + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={e => { e.target.parentElement.style.display = 'none' }}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                      <span className="text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                        {currentSlot.image === url ? 'Current' : 'Use This'}
+                      </span>
+                    </div>
+                    <span className="absolute top-0.5 left-0.5 text-[9px] text-white bg-black/50 px-1 rounded">#{i + 1}</span>
+                  </button>
+                ))}
+              </div>
+              {/* Quick-add as new inline-image block */}
+              <div className="mt-3 pt-3 border-t border-rule">
+                <p className="text-[10px] text-ink-muted mb-2">Or add as a new image block in the story:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {articleImages.filter(url => {
+                    // Exclude images already used in any slot
+                    return !slots.some(s => s.image === url)
+                  }).slice(0, 4).map((url, i) => (
+                    <button
+                      key={i}
+                      onClick={() => addInlineImageBlock(url)}
+                      disabled={saving}
+                      className="flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      <Plus size={10} />Add Image #{articleImages.indexOf(url) + 1} as Block
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-ink-muted text-center py-4">No images found in source article.</p>
+          )}
+        </div>
+      )}
 
       {/* Search panel */}
       {mode === 'search' && (
@@ -457,7 +659,7 @@ function ImageManager({ story, onUpdate }) {
               {results.map((img, i) => (
                 <button
                   key={i}
-                  onClick={() => selectImage(img.url)}
+                  onClick={() => assignImage(img.url)}
                   disabled={saving}
                   className="group relative aspect-video rounded-lg overflow-hidden bg-slate-200 hover:ring-2 hover:ring-wcpo-red transition-all disabled:opacity-50"
                 >

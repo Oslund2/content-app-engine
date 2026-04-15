@@ -24,7 +24,7 @@ const variantStyles = {
   highlighted: { wrapper: 'border-2 border-amber-200 rounded-xl overflow-hidden', content: 'bg-amber-50', toggle: 'text-amber-800 hover:text-amber-900 px-4 py-3 bg-amber-50' },
 }
 
-export default function Collapsible({ title, icon, defaultOpen = false, variant = 'subtle', paragraphs = [] }) {
+export default function Collapsible({ title, icon, defaultOpen = false, variant = 'subtle', paragraphs = [], image, imageCaption }) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   if (!paragraphs.length) return null
 
@@ -52,6 +52,22 @@ export default function Collapsible({ title, icon, defaultOpen = false, variant 
             className="overflow-hidden"
           >
             <div className={`${style.content} rounded-xl p-5 ${variant === 'subtle' ? 'border mt-2' : ''}`}>
+              {image && (
+                <figure className="mb-4">
+                  <div className="relative rounded-lg overflow-hidden bg-slate-100 aspect-video">
+                    <img
+                      src={image}
+                      alt={imageCaption || title || 'Section image'}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => { e.target.parentElement.parentElement.style.display = 'none' }}
+                    />
+                  </div>
+                  {imageCaption && (
+                    <figcaption className="mt-1.5 text-xs text-ink-muted italic">{imageCaption}</figcaption>
+                  )}
+                </figure>
+              )}
               {paragraphs.map((p, i) => (
                 <p key={i} className="text-sm text-ink-light leading-relaxed mb-2 last:mb-0">{p}</p>
               ))}

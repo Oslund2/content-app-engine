@@ -18,6 +18,7 @@ import {
   StepGuide,
   FactCheck,
   Divider,
+  InlineImage,
   MapBlock,
 } from './blocks'
 
@@ -41,6 +42,7 @@ const blockComponents = {
   'step-guide': StepGuide,
   'fact-check': FactCheck,
   'divider': Divider,
+  'inline-image': InlineImage,
   'map': MapBlock,
 }
 
@@ -56,14 +58,19 @@ function ChartBlock({ charts }) {
   return <ChartSection charts={charts} />
 }
 
-function ArticleBlock({ paragraphs = [], sections = [] }) {
+function ArticleBlock({ paragraphs = [], sections = [], image, imageCaption }) {
   // Build a mini-config that ArticleBody expects
   const config = {
     articleBody: paragraphs,
     storySections: sections,
     hero: {},
   }
-  return <ArticleBody config={config} />
+  return (
+    <>
+      {image && <InlineImage image={image} caption={imageCaption} />}
+      <ArticleBody config={config} />
+    </>
+  )
 }
 
 function HeroBlock({ hero, sourceAttribution }) {
