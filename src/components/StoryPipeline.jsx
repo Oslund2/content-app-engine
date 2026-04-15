@@ -383,14 +383,14 @@ function ImageManager({ story, onUpdate }) {
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [articleImages, setArticleImages] = useState([])
+  const [articleImages, setArticleImages] = useState(story.config?.articleImages || [])
   const [loadingArticleImages, setLoadingArticleImages] = useState(false)
-  const [articleImagesLoaded, setArticleImagesLoaded] = useState(false)
+  const [articleImagesLoaded, setArticleImagesLoaded] = useState(!!(story.config?.articleImages?.length))
 
   const slots = getImageSlots(story.config)
   const currentSlot = slots.find(s => s.key === activeSlot) || slots[0]
 
-  // Load article images from the source RSS item
+  // Load article images — use config.articleImages if available, fallback to RSS item for older stories
   const loadArticleImages = async () => {
     if (articleImagesLoaded) return
     setLoadingArticleImages(true)
@@ -398,7 +398,6 @@ function ImageManager({ story, onUpdate }) {
       const rssItem = await fetchRssItemById(story.rss_item_id)
       if (rssItem) {
         const imgs = extractArticleImages(rssItem.content_encoded)
-        // Also include og_image and image_url if they exist
         const extra = [rssItem.image_url, rssItem.og_image].filter(Boolean)
         const seen = new Set(imgs)
         extra.forEach(url => { if (!seen.has(url)) { imgs.unshift(url); seen.add(url) } })
@@ -730,6 +729,85 @@ function isImageRightsFree(imageUrl) {
   }
 }
 
+// --- Quick Article Image Strip (shown inline on draft cards) ---
+function ArticleImageStrip({ story, onRefresh }) {
+  const [saving, setSaving] = useState(false)
+  const srcImages = story.config?.articleImages || []
+  // Images already used in the story (hero + blocks)
+  const usedImages = new Set()
+  if (story.image_url) usedImages.add(story.image_url)
+  if (story.config?.hero?.image) usedImages.add(story.config.hero.image)
+  if (Array.isArray(story.config?.blocks)) {
+    story.config.blocks.forEach(b => { if (b.image) usedImages.add(b.image) })
+  }
+  const unusedImages = srcImages.filter(url => !usedImages.has(url))
+  if (srcImages.length === 0) return null
+
+  const setAsHero = async (url) => {
+    setSaving(true)
+    await updateGeneratedStoryImage(story.id, url, story.config)
+    setSaving(false)
+    onRefresh()
+  }
+
+  const addAsBlock = async (url) => {
+    setSaving(true)
+    const updatedConfig = JSON.parse(JSON.stringify(story.config))
+    if (!Array.isArray(updatedConfig.blocks)) updatedConfig.blocks = []
+    const tailTypes = new Set(['narrative', 'poll', 'save', 'connections', 'ad-result'])
+    let insertIdx = updatedConfig.blocks.length
+    for (let i = updatedConfig.blocks.length - 1; i >= 0; i--) {
+      if (tailTypes.has(updatedConfig.blocks[i].type)) insertIdx = i
+      else break
+    }
+    updatedConfig.blocks.splice(insertIdx, 0, { type: 'inline-image', image: url, caption: '', alt: '' })
+    await updateGeneratedStoryConfig(story.id, updatedConfig)
+    setSaving(false)
+    onRefresh()
+  }
+
+  return (
+    <div className="px-4 py-3 bg-blue-50/50 border-t border-blue-100">
+      <div className="flex items-center gap-2 mb-2">
+        <Rss size={12} className="text-blue-600" />
+        <span className="text-[11px] font-semibold text-blue-800">
+          {srcImages.length} Article Image{srcImages.length !== 1 ? 's' : ''}
+        </span>
+        {unusedImages.length > 0 && (
+          <span className="text-[10px] text-blue-600">
+            ({unusedImages.length} unused)
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {srcImages.map((url, i) => {
+          const isUsed = usedImages.has(url)
+          return (
+            <div key={i} className={`shrink-0 group relative rounded-lg overflow-hidden bg-slate-200 ${isUsed ? 'ring-2 ring-green-400' : ''}`} style={{ width: 100, height: 64 }}>
+              <img src={url} alt={`Article ${i + 1}`} className="w-full h-full object-cover" onError={e => { e.target.parentElement.style.display = 'none' }} />
+              {isUsed && (
+                <span className="absolute top-0.5 left-0.5 text-[8px] bg-green-600 text-white px-1 rounded font-bold">In Use</span>
+              )}
+              {!isUsed && !saving && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                  <button
+                    onClick={() => setAsHero(url)}
+                    className="text-[9px] font-bold text-white bg-blue-600 px-1.5 py-0.5 rounded hover:bg-blue-700"
+                  >Hero</button>
+                  <button
+                    onClick={() => addAsBlock(url)}
+                    className="text-[9px] font-bold text-white bg-emerald-600 px-1.5 py-0.5 rounded hover:bg-emerald-700"
+                  >+Block</button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // --- Drafts View ---
 function DraftsView({ stories, onRefresh }) {
   const [previewId, setPreviewId] = useState(null)
@@ -791,6 +869,7 @@ function DraftsView({ stories, onRefresh }) {
         const isImageOpen = imageId === story.id
         const isImageWarning = imageWarningId === story.id
         const hasImage = !!(story.image_url || config.hero?.image)
+        const hasArticleImages = Array.isArray(config.articleImages) && config.articleImages.length > 0
 
         return (
           <div key={story.id} className="border border-rule rounded-lg overflow-hidden bg-white">
@@ -911,6 +990,11 @@ function DraftsView({ stories, onRefresh }) {
                   </button>
                 </div>
               </div>
+            )}
+
+            {/* Article images strip — always visible when images exist */}
+            {hasArticleImages && !isImageOpen && (
+              <ArticleImageStrip story={story} onRefresh={onRefresh} />
             )}
 
             {/* Image manager panel */}

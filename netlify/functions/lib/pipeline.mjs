@@ -707,9 +707,18 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
     }
   }
 
+  // Persist all article images on the config so editors can use them later
+  var articleImages = extractAllImages(item.content_encoded || '')
+  // Also include feed-level and OG images if not already present
+  var extraImages = [item.image_url, item.og_image].filter(Boolean)
+  var seenUrls = new Set(articleImages.map(function (u) { return u.split('?')[0] }))
+  extraImages.forEach(function (u) {
+    if (!seenUrls.has(u.split('?')[0])) { articleImages.unshift(u); seenUrls.add(u.split('?')[0]) }
+  })
+  config.articleImages = articleImages
+
   // Stage 4: Block image resolution — resolve imageIndex/imageQuery hints to real URLs
   if (Array.isArray(config.blocks)) {
-    var articleImages = extractAllImages(item.content_encoded || '')
     var blockImageCount = 0
 
     // Pass 1: resolve imageIndex references to actual URLs (any block type)
