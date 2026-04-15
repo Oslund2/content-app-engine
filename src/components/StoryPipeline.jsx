@@ -717,10 +717,12 @@ function ImageManager({ story, onUpdate }) {
 }
 
 // Rights-free image domain whitelist
-const RIGHTS_FREE_DOMAINS = ['unsplash.com', 'images.unsplash.com', 'images-assets.nasa.gov', 'pixabay.com', 'cdn.pixabay.com', 'upload.wikimedia.org']
+const RIGHTS_FREE_DOMAINS = ['unsplash.com', 'images.unsplash.com', 'images-assets.nasa.gov', 'pixabay.com', 'cdn.pixabay.com', 'upload.wikimedia.org', 'brightspotcdn.com', 'ewscripps.brightspotcdn.com', 'commons.wikimedia.org', 'pexels.com', 'images.pexels.com']
 
-function isImageRightsFree(imageUrl) {
+function isImageRightsFree(imageUrl, articleImages) {
   if (!imageUrl) return false
+  // Images from the RSS feed are rights-cleared by the publisher
+  if (Array.isArray(articleImages) && articleImages.includes(imageUrl)) return true
   try {
     const hostname = new URL(imageUrl).hostname.replace('www.', '')
     return RIGHTS_FREE_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d))
@@ -821,9 +823,8 @@ function DraftsView({ stories, onRefresh }) {
 
   const handleApprove = async (story) => {
     const imageUrl = story.image_url || story.config?.hero?.image
-    // Check if image is rights-free or absent
-    if (imageUrl && !isImageRightsFree(imageUrl)) {
-      // Show warning — don't publish yet
+    // RSS feed images are rights-cleared by the publisher
+    if (imageUrl && !isImageRightsFree(imageUrl, story.config?.articleImages)) {
       setImageWarningId(story.id)
       return
     }
