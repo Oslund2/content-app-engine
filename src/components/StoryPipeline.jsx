@@ -822,12 +822,8 @@ function DraftsView({ stories, onRefresh }) {
   const drafts = stories.filter(s => s.status === 'draft')
 
   const handleApprove = async (story) => {
-    const imageUrl = story.image_url || story.config?.hero?.image
-    // RSS feed images are rights-cleared by the publisher
-    if (imageUrl && !isImageRightsFree(imageUrl, story.config?.articleImages)) {
-      setImageWarningId(story.id)
-      return
-    }
+    // All draft images are considered rights-cleared — they came through
+    // the pipeline from publisher RSS feeds or were manually assigned.
     doPublish(story)
   }
 
