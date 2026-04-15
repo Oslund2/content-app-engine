@@ -177,47 +177,62 @@ function RssQueue({ items, loading, onRefresh }) {
           </div>
         </div>
       )}
-      <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-rule text-left text-xs text-ink-muted uppercase tracking-wider">
-            <th className="pb-2 pr-4">Title</th>
-            <th className="pb-2 pr-4">Feed</th>
-            <th className="pb-2 pr-4">Published</th>
-            <th className="pb-2 pr-4">Worthiness</th>
-            <th className="pb-2"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(item => (
-            <tr key={item.id} className="border-b border-rule/50 hover:bg-slate-50 transition-colors">
-              <td className="py-3 pr-4 max-w-xs">
-                <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-ink hover:text-wcpo-red font-medium line-clamp-2">
-                  {item.title}
-                </a>
-              </td>
-              <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{item.feed_name || '-'}</td>
-              <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{formatDate(item.pub_date)}</td>
-              <td className="py-3 pr-4"><WorthinessBadge score={item.worthiness_score} /></td>
-              <td className="py-3">
-                <button
-                  onClick={() => handleProcess(item.id)}
-                  disabled={processing}
-                  className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-md border transition-all disabled:opacity-40 ${
-                    processingItemId === item.id
-                      ? 'bg-blue-100 text-blue-700 border-blue-300 animate-pulse'
-                      : 'bg-slate-100 text-ink hover:bg-emerald-100 hover:text-emerald-700 border-rule'
-                  }`}
-                >
-                  {processingItemId === item.id
-                    ? <><Loader2 size={11} className="animate-spin" /> Building...</>
-                    : <><Zap size={11} /> Build This</>}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="space-y-3">
+        {items.map(item => {
+          const thumbUrl = item.image_url || item.og_image || extractArticleImages(item.content_encoded)?.[0] || null
+          const desc = item.description ? item.description.replace(/<[^>]+>/g, '').slice(0, 200) : ''
+          const imgCount = extractArticleImages(item.content_encoded)?.length || 0
+
+          return (
+            <div key={item.id} className="border border-rule rounded-lg bg-white overflow-hidden hover:shadow-sm transition-shadow">
+              <div className="flex gap-4 p-4">
+                {/* Thumbnail */}
+                <div className="w-28 h-20 rounded-lg overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
+                  {thumbUrl ? (
+                    <img src={thumbUrl} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none' }} />
+                  ) : (
+                    <ImageIcon size={20} className="text-slate-300" />
+                  )}
+                </div>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-ink hover:text-wcpo-red line-clamp-2 leading-snug">
+                    {item.title}
+                  </a>
+                  {desc && (
+                    <p className="text-xs text-ink-muted mt-1 line-clamp-2 leading-relaxed">{desc}</p>
+                  )}
+                  <div className="flex flex-wrap gap-2 items-center mt-2 text-xs text-ink-muted">
+                    {item.feed_name && <span className="bg-slate-100 px-2 py-0.5 rounded">{item.feed_name}</span>}
+                    <span>{formatDate(item.pub_date)}</span>
+                    <WorthinessBadge score={item.worthiness_score} />
+                    {imgCount > 0 && (
+                      <span className="flex items-center gap-1 text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                        <ImageIcon size={10} />{imgCount} image{imgCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Build button */}
+                <div className="shrink-0 flex items-start">
+                  <button
+                    onClick={() => handleProcess(item.id)}
+                    disabled={processing}
+                    className={`flex items-center gap-1 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition-all disabled:opacity-40 ${
+                      processingItemId === item.id
+                        ? 'bg-blue-100 text-blue-700 border-blue-300 animate-pulse'
+                        : 'bg-slate-100 text-ink hover:bg-emerald-100 hover:text-emerald-700 border-rule'
+                    }`}
+                  >
+                    {processingItemId === item.id
+                      ? <><Loader2 size={11} className="animate-spin" /> Building...</>
+                      : <><Zap size={11} /> Build This</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
