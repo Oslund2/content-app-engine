@@ -92,6 +92,35 @@ function clean(str) {
     .replace(/&nbsp;/g, ' ')
 }
 
+// Scrape og:image from an article page (fast, single meta tag)
+async function scrapeOgImage(url) {
+  if (!url) return null
+  try {
+    var res = await fetch(url, {
+      headers: { 'User-Agent': 'WCPO-ContentAppEngine/1.0' },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return null
+    // Only read first 30KB — og:image is always in <head>
+    var reader = res.body.getReader()
+    var chunks = []
+    var totalLen = 0
+    while (totalLen < 30000) {
+      var result = await reader.read()
+      if (result.done) break
+      chunks.push(result.value)
+      totalLen += result.value.length
+    }
+    reader.cancel().catch(function () {})
+    var html = new TextDecoder().decode(Buffer.concat(chunks))
+    var m = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+    return m ? m[1] : null
+  } catch (e) {
+    return null
+  }
+}
+
 async function fetchFeed(feed) {
   try {
     var res = await fetch(feed.url, {
@@ -101,7 +130,7 @@ async function fetchFeed(feed) {
     var xml = await res.text()
     var items = parseItems(xml)
 
-    return items.map(function(item) {
+    var rows = items.map(function(item) {
       return {
         guid: item.guid || item.link || '',
         feed_name: feed.name,
@@ -114,6 +143,19 @@ async function fetchFeed(feed) {
         image_url: item.imageUrl || null,
       }
     })
+
+    // For items missing an image, scrape og:image from the article page
+    // Process in parallel batches of 5 to stay fast
+    var needImage = rows.filter(function (r) { return !r.image_url && r.link })
+    for (var i = 0; i < needImage.length; i += 5) {
+      var batch = needImage.slice(i, i + 5)
+      var ogImages = await Promise.all(batch.map(function (r) { return scrapeOgImage(r.link) }))
+      batch.forEach(function (r, j) {
+        if (ogImages[j]) r.image_url = ogImages[j]
+      })
+    }
+
+    return rows
   } catch (err) {
     console.error('Failed to fetch ' + feed.name + ': ' + err.message)
     return []
@@ -178,6 +220,38 @@ export default async (req) => {
 
   var inserted = await upsertItems(unique)
   console.log('Inserted ' + inserted + ' new items (' + unique.length + ' unique)')
+
+  // Backfill: patch unprocessed items missing images by scraping og:image
+  var supabaseUrl = Netlify.env.get('VITE_SUPABASE_URL')
+  var supabaseKey = Netlify.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (supabaseUrl && supabaseKey) {
+    try {
+      var res = await fetch(supabaseUrl + '/rest/v1/rss_items?processed=eq.false&image_url=is.null&limit=10&order=pub_date.desc', {
+        headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey },
+      })
+      var missing = res.ok ? await res.json() : []
+      var patched = 0
+      for (var i = 0; i < missing.length; i++) {
+        var ogImg = await scrapeOgImage(missing[i].link)
+        if (ogImg) {
+          await fetch(supabaseUrl + '/rest/v1/rss_items?id=eq.' + missing[i].id, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': 'Bearer ' + supabaseKey,
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({ image_url: ogImg }),
+          })
+          patched++
+        }
+      }
+      if (patched > 0) console.log('Backfilled ' + patched + ' images on existing items')
+    } catch (err) {
+      console.error('Backfill error: ' + err.message)
+    }
+  }
 }
 
 export const config = {

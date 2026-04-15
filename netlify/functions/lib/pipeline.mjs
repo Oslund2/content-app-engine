@@ -683,14 +683,46 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
   //   4. Rights-free search (Unsplash/NASA) only when the feed gave us nothing.
   var feedImage = item.image_url
     || extractFirstImage(item.content_encoded)
-    || item.og_image
     || null
   var imageUrl = feedImage
 
   if (feedImage) {
     console.log('Using feed-provided image: ' + feedImage.slice(0, 80))
-  } else {
-    console.log('No feed image found, searching for rights-free alternative...')
+  }
+
+  // Scrape og:image from the article page if no feed image exists
+  if (!imageUrl && item.link) {
+    console.log('No feed image, scraping og:image from article page...')
+    try {
+      var articleRes = await fetch(item.link, {
+        headers: { 'User-Agent': 'WCPO-ContentAppEngine/1.0' },
+        signal: AbortSignal.timeout(5000),
+      })
+      if (articleRes.ok) {
+        var articleHtml = await articleRes.text()
+        var meta = extractArticleMeta(articleHtml)
+        if (meta.ogImage) {
+          console.log('Found og:image: ' + meta.ogImage.slice(0, 80))
+          imageUrl = meta.ogImage
+        }
+        // Also extract article images from the full page HTML
+        var pageImages = extractAllImages(articleHtml)
+        if (pageImages.length > 0 && !imageUrl) {
+          imageUrl = pageImages[0]
+          console.log('Using first page image: ' + imageUrl.slice(0, 80))
+        }
+        // Merge page images into content_encoded images for articleImages
+        if (pageImages.length > 0) {
+          item._pageImages = pageImages
+        }
+      }
+    } catch (err) {
+      console.error('og:image scrape failed: ' + err.message)
+    }
+  }
+
+  if (!imageUrl) {
+    console.log('No article image found, searching for rights-free alternative...')
     var searchKeywords = stripHtml(item.title)
     try {
       var altImage = await findRightsFreeImage(searchKeywords)
@@ -718,8 +750,15 @@ export async function processItem(item, apiKey, supabaseUrl, supabaseKey, opts =
 
   // Persist all article images on the config so editors can use them later
   var articleImages = extractAllImages(item.content_encoded || '')
-  // Also include feed-level and OG images if not already present
-  var extraImages = [item.image_url, item.og_image].filter(Boolean)
+  // Merge in images scraped from the article page (if we fetched it)
+  if (item._pageImages) {
+    var pageSeen = new Set(articleImages.map(function (u) { return u.split('?')[0] }))
+    item._pageImages.forEach(function (u) {
+      if (!pageSeen.has(u.split('?')[0])) { articleImages.push(u); pageSeen.add(u.split('?')[0]) }
+    })
+  }
+  // Also include feed-level image and hero image if not already present
+  var extraImages = [item.image_url, imageUrl].filter(Boolean)
   var seenUrls = new Set(articleImages.map(function (u) { return u.split('?')[0] }))
   extraImages.forEach(function (u) {
     if (!seenUrls.has(u.split('?')[0])) { articleImages.unshift(u); seenUrls.add(u.split('?')[0]) }
