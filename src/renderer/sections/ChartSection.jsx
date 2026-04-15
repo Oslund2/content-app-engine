@@ -1,11 +1,13 @@
 import { useConfig } from '../ConfigContext'
-import { ConfigBarChart, ConfigAreaChart, ConfigRadarChart } from '../charts'
+import { ConfigBarChart, ConfigAreaChart, ConfigRadarChart, ConfigPieChart } from '../charts'
 import { resolvePath } from '../FormulaEngine'
 
 const chartComponents = {
   bar: ConfigBarChart,
   area: ConfigAreaChart,
   radar: ConfigRadarChart,
+  pie: ConfigPieChart,
+  donut: ConfigPieChart,
 }
 
 /**

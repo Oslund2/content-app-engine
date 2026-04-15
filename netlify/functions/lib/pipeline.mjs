@@ -480,6 +480,57 @@ These blocks accept an optional \`imageIndex\` (integer) to show a photo alongsi
 - **callout-box**: \`"imageIndex": N\` shows a location/venue photo above the header. Good for resource boxes tied to a specific place.
 - **collapsible**: \`"imageIndex": N\` shows a contextual photo inside the expanded section. Good for background/historical sections.
 
+### NEW Visual Blocks (use these for richer stories!)
+
+**19. counter** — Animated number that counts up from 0 on scroll. Great for dramatic stats. Use for impactful single numbers.
+\`\`\`json
+{"type": "counter", "value": "2.3", "prefix": "$", "suffix": "M", "label": "In Damage", "description": "Estimated cost of structural repairs", "color": "#dc2626"}
+\`\`\`
+
+**20. before-after** — Side-by-side comparison columns (red/green). Great for showing changes, improvements, policy impacts.
+\`\`\`json
+{"type": "before-after", "title": "How the Law Changed", "beforeLabel": "Before 2026", "afterLabel": "After New Law", "beforeItems": [
+  {"value": "$12,000", "label": "Annual Cost", "detail": "Out of pocket"},
+  "No insurance mandate"
+], "afterItems": [
+  {"value": "$4,800", "label": "Annual Cost", "detail": "Subsidized"},
+  "Universal coverage required"
+]}
+\`\`\`
+
+**21. progress-bar** — Animated horizontal fill bars. Great for budgets, completion percentages, rankings, or any comparative metrics.
+\`\`\`json
+{"type": "progress-bar", "title": "Budget Allocation", "bars": [
+  {"label": "Public Safety", "value": 45, "max": 100, "color": "#dc2626", "suffix": "%"},
+  {"label": "Infrastructure", "value": 28, "max": 100, "color": "#2563eb", "suffix": "%"},
+  {"label": "Education", "value": 18, "max": 100, "color": "#16a34a", "suffix": "%"}
+]}
+\`\`\`
+
+**22. pull-quote** — Large editorial quote with attribution. Adds human voice between data sections. Use 1-2 per story for emotional rhythm.
+\`\`\`json
+{"type": "pull-quote", "quote": "We never thought it could happen in our neighborhood.", "attribution": "Maria Santos, Price Hill resident", "variant": "accent|subtle|bordered"}
+\`\`\`
+
+**23. number-grid** — Compact animated metric grid (2x2 or 3x2). More compact than stat-dashboard. Good for quick multi-stat overviews.
+\`\`\`json
+{"type": "number-grid", "title": "By The Numbers", "metrics": [
+  {"value": "7", "label": "Fatalities", "change": "+250%", "changeDirection": "up"},
+  {"value": "$2.3M", "label": "Property Damage", "prefix": "", "suffix": ""},
+  {"value": "14", "label": "Min Response Time", "suffix": " min", "change": "-2 min", "changeDirection": "down"}
+]}
+\`\`\`
+
+**24. chart (pie/donut)** — Pie or donut chart for breakdowns and proportions. Use inside a chart block.
+\`\`\`json
+{"type": "chart", "charts": [{"type": "pie", "title": "Fire Causes", "data": [
+  {"label": "Electrical", "value": 35, "color": "#dc2626"},
+  {"label": "Cooking", "value": 28, "color": "#f59e0b"},
+  {"label": "Heating", "value": 20, "color": "#2563eb"},
+  {"label": "Other", "value": 17, "color": "#6b7280"}
+]}]}
+\`\`\`
+
 ## IMAGE RHYTHM
 Article images are RIGHTS-CLEARED by the publisher — use them generously throughout the story.
 - When ARTICLE IMAGES are available, use ALL of them. Place inline-image blocks at natural visual breaks — after scene-setting paragraphs, between data sections, before and after interactive elements.

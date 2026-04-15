@@ -1,5 +1,37 @@
-import { motion } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
+import { motion, useInView } from 'framer-motion'
 import * as LucideIcons from 'lucide-react'
+
+function AnimatedStatValue({ value, inView }) {
+  const [display, setDisplay] = useState(value)
+  const numericVal = parseFloat(String(value).replace(/[^0-9.\-]/g, '')) || 0
+  const hasNumber = numericVal !== 0 && /\d/.test(String(value))
+
+  useEffect(() => {
+    if (!inView || !hasNumber) { setDisplay(value); return }
+    const start = performance.now()
+    function tick(now) {
+      const progress = Math.min((now - start) / 1200, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const current = numericVal * eased
+      // Reconstruct original format
+      const original = String(value)
+      const prefix = original.match(/^[^0-9.\-]*/)?.[0] || ''
+      const suffix = original.match(/[^0-9.,]*$/)?.[0] || ''
+      if (original.includes('.')) {
+        const dec = original.split('.')[1]?.replace(/[^0-9]/g, '').length || 0
+        setDisplay(prefix + current.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) + suffix)
+      } else {
+        setDisplay(prefix + Math.round(current).toLocaleString() + suffix)
+      }
+      if (progress < 1) requestAnimationFrame(tick)
+      else setDisplay(value)
+    }
+    requestAnimationFrame(tick)
+  }, [inView, numericVal, hasNumber, value])
+
+  return <>{display}</>
+}
 
 /**
  * StatDashboard — 2-4 big colored stat cards in a row.
@@ -25,11 +57,13 @@ const variantStyles = {
 }
 
 export default function StatDashboard({ stats = [], variant = 'neutral' }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, margin: '-40px' })
   if (!stats.length) return null
   const cols = stats.length <= 2 ? 'grid-cols-2' : stats.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'
 
   return (
-    <div className={`grid ${cols} gap-3 mb-8`}>
+    <div ref={ref} className={`grid ${cols} gap-3 mb-8`}>
       {stats.map((stat, i) => {
         const style = stat.color ? null : variantStyles[variant] || variantStyles.neutral
         const Icon = stat.icon ? LucideIcons[stat.icon] : null
@@ -53,7 +87,7 @@ export default function StatDashboard({ stats = [], variant = 'neutral' }) {
               className={`text-3xl sm:text-4xl font-bold font-mono ${style ? style.value : ''}`}
               style={stat.color ? { color: stat.color } : undefined}
             >
-              {stat.value}
+              <AnimatedStatValue value={stat.value} inView={inView} />
             </p>
             <p
               className={`text-xs font-bold uppercase tracking-wide ${style ? style.label : 'text-ink'}`}

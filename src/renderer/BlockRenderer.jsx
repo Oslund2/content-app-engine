@@ -19,6 +19,11 @@ import {
   FactCheck,
   Divider,
   InlineImage,
+  Counter,
+  BeforeAfter,
+  ProgressBar,
+  PullQuote,
+  NumberGrid,
   MapBlock,
 } from './blocks'
 
@@ -43,6 +48,11 @@ const blockComponents = {
   'fact-check': FactCheck,
   'divider': Divider,
   'inline-image': InlineImage,
+  'counter': Counter,
+  'before-after': BeforeAfter,
+  'progress-bar': ProgressBar,
+  'pull-quote': PullQuote,
+  'number-grid': NumberGrid,
   'map': MapBlock,
 }
 

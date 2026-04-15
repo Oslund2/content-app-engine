@@ -1,5 +1,6 @@
 export { default as ConfigAreaChart } from './ConfigAreaChart'
 export { default as ConfigBarChart } from './ConfigBarChart'
 export { default as ConfigRadarChart } from './ConfigRadarChart'
+export { default as ConfigPieChart } from './ConfigPieChart'
 export { default as ScoreCard } from './ScoreCard'
 export { default as GradeDisplay } from './GradeDisplay'
