@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { Zap, Clock, TrendingUp, BarChart3, CheckCircle2, ChevronDown, ChevronUp, DollarSign, Users, Megaphone } from 'lucide-react'
+import { useState, useMemo, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Zap, Clock, TrendingUp, BarChart3, CheckCircle2, ChevronDown, ChevronUp, DollarSign, Users, Megaphone, Info } from 'lucide-react'
 import { analyzeStory } from '../lib/dwellTimeModel'
 
 function formatTime(seconds) {
@@ -10,14 +10,50 @@ function formatTime(seconds) {
   return s > 0 ? `${m}m ${s}s` : `${m}m`
 }
 
-function Gauge({ label, value, icon: Icon, color }) {
+function InfoTip({ text }) {
+  const [show, setShow] = useState(false)
+  const ref = useRef(null)
+
+  return (
+    <span className="relative inline-flex" ref={ref}>
+      <button
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        onClick={() => setShow(s => !s)}
+        className="text-ink-muted/50 hover:text-ink-muted transition-colors ml-1"
+        aria-label="More info"
+      >
+        <Info size={12} />
+      </button>
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-72 bg-slate-800 text-white text-[11px] leading-relaxed rounded-lg px-3 py-2.5 shadow-lg pointer-events-none"
+          >
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+            {text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  )
+}
+
+function Gauge({ label, value, icon: Icon, color, tooltip }) {
   const pct = Math.min(value, 100)
   return (
     <div className="flex items-center gap-3">
       <Icon size={14} className={`shrink-0 ${color}`} />
       <div className="flex-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-semibold text-ink">{label}</span>
+          <span className="text-xs font-semibold text-ink flex items-center">
+            {label}
+            {tooltip && <InfoTip text={tooltip} />}
+          </span>
           <span className={`text-xs font-bold font-mono ${color}`}>{value}/100</span>
         </div>
         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -154,15 +190,30 @@ export default function DwellTimeProjection({ config }) {
       {/* Satisfaction gauges */}
       <div className="bg-white border border-rule rounded-xl p-4 space-y-3">
         <p className="text-xs font-bold uppercase tracking-wider text-ink-muted mb-2">Satisfaction Indexes</p>
-        <Gauge label="Reader Satisfaction" value={satisfaction.readerSatisfaction} icon={Users} color="text-blue-600" />
-        <Gauge label="Advertiser Satisfaction" value={satisfaction.advertiserSatisfaction} icon={Megaphone} color="text-purple-600" />
+        <Gauge
+          label="Reader Satisfaction"
+          value={satisfaction.readerSatisfaction}
+          icon={Users}
+          color="text-blue-600"
+          tooltip={`Measures how much more engaging the interactive version is vs. the original flat article. Scored on three factors: dwell time multiplier (${satisfaction.dwellMultiplier.toFixed(1)}x longer = up to 40 pts), number of interactive blocks like quizzes, sliders, and maps (${interactive.interactionBlockCount} blocks = up to 30 pts), and content variety across ${interactive.uniqueBlockTypes} different block types (up to 30 pts). A flat article scores near zero because readers skim at 60% attention for ~${formatTime(original.totalSeconds)}. The interactive version holds full attention for ${formatTime(interactive.totalSeconds)} through active participation.`}
+        />
+        <Gauge
+          label="Advertiser Satisfaction"
+          value={satisfaction.advertiserSatisfaction}
+          icon={Megaphone}
+          color="text-purple-600"
+          tooltip={`Measures ad value from an advertiser's perspective. Four equal factors: total dwell time (${formatTime(interactive.totalSeconds)} on page = up to 25 pts), ad exposure time (${satisfaction.adVerification.adExposureSeconds}s of direct ad visibility via the quizterstitial + result card = up to 25 pts), engagement depth (${interactive.interactionBlockCount} active interactions = up to 25 pts), and attention quality (${Math.round(interactive.interactionSeconds / interactive.totalSeconds * 100)}% of time is active clicking/choosing vs. passive reading = up to 25 pts). A flat article delivers a scroll-past impression; this delivers verified engaged attention.`}
+        />
       </div>
 
       {/* CPM uplift */}
       <div className="bg-white border border-rule rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <DollarSign size={14} className="text-green-600" />
-          <p className="text-xs font-bold uppercase tracking-wider text-ink-muted">CPM Projection</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-ink-muted flex items-center">
+            CPM Projection
+            <InfoTip text={`Baseline CPM ($${satisfaction.baseCPM.toFixed(2)}) reflects standard news display ads. The interactive version commands a premium because advertisers pay more for verified engaged attention: ${satisfaction.dwellMultiplier.toFixed(1)}x longer dwell, active user participation, and a ${satisfaction.adVerification.interstitialDuration}s forced-view quizterstitial ad between input and results. Industry data shows interactive ad units achieve 3-8x higher CPMs than static display.`} />
+          </p>
         </div>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
