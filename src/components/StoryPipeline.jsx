@@ -1,8 +1,8 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, Fragment } from 'react'
 import {
   Rss, FileEdit, CheckCircle2, XCircle, Eye, ThumbsUp, ThumbsDown,
   RefreshCw, Clock, AlertTriangle, Loader2, Undo2, Link, ExternalLink,
-  Sparkles, Zap, ImageIcon, Search, Trash2, X, Plus
+  Sparkles, Zap, ImageIcon, Search, Trash2, X, Plus, BarChart3
 } from 'lucide-react'
 
 const NEWS_FEED_COUNT = 3
@@ -12,6 +12,7 @@ import {
   updateGeneratedStoryImage, fetchAllTopics,
   fetchRssItemById, fetchGeneratedStoryByRssItemId
 } from '../lib/supabase'
+import DwellTimeProjection from './DwellTimeProjection'
 
 const StoryRenderer = lazy(() => import('../renderer/StoryRenderer'))
 
@@ -833,6 +834,7 @@ function DraftsView({ stories, onRefresh }) {
   const [acting, setActing] = useState(null)
   const [imageId, setImageId] = useState(null)
   const [imageWarningId, setImageWarningId] = useState(null)
+  const [projectionId, setProjectionId] = useState(null)
 
   const drafts = stories.filter(s => s.status === 'draft')
 
@@ -932,6 +934,16 @@ function DraftsView({ stories, onRefresh }) {
                   <Eye size={13} />{isPreview ? 'Close' : 'Preview'}
                 </button>
                 <button
+                  onClick={() => setProjectionId(projectionId === story.id ? null : story.id)}
+                  className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded border transition-colors ${
+                    projectionId === story.id
+                      ? 'border-amber-300 bg-amber-50 text-amber-700'
+                      : 'border-rule hover:bg-slate-50'
+                  }`}
+                >
+                  <BarChart3 size={13} />{projectionId === story.id ? 'Close' : 'Projection'}
+                </button>
+                <button
                   onClick={() => handleApprove(story)}
                   disabled={acting === story.id}
                   className="flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
@@ -1022,6 +1034,13 @@ function DraftsView({ stories, onRefresh }) {
                 </Suspense>
               </div>
             )}
+
+            {/* Dwell time projection panel */}
+            {projectionId === story.id && config && (
+              <div className="border-t border-rule bg-slate-50 p-4">
+                <DwellTimeProjection config={config} />
+              </div>
+            )}
           </div>
         )
       })}
@@ -1032,6 +1051,7 @@ function DraftsView({ stories, onRefresh }) {
 // --- Published View ---
 function PublishedView({ stories, onRefresh }) {
   const [acting, setActing] = useState(null)
+  const [projectionId, setProjectionId] = useState(null)
   const published = stories.filter(s => s.status === 'published')
 
   const handleUnpublish = async (story) => {
@@ -1056,25 +1076,47 @@ function PublishedView({ stories, onRefresh }) {
           </tr>
         </thead>
         <tbody>
-          {published.map(story => (
-            <tr key={story.id} className="border-b border-rule/50 hover:bg-slate-50 transition-colors">
-              <td className="py-3 pr-4 font-medium text-ink max-w-xs">
-                <span className="line-clamp-1">{story.headline || 'Untitled'}</span>
-              </td>
-              <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{story.category || '-'}</td>
-              <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{formatDate(story.publish_date || story.approved_at)}</td>
-              <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{story.approved_by || '-'}</td>
-              <td className="py-3">
-                <button
-                  onClick={() => handleUnpublish(story)}
-                  disabled={acting === story.id}
-                  className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-colors disabled:opacity-50"
-                >
-                  <Undo2 size={12} />Unpublish
-                </button>
-              </td>
-            </tr>
-          ))}
+          {published.map(story => {
+            const isProjection = projectionId === story.id
+            return (<Fragment key={story.id}>
+              <tr className="border-b border-rule/50 hover:bg-slate-50 transition-colors">
+                <td className="py-3 pr-4 font-medium text-ink max-w-xs">
+                  <span className="line-clamp-1">{story.headline || 'Untitled'}</span>
+                </td>
+                <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{story.category || '-'}</td>
+                <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{formatDate(story.publish_date || story.approved_at)}</td>
+                <td className="py-3 pr-4 text-ink-muted whitespace-nowrap">{story.approved_by || '-'}</td>
+                <td className="py-3">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setProjectionId(projectionId === story.id ? null : story.id)}
+                      className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded border transition-colors ${
+                        projectionId === story.id
+                          ? 'border-amber-300 bg-amber-50 text-amber-700'
+                          : 'border-rule hover:bg-slate-50'
+                      }`}
+                    >
+                      <BarChart3 size={12} />{projectionId === story.id ? 'Close' : 'Projection'}
+                    </button>
+                    <button
+                      onClick={() => handleUnpublish(story)}
+                      disabled={acting === story.id}
+                      className="flex items-center gap-1 text-xs font-medium px-2 py-1 rounded text-orange-700 bg-orange-50 hover:bg-orange-100 border border-orange-200 transition-colors disabled:opacity-50"
+                    >
+                      <Undo2 size={12} />Unpublish
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {projectionId === story.id && story.config && (
+                <tr>
+                  <td colSpan={5} className="py-3 px-4 bg-slate-50 border-b border-rule">
+                    <DwellTimeProjection config={story.config} />
+                  </td>
+                </tr>
+              )}
+            </Fragment>
+          )})}
         </tbody>
       </table>
     </div>

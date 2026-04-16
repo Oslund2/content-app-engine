@@ -8,8 +8,8 @@ function countWords(text) {
   return text.trim().split(/\s+/).filter(Boolean).length
 }
 
-export function estimateReadTime(config) {
-  if (!config) return '5 min'
+export function countTotalWords(config) {
+  if (!config) return 0
 
   let totalWords = 0
 
@@ -25,7 +25,6 @@ export function estimateReadTime(config) {
   // Blocks
   if (Array.isArray(config.blocks)) {
     config.blocks.forEach(block => {
-      // Article body paragraphs
       if (Array.isArray(block.paragraphs)) {
         block.paragraphs.forEach(p => { totalWords += countWords(p) })
       }
@@ -37,7 +36,6 @@ export function estimateReadTime(config) {
           }
         })
       }
-      // Fact check items
       if (Array.isArray(block.items)) {
         block.items.forEach(item => {
           totalWords += countWords(item.claim)
@@ -46,14 +44,12 @@ export function estimateReadTime(config) {
           totalWords += countWords(item.description)
         })
       }
-      // Step guides
       if (Array.isArray(block.steps)) {
         block.steps.forEach(s => {
           totalWords += countWords(s.title)
           totalWords += countWords(s.description)
         })
       }
-      // Quiz questions (count as reading)
       if (Array.isArray(block.questions)) {
         block.questions.forEach(q => {
           totalWords += countWords(q.question)
@@ -62,11 +58,9 @@ export function estimateReadTime(config) {
           }
         })
       }
-      // Collapsible content
       if (Array.isArray(block.paragraphs)) {
         block.paragraphs.forEach(p => { totalWords += countWords(p) })
       }
-      // Generic text fields
       totalWords += countWords(block.headline)
       totalWords += countWords(block.subhead)
       totalWords += countWords(block.title)
@@ -78,7 +72,14 @@ export function estimateReadTime(config) {
     config.articleBody.forEach(p => { totalWords += countWords(p) })
   }
 
-  // Add ~1 min baseline for interactive elements
+  return totalWords
+}
+
+export function estimateReadTime(config) {
+  if (!config) return '5 min'
+
+  const totalWords = countTotalWords(config)
+
   const hasInputs = Array.isArray(config.inputs) && config.inputs.length > 0
   const hasBlockInputs = Array.isArray(config.blocks) && config.blocks.some(b => b.type === 'input' || b.type === 'progressive-quiz')
   const interactionMinutes = (hasInputs || hasBlockInputs) ? 1 : 0
