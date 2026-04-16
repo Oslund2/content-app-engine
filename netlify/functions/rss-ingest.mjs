@@ -101,11 +101,11 @@ async function scrapeOgImage(url) {
       signal: AbortSignal.timeout(5000),
     })
     if (!res.ok) return null
-    // Only read first 30KB — og:image is always in <head>
+    // Read first 200KB — WCPO pages have ~150KB of inline JS before og:image
     var reader = res.body.getReader()
     var chunks = []
     var totalLen = 0
-    while (totalLen < 30000) {
+    while (totalLen < 200000) {
       var result = await reader.read()
       if (result.done) break
       chunks.push(result.value)
