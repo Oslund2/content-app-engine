@@ -916,7 +916,7 @@ function DraftsView({ stories, onRefresh }) {
                 )}
               </div>
               {/* Action buttons */}
-              <div className="flex gap-2 shrink-0">
+              <div className="flex flex-wrap gap-2 shrink-0">
                 <button
                   onClick={() => setImageId(isImageOpen ? null : story.id)}
                   className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded border transition-colors ${
