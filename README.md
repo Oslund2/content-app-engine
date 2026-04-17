@@ -158,6 +158,40 @@ Story apps generate revenue through three reinforcing channels:
 
 ---
 
+## Projections: Measuring the Story-App Advantage
+
+Every story in the pipeline includes a **Projections panel** that quantifies how the interactive version compares to the original flat article. Editors click the "Projection" button on any draft or published story to see a side-by-side breakdown of engagement, satisfaction, and revenue impact.
+
+### How It Works
+
+The projection engine (`src/lib/dwellTimeModel.js`) analyzes a story's configuration and computes:
+
+1. **Original Article Metrics** -- Word count, estimated read time at 230 WPM, and a 60% skim factor reflecting how readers actually consume flat text
+2. **Interactive Version Metrics** -- Full-attention read time plus per-block interaction time estimates (e.g., sliders add 8s, map interactions add 15s, quizzes add 12s per question)
+3. **Dwell Multiplier** -- The ratio between the two, typically 2-4x longer engagement for the interactive version
+
+### Satisfaction Gauges
+
+Two scored indices (0-100) show how the story app performs for its two audiences:
+
+- **Reader Satisfaction** -- Scores dwell multiplier (40 pts), interaction block count (30 pts), and content diversity across block types (30 pts)
+- **Advertiser Satisfaction** -- Scores total dwell time (25 pts), ad exposure time (25 pts), engagement depth (25 pts), and attention quality as the ratio of active interaction to passive reading (25 pts)
+
+### CPM Projection
+
+The panel translates engagement into revenue impact. Starting from a $3.50 base CPM (standard display), the model applies bonuses based on the dwell multiplier and advertiser satisfaction score, projecting typical CPM uplifts of 50-200% over baseline. The projection accounts for interstitial ad exposure (3.5s forced view, skippable after 1.2s) and result card visibility (8s).
+
+### Sensitivity Awareness
+
+Projections respect editorial sensitivity settings. When a story's sensitivity level disables ads, interstitials, or polls, the projection model excludes those components from its calculations -- ensuring the numbers reflect what will actually publish.
+
+### Where It Appears
+
+- **Drafts tab** -- Collapsible projection panel per story, helping editors evaluate interactive potential before publishing
+- **Published tab** -- Inline projection row in the story table, showing live performance context
+
+---
+
 ## Live Stories
 
 Real Cincinnati news stories transformed into interactive applications with localized headlines and neighborhood-level maps:
@@ -248,6 +282,7 @@ src/
     StoryConnections.jsx     # Contextual cross-story recommendations
     SaveButton.jsx           # Persistent result profiles
     AdSlot.jsx               # Sensitivity-aware ad placement
+    DwellTimeProjection.jsx  # Article vs. story-app engagement comparison
     AdminHub.jsx             # Editorial dashboard (Pipeline, Topics, Sensitivity, Analytics)
     SensitivityAdmin.jsx     # Sensitivity analysis review + override
     StoryPipeline.jsx        # AI pipeline management (RSS Queue, Drafts with image
@@ -260,6 +295,7 @@ src/
   lib/
     supabase.js              # Database client + all queries + analytics
     readTime.js              # Content-based read time estimation
+    dwellTimeModel.js        # Dwell time projection engine (article vs. story-app)
 
 netlify/functions/           # Serverless backend
   lib/
