@@ -79,10 +79,10 @@ export default function HeroSection({ hero, sourceAttribution }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.15 + i * 0.08 }}
-              className="bg-paper-warm rounded-xl p-4 border border-rule text-center"
+              className="bg-paper-warm rounded-xl p-3 sm:p-4 border border-rule text-center min-w-0 overflow-hidden"
             >
-              <p className="text-2xl font-bold font-mono text-ink">{stat.value}</p>
-              <p className="text-sm font-semibold text-ink mt-1">{stat.label}</p>
+              <p className="text-xl font-bold font-mono text-ink break-all leading-tight">{stat.value}</p>
+              <p className="text-xs sm:text-sm font-semibold text-ink mt-1">{stat.label}</p>
               {stat.sub && (
                 <p className="text-xs text-ink-muted mt-0.5">{stat.sub}</p>
               )}
