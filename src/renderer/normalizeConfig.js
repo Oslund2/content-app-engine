@@ -330,22 +330,23 @@ export function normalizeConfig(config) {
     }
 
     // Ensure hero from first hero block (for StoryShell)
-    if (!normalized.hero) {
-      const heroBlock = normalized.blocks.find(b => b.type === 'hero')
-      if (heroBlock) {
-        normalized.hero = {
-          headline: heroBlock.headline,
-          subhead: heroBlock.subhead,
-          leadParagraphs: heroBlock.leadParagraphs,
-          keyStats: heroBlock.keyStats,
-          image: heroBlock.image || config.image || null,
-        }
-      } else {
-        normalized.hero = {
-          headline: config.headline || config.title || 'Interactive Story',
-          subhead: config.subhead || config.subtitle || '',
-          image: config.image || null,
-        }
+    // Always prefer the hero block's data — StoryApp pre-sets config.hero with just
+    // the image URL, which would otherwise prevent headline/subhead extraction.
+    const heroBlock = normalized.blocks.find(b => b.type === 'hero')
+    if (heroBlock) {
+      const existingImage = normalized.hero?.image || config.image || null
+      normalized.hero = {
+        headline: heroBlock.headline,
+        subhead: heroBlock.subhead,
+        leadParagraphs: heroBlock.leadParagraphs,
+        keyStats: heroBlock.keyStats,
+        image: heroBlock.image || existingImage,
+      }
+    } else if (!normalized.hero) {
+      normalized.hero = {
+        headline: config.headline || config.title || 'Interactive Story',
+        subhead: config.subhead || config.subtitle || '',
+        image: config.image || null,
       }
     }
     // Ensure hero.image is preserved if set at top level
