@@ -7,13 +7,22 @@ import NarrationPlayer from './NarrationPlayer'
 import EmbedShareModal from './EmbedShareModal'
 import storyData from '../storyData.json'
 
-export default function StoryShell({ onBack, category, categoryColor, timestamp, readTime, storyId, headline, children }) {
+export default function StoryShell({ onBack, category, categoryColor, timestamp, readTime, storyId, headline, subhead, children }) {
   const narration = useNarration(storyId)
   const storyMeta = storyData.stories.find(s => s.id === storyId)
   const storyTitle = headline || storyMeta?.headline || ''
   const playerVisible = narration.isPlaying || narration.status === 'paused'
   const [embedOpen, setEmbedOpen] = useState(false)
   const isEmbed = new URLSearchParams(window.location.search).get('embed') === 'true'
+
+  // Embed mode: no chrome — the host page (CMS) provides headline and navigation
+  if (isEmbed) {
+    return (
+      <main className="max-w-3xl mx-auto px-5 sm:px-8 py-4">
+        {children}
+      </main>
+    )
+  }
 
   return (
     <>
@@ -33,16 +42,14 @@ export default function StoryShell({ onBack, category, categoryColor, timestamp,
             <span className="text-xl font-extrabold text-white tracking-tight">WCPO</span>
             <span className="bg-wcpo-red text-white text-[8px] font-bold px-1.5 py-0.5 rounded">9</span>
           </div>
-          {!isEmbed && (
-            <div className="flex items-center gap-3 text-white/50">
-              <Share2
-                size={16}
-                className="cursor-pointer hover:text-white transition-colors"
-                onClick={() => setEmbedOpen(true)}
-              />
-              <Bookmark size={16} className="cursor-pointer hover:text-white transition-colors" />
-            </div>
-          )}
+          <div className="flex items-center gap-3 text-white/50">
+            <Share2
+              size={16}
+              className="cursor-pointer hover:text-white transition-colors"
+              onClick={() => setEmbedOpen(true)}
+            />
+            <Bookmark size={16} className="cursor-pointer hover:text-white transition-colors" />
+          </div>
         </div>
       </header>
 
@@ -75,6 +82,7 @@ export default function StoryShell({ onBack, category, categoryColor, timestamp,
         onClose={() => setEmbedOpen(false)}
         storyId={storyId}
         headline={storyTitle}
+        subhead={subhead || ''}
       />
     </>
   )

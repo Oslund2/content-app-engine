@@ -84,6 +84,24 @@ export default function StoryApp() {
   const [embedStory, setEmbedStory] = useState(null)
   const [fetchError, setFetchError] = useState(null)
 
+  // Embed mode: post content height to parent so the iframe auto-resizes
+  useEffect(() => {
+    if (!isEmbed) return
+    document.body.style.overflow = 'hidden'
+    let timer = null
+    const sendHeight = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        const height = document.documentElement.scrollHeight
+        window.parent.postMessage({ type: 'content-app-engine:resize', storyId: activeStory, height }, '*')
+      }, 100)
+    }
+    const ro = new ResizeObserver(sendHeight)
+    ro.observe(document.documentElement)
+    sendHeight()
+    return () => { ro.disconnect(); clearTimeout(timer) }
+  }, [isEmbed, activeStory])
+
   // Fetch published generated stories on mount
   useEffect(() => {
     fetchGeneratedStories('published')

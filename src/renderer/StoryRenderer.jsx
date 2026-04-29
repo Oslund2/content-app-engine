@@ -31,6 +31,7 @@ function StoryContent({ config, storyId, onBack, onOpenStory, sourceAttribution 
       category={config.theme?.categoryLabel ?? config.category ?? config.hero?.category}
       categoryColor={config.theme?.accentColor ?? config.categoryColor ?? config.hero?.categoryColor}
       headline={config.hero?.headline}
+      subhead={config.hero?.subhead}
       storyId={storyId}
       timestamp={config.timestamp}
       readTime={config.readTime ?? estimateReadTime(config)}

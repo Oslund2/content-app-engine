@@ -7,6 +7,7 @@ export default function HeroSection({ hero, sourceAttribution }) {
 
   const { headline, subhead, leadParagraphs = [], keyStats = [], image } = hero
   const [imgError, setImgError] = useState(false)
+  const isEmbed = new URLSearchParams(window.location.search).get('embed') === 'true'
 
   return (
     <motion.section
@@ -28,15 +29,15 @@ export default function HeroSection({ hero, sourceAttribution }) {
         </div>
       )}
 
-      {/* Headline */}
-      {headline && (
+      {/* Headline — hidden in embed mode (CMS provides this above the iframe) */}
+      {headline && !isEmbed && (
         <h1 className="text-3xl sm:text-4xl font-extrabold text-ink leading-tight mb-3">
           {headline}
         </h1>
       )}
 
-      {/* Subhead */}
-      {subhead && (
+      {/* Subhead — hidden in embed mode */}
+      {subhead && !isEmbed && (
         <p className="text-lg text-ink-light leading-relaxed mb-4">{subhead}</p>
       )}
 

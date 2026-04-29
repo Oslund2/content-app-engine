@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Code2, Copy, Check, Link2, Share2 } from 'lucide-react'
+import { X, Code2, Copy, Check, Link2, Share2, FileText } from 'lucide-react'
 
 const sizes = [
   { label: 'Small', height: 400 },
@@ -10,25 +10,37 @@ const sizes = [
 
 const BASE_URL = 'https://content-app-engine.netlify.app'
 
-export default function EmbedShareModal({ open, onClose, storyId, headline }) {
+export default function EmbedShareModal({ open, onClose, storyId, headline, subhead }) {
   const [tab, setTab] = useState('share') // 'share' | 'embed'
-  const [sizeIdx, setSizeIdx] = useState(2)
+  const [sizeIdx, setSizeIdx] = useState(1) // default Medium
   const [copied, setCopied] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [headlineCopied, setHeadlineCopied] = useState(false)
+  const [subheadCopied, setSubheadCopied] = useState(false)
   const backdropRef = useRef(null)
 
   const storyUrl = `${BASE_URL}/?story=${storyId}`
   const shareText = headline || 'Check out this interactive story from WCPO'
+  const iframeId = `wcpo-embed-${storyId}`
 
   const embedCode = `<iframe
+  id="${iframeId}"
   src="${storyUrl}&embed=true"
   width="100%"
   height="${sizes[sizeIdx].height}"
   frameborder="0"
-  style="border: 1px solid #e5e7eb; border-radius: 12px; max-width: 720px;"
+  style="border: none; border-radius: 8px; max-width: 720px; display: block;"
   title="WCPO Interactive: ${headline || storyId}"
   allow="clipboard-write"
-></iframe>`
+></iframe>
+<script>
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'content-app-engine:resize') {
+    var f = document.getElementById('wcpo-embed-' + e.data.storyId);
+    if (f) f.style.height = e.data.height + 'px';
+  }
+});
+</script>`
 
   const handleCopyEmbed = () => {
     navigator.clipboard.writeText(embedCode)
@@ -40,6 +52,18 @@ export default function EmbedShareModal({ open, onClose, storyId, headline }) {
     navigator.clipboard.writeText(storyUrl)
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  const handleCopyHeadline = () => {
+    navigator.clipboard.writeText(headline || '')
+    setHeadlineCopied(true)
+    setTimeout(() => setHeadlineCopied(false), 2000)
+  }
+
+  const handleCopySubhead = () => {
+    navigator.clipboard.writeText(subhead || '')
+    setSubheadCopied(true)
+    setTimeout(() => setSubheadCopied(false), 2000)
   }
 
   const handleNativeShare = async () => {
@@ -86,6 +110,9 @@ export default function EmbedShareModal({ open, onClose, storyId, headline }) {
   useEffect(() => {
     if (open) { setTab('share'); setCopied(false); setLinkCopied(false) }
   }, [open])
+
+  const hlLen = (headline || '').length
+  const shLen = (subhead || '').length
 
   return (
     <AnimatePresence>
@@ -138,11 +165,11 @@ export default function EmbedShareModal({ open, onClose, storyId, headline }) {
                   tab === 'embed' ? 'border-slate-800 text-ink' : 'border-transparent text-ink-muted hover:text-ink'
                 }`}
               >
-                <Code2 size={12} className="inline mr-1 -mt-0.5" />Embed
+                <Code2 size={12} className="inline mr-1 -mt-0.5" />Embed / CMS
               </button>
             </div>
 
-            <div className="px-5 py-4 space-y-4">
+            <div className="px-5 py-4 space-y-4 max-h-[80vh] overflow-y-auto">
               {tab === 'share' && (
                 <>
                   {/* Copy Link */}
@@ -203,8 +230,72 @@ export default function EmbedShareModal({ open, onClose, storyId, headline }) {
 
               {tab === 'embed' && (
                 <>
+                  {/* CMS Fields — copy headline and subhead into Brightspot */}
+                  <div className="rounded-lg border border-slate-200 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
+                      <FileText size={12} className="text-slate-500" />
+                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">CMS Fields (Brightspot)</span>
+                    </div>
+                    <div className="p-3 space-y-3">
+                      {/* Headline */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Headline</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-mono ${hlLen > 110 ? 'text-red-500' : hlLen > 90 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                              {hlLen}/110
+                            </span>
+                            <button
+                              onClick={handleCopyHeadline}
+                              disabled={!headline}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-all ${
+                                headlineCopied
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              } disabled:opacity-40 disabled:cursor-not-allowed`}
+                            >
+                              {headlineCopied ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-ink bg-white border border-rule rounded px-2.5 py-2 leading-snug min-h-[36px]">
+                          {headline || <span className="text-ink-muted italic">No headline available</span>}
+                        </p>
+                      </div>
+
+                      {/* Sub-Headline */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-wider">Sub-Headline</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-mono ${shLen > 200 ? 'text-red-500' : shLen > 160 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                              {shLen}/200
+                            </span>
+                            <button
+                              onClick={handleCopySubhead}
+                              disabled={!subhead}
+                              className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-semibold transition-all ${
+                                subheadCopied
+                                  ? 'bg-emerald-50 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                              } disabled:opacity-40 disabled:cursor-not-allowed`}
+                            >
+                              {subheadCopied ? <><Check size={10} /> Copied</> : <><Copy size={10} /> Copy</>}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm text-ink bg-white border border-rule rounded px-2.5 py-2 leading-snug min-h-[36px]">
+                          {subhead || <span className="text-ink-muted italic">No sub-headline available</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Initial height (fallback if CMS strips the resize script) */}
                   <div>
-                    <label className="text-xs font-medium text-ink-muted block mb-2">Embed Height</label>
+                    <label className="text-xs font-medium text-ink-muted block mb-2">
+                      Initial Height <span className="text-ink-muted/60 font-normal">(auto-adjusts via script below)</span>
+                    </label>
                     <div className="flex gap-2">
                       {sizes.map((s, i) => (
                         <button
@@ -222,6 +313,7 @@ export default function EmbedShareModal({ open, onClose, storyId, headline }) {
                     </div>
                   </div>
 
+                  {/* Embed code */}
                   <div className="border border-rule rounded-lg overflow-hidden">
                     <div className="px-3 py-2 bg-slate-50 border-b border-rule">
                       <span className="text-[10px] font-medium text-ink-muted uppercase tracking-wider">HTML Embed Code</span>
@@ -243,7 +335,8 @@ export default function EmbedShareModal({ open, onClose, storyId, headline }) {
                   </button>
 
                   <p className="text-[11px] text-ink-muted text-center">
-                    Paste this code into any HTML page, CMS, or newsletter template.
+                    The embed starts with the hero image — headline and sub-headline come from CMS fields above.
+                    If your CMS strips &lt;script&gt; tags, the initial height above is used as a fixed fallback.
                   </p>
                 </>
               )}
